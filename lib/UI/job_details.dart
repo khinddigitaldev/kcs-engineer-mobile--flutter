@@ -16,6 +16,7 @@ import 'package:kcs_engineer/model/solution.dart';
 import 'package:kcs_engineer/model/sparepart.dart';
 import 'package:kcs_engineer/model/user.dart';
 import 'package:kcs_engineer/model/user_sparepart.dart';
+import 'package:kcs_engineer/themes/app_colors.dart';
 import 'package:kcs_engineer/themes/text_styles.dart';
 import 'package:kcs_engineer/util/api.dart';
 import 'package:kcs_engineer/util/full_screen_image.dart';
@@ -3069,50 +3070,61 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                             },
                                             style: TextStyle(fontSize: 15),
                                           )),
-                                      
                                       Row(
-                                        mainAxisAlignment: MainAxisAlignment.end,
-                                        crossAxisAlignment: CrossAxisAlignment.end,
-                                        children:[ Container(
-                          color: Colors.white,
-                          height: 40,
-                          width: MediaQuery.of(context).size.width * 0.1,
-                          child: ElevatedButton(
-                              child: Padding(
-                                  padding: const EdgeInsets.all(5.0),
-                                  child: Text(
-                                    'CLEAR',
-                                    style: TextStyle(
-                                        fontSize: 11, color: Colors.white),
-                                  )),
-                              style: ButtonStyle(
-                                  foregroundColor:
-                                      MaterialStateProperty.all<Color>(
-                                          Color(0xFF),
-                                  backgroundColor:
-                                      MaterialStateProperty.all<Color>(
-                                          AppColors.primary),
-                                  shape: MaterialStateProperty.all<
-                                          RoundedRectangleBorder>(
-                                      RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(5.0),
-                                          side: BorderSide(
-                                              color: AppColors.primary)))),
-                              onPressed: () async {
-                                setState(() {
-                                  startDate = "";
-                                  endDate = "";
-                                  tempStartDate = "";
-                                  tempEndDate = "";
-                                  isFiltersAdded = false;
-                                  filterCT.text = "";
-                                  currentPage = 1;
-                                });
-                                await _fetchPaymentHistory(true);
-                              }),
-                        )]
-                                      )
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.end,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
+                                          children: [
+                                            Container(
+                                              color: Colors.white,
+                                              height: 40,
+                                              width: MediaQuery.of(context)
+                                                      .size
+                                                      .width *
+                                                  0.1,
+                                              child: ElevatedButton(
+                                                  child: Padding(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              5.0),
+                                                      child: Text(
+                                                        'CLEAR',
+                                                        style: TextStyle(
+                                                            fontSize: 11,
+                                                            color:
+                                                                Colors.white),
+                                                      )),
+                                                  style: ButtonStyle(
+                                                      foregroundColor:
+                                                          MaterialStateProperty
+                                                              .all<Color>(
+                                                    Color(0xFF),
+                                                    // backgroundColor:
+                                                    //     MaterialStateProperty.all<Color>(
+                                                    //         AppColors.primary),
+                                                    // shape: MaterialStateProperty.all<
+                                                    //         RoundedRectangleBorder>(
+                                                    //     RoundedRectangleBorder(
+                                                    //         borderRadius:
+                                                    //             BorderRadius.circular(5.0),
+                                                    //         side: BorderSide(
+                                                    //             color: AppColors.primary)))
+                                                  )),
+                                                  onPressed: () async {
+                                                    // setState(() {
+                                                    //   startDate = "";
+                                                    //   endDate = "";
+                                                    //   tempStartDate = "";
+                                                    //   tempEndDate = "";
+                                                    //   isFiltersAdded = false;
+                                                    //   filterCT.text = "";
+                                                    //   currentPage = 1;
+                                                    // });
+                                                    // await _fetchPaymentHistory(true);
+                                                  }),
+                                            )
+                                          ])
                                     ]),
                                   ),
                                   SizedBox(
