@@ -31,7 +31,7 @@ class AuthInterceptor implements InterceptorContract {
 }
 
 class ApiInterceptor implements InterceptorContract {
-  String baseUrl = "https://mc.mayer.sg:8080/api/v1";
+  String baseUrl = "https://mc.mayer.sg/api/v1";
 
   @override
   Future<RequestData> interceptRequest({required RequestData data}) async {
@@ -93,7 +93,7 @@ class Api {
   static bearerGet(endpoint, {params}) async {
     try {
       final response;
-      String baseUrl = "https://mc.mayer.sg:8080/api/v1";
+      String baseUrl = "https://mc.mayer.sg/api/v1";
 
       String url = '$baseUrl/$endpoint';
 
@@ -118,7 +118,7 @@ class Api {
   static bearerPatch(endpoint, {params, queryParams}) async {
     try {
       final response;
-      String baseUrl = "https://mc.mayer.sg:8080/api/v1";
+      String baseUrl = "https://mc.mayer.sg/api/v1";
 
       String url = '$baseUrl/$endpoint';
 
@@ -145,7 +145,7 @@ class Api {
   static bearerDelete(endpoint, {params, queryParams}) async {
     try {
       final response;
-      String baseUrl = "https://mc.mayer.sg:8080/api/v1";
+      String baseUrl = "https://mc.mayer.sg/api/v1";
 
       String url = '$baseUrl/$endpoint';
 
@@ -172,7 +172,7 @@ class Api {
   static bearerPost(endpoint, {params, queryParams}) async {
     try {
       final response;
-      String baseUrl = "https://mc.mayer.sg:8080/api/v1";
+      String baseUrl = "https://mc.mayer.sg/api/v1";
 
       String url = '$baseUrl/$endpoint';
 

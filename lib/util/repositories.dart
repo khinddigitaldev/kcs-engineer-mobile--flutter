@@ -328,20 +328,19 @@ class Repositories {
   }
 
   static Future<bool> startJob(List<File> images, int jobId) async {
-    var url = Uri.parse(
-        'https://mc.mayer.sg:8080/api/v1/job-orders/$jobId/job-start');
+    var url =
+        Uri.parse('https://mc.mayer.sg/api/v1/job-orders/$jobId/job-start');
     return await sendMultipartReq(images, url);
   }
 
   static Future<bool> completeJob(List<File> images, int jobId) async {
-    var url = Uri.parse(
-        'https://mc.mayer.sg:8080/api/v1/job-orders/$jobId/job-complete');
+    var url =
+        Uri.parse('https://mc.mayer.sg/api/v1/job-orders/$jobId/job-complete');
     return await sendMultipartReq(images, url);
   }
 
   static Future<bool> uploadKIV(List<File> images, int jobId) async {
-    var url =
-        Uri.parse('https://mc.mayer.sg:8080/api/v1/job-orders/$jobId/job-kiv');
+    var url = Uri.parse('https://mc.mayer.sg/api/v1/job-orders/$jobId/job-kiv');
     return await sendMultipartReq(images, url);
   }
 
@@ -420,7 +419,6 @@ class Repositories {
     }
   }
 
- 
   static Future<List<PaymentMethod>> fetchPaymentMethods() async {
     final response = await Api.bearerGet('payment-methods');
     List<String> pmLabels = [];
@@ -445,8 +443,8 @@ class Repositories {
       List<Map<String, dynamic>>? paymentTransactions) async {
     var token = await storage.read(key: TOKEN);
 
-    var url = Uri.parse(
-        'https://mc.mayer.sg:8080/api/v1/job-orders/$jobId/job-payment');
+    var url =
+        Uri.parse('https://mc.mayer.sg/api/v1/job-orders/$jobId/job-payment');
 
     var headers = {
       'Accept': 'application/vnd.api+json',

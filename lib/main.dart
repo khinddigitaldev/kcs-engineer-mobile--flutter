@@ -138,7 +138,7 @@ class MyApp extends StatelessWidget {
       ],
       // locale: Locale('en'),
       theme: ThemeData(
-          fontFamily: 'Avant',
+          fontFamily: 'Roboto',
           textTheme: TextTheme(
               bodyText1: TextStyle(fontSize: 12.0),
               bodyText2: TextStyle(fontSize: 12.0),

@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:expandable_bottom_sheet/expandable_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -14,6 +16,7 @@ import 'package:kcs_engineer/model/solution.dart';
 import 'package:kcs_engineer/model/sparepart.dart';
 import 'package:kcs_engineer/model/user.dart';
 import 'package:kcs_engineer/model/user_sparepart.dart';
+import 'package:kcs_engineer/themes/text_styles.dart';
 import 'package:kcs_engineer/util/api.dart';
 import 'package:kcs_engineer/util/full_screen_image.dart';
 import 'package:kcs_engineer/util/helpers.dart';
@@ -21,8 +24,13 @@ import 'package:kcs_engineer/util/repositories.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 class JobDetails extends StatefulWidget {
-  Job? data;
-  JobDetails({this.data});
+  // Job? data;
+  JobDetails(
+      //{
+      // this.data
+      //}
+
+      );
 
   @override
   _JobDetailsState createState() => _JobDetailsState();
@@ -55,6 +63,16 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
   final storage = new FlutterSecureStorage();
   String? token;
   int imageCount = 3;
+  final imageUrls = [
+    "https://www.pngitem.com/pimgs/m/30-307416_profile-icon-png-image-free-download-searchpng-employee.png",
+    "https://www.pngitem.com/pimgs/m/30-307416_profile-icon-png-image-free-download-searchpng-employee.png",
+    "https://www.pngitem.com/pimgs/m/30-307416_profile-icon-png-image-free-download-searchpng-employee.png",
+    "https://www.pngitem.com/pimgs/m/30-307416_profile-icon-png-image-free-download-searchpng-employee.png"
+  ];
+
+  ExpansionStatus _expansionStatus = ExpansionStatus.contracted;
+  GlobalKey<ExpandableBottomSheetState> key = new GlobalKey();
+  bool isExpanded = false;
 
   bool isPartsEditable = false;
   bool isGeneralCodeEditable = false;
@@ -67,20 +85,16 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
     serialNoFocusNode = FocusNode();
     remarksFocusNode = FocusNode();
 
-    if (solutionLabels.length == 0) {
-      fetchSolutions();
-    }
+    // if (solutionLabels.length == 0) {
+    //   fetchSolutions();
+    // }
     setState(() {
-      selectedJob = widget.data;
-      isChargeable = selectedJob!.isChargeable ?? false;
-    });
-    if (selectedJob != null) {
-      serialNoController.text =
-          ((selectedJob!.serialNo != null ? selectedJob!.serialNo : "-") ??
-              "-");
+      selectedJob = null;
+      serialNoController.text = "SER_001";
       remarksController.text =
-          ((selectedJob!.comment != null ? selectedJob!.comment : "-") ?? "-");
-    }
+          "Start collecting only on Friday morning, not Thursday";
+    });
+
     _loadVersion();
     //_loadToken();
     //_checkPermisions();
@@ -185,14 +199,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                       isSerialNoEditable = true;
                                     });
                                   },
-                                  enabled: (selectedJob!.status !=
-                                              "CANCELLED" &&
-                                          selectedJob!.status != "COMPLETED" &&
-                                          selectedJob!.status != "KIV" &&
-                                          selectedJob!.status !=
-                                              "PENDING REPAIR")
-                                      ? true
-                                      : false,
+                                  enabled: true,
                                   controller: serialNoController,
                                   //     readOnly: isSerialNoEditable,
                                   focusNode: serialNoFocusNode,
@@ -232,10 +239,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                 });
                               }
                             },
-                            child: (selectedJob!.status != "CANCELLED" &&
-                                    selectedJob!.status != "COMPLETED" &&
-                                    selectedJob!.status != "KIV" &&
-                                    selectedJob!.status != "PENDING REPAIR")
+                            child: true
                                 ? isSerialNoEditable
                                     ? Icon(
                                         // <-- Icon
@@ -281,18 +285,29 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                 ),
                                 children: <TextSpan>[
                                   TextSpan(
-                                    text: selectedJob != null
-                                        ? selectedJob!.customerName
-                                        : '-',
+                                    text: 'Esther Howard',
                                   ),
                                 ]),
                           ),
                         ],
                       ),
                     ),
-                    SizedBox(
-                        width: MediaQuery.of(context).size.width * 0.25,
-                        child: new Container()),
+                    Container(
+                      width: MediaQuery.of(context).size.width * 0.25,
+                      child: RichText(
+                        text: TextSpan(
+                            style: TextStyle(
+                              fontSize: 15.0,
+                              color: Colors.black54,
+                            ),
+                            children: <TextSpan>[
+                              TextSpan(
+                                text:
+                                    '440A Clementi Avenue 3 #14-10 Clementi Cascadia',
+                              ),
+                            ]),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(
@@ -335,12 +350,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                           ),
                                           children: <TextSpan>[
                                             TextSpan(
-                                              text: selectedJob != null
-                                                  ? selectedJob!.productCode !=
-                                                          null
-                                                      ? selectedJob!.productCode
-                                                      : "-"
-                                                  : '-',
+                                              text: '395-9823',
                                             ),
                                           ]),
                                     ),
@@ -379,9 +389,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                 ),
                                 children: <TextSpan>[
                                   TextSpan(
-                                    text: selectedJob != null
-                                        ? selectedJob!.customerEmail
-                                        : '-',
+                                    text: 'binhan628@gmail.com',
                                   ),
                                 ]),
                           ),
@@ -399,15 +407,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                             ),
                             children: <TextSpan>[
                               TextSpan(
-                                text: ((errorMsg != null
-                                            ? selectedJob!.customerAddress1
-                                            : '-') ??
-                                        "") +
-                                    "\n" +
-                                    ((selectedJob != null
-                                            ? selectedJob?.customerPostCode
-                                            : '-') ??
-                                        ""),
+                                text: "408896",
                               ),
                             ]),
                       ),
@@ -451,10 +451,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                       ),
                                       children: <TextSpan>[
                                         TextSpan(
-                                          text: selectedJob != null
-                                              ? selectedJob?.productDescription
-                                                  ?.trim()
-                                              : '-',
+                                          text: "Disney x KHIND 3L Air Fryer",
                                         ),
                                       ]),
                                 ),
@@ -493,9 +490,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                 ),
                                 children: <TextSpan>[
                                   TextSpan(
-                                    text: selectedJob != null
-                                        ? selectedJob!.customerContactNo
-                                        : '-',
+                                    text: '+65 1234-5678',
                                   ),
                                 ]),
                           ),
@@ -703,48 +698,104 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                       Container(),
                     ],
                   ),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(0, 0, 0, 0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        RichText(
-                          text: const TextSpan(
-                              // Note: Styles for TextSpans must be explicitly defined.
-                              // Child text spans will inherit styles from parent
-                              style: TextStyle(
-                                fontSize: 15.0,
-                                color: Colors.black54,
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.fromLTRB(0, 0, 0, 0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              RichText(
+                                text: const TextSpan(
+                                    // Note: Styles for TextSpans must be explicitly defined.
+                                    // Child text spans will inherit styles from parent
+                                    style: TextStyle(
+                                      fontSize: 15.0,
+                                      color: Colors.black54,
+                                    ),
+                                    children: <TextSpan>[
+                                      TextSpan(
+                                        text: 'PURCHASE DATE',
+                                      ),
+                                    ]),
                               ),
-                              children: <TextSpan>[
-                                TextSpan(
-                                  text: 'PURCHASE DATE',
-                                ),
-                              ]),
-                        ),
-                        SizedBox(
-                          height: 5,
-                        ),
-                        RichText(
-                          text: TextSpan(
-                              // Note: Styles for TextSpans must be explicitly defined.
-                              // Child text spans will inherit styles from parent
-                              style: TextStyle(
-                                fontSize: 15.0,
-                                color: Colors.black87,
+                              SizedBox(
+                                height: 5,
                               ),
-                              children: <TextSpan>[
-                                TextSpan(
-                                  text: selectedJob != null
-                                      ? selectedJob!.purchaseDate?.split(' ')[0]
-                                      : '-',
-                                ),
-                              ]),
+                              RichText(
+                                text: TextSpan(
+                                    // Note: Styles for TextSpans must be explicitly defined.
+                                    // Child text spans will inherit styles from parent
+                                    style: TextStyle(
+                                      fontSize: 15.0,
+                                      color: Colors.black87,
+                                    ),
+                                    children: <TextSpan>[
+                                      TextSpan(
+                                        text: selectedJob != null
+                                            ? selectedJob!.purchaseDate
+                                                ?.split(' ')[0]
+                                            : '-',
+                                      ),
+                                    ]),
+                              ),
+                            ],
+                          ),
                         ),
-                      ],
-                    ),
-                  ),
+                        Padding(
+                          padding: EdgeInsets.fromLTRB(0, 0, 0, 0),
+                          child: Container(
+                            width: MediaQuery.of(context).size.width * 0.25,
+                            child: Row(
+                              children: [
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    const Icon(
+                                      // <-- Icon
+                                      Icons.payment_outlined,
+                                      color: Colors.black54,
+                                      size: 25.0,
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(
+                                  width: 10,
+                                ),
+                                RichText(
+                                  text: TextSpan(
+                                      // Note: Styles for TextSpans must be explicitly defined.
+                                      // Child text spans will inherit styles from parent
+                                      style: TextStyle(
+                                        fontSize: 15.0,
+                                        color: Colors.black54,
+                                      ),
+                                      children: <TextSpan>[
+                                        TextSpan(
+                                            text: ((selectedJob
+                                                            ?.paymentMethod !=
+                                                        null &&
+                                                    (selectedJob?.paymentMethod
+                                                            ?.isNotEmpty ??
+                                                        false))
+                                                ? selectedJob?.paymentMethod
+                                                    ?.reduce((value, element) =>
+                                                        value +
+                                                        (element != ""
+                                                            ? " & "
+                                                            : "") +
+                                                        element)
+                                                : "-")),
+                                      ]),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      ]),
                   SizedBox(
                     height: 20,
                   ),
@@ -781,9 +832,50 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                               ),
                               children: <TextSpan>[
                                 TextSpan(
-                                  text: selectedJob != null
-                                      ? selectedJob!.problem
-                                      : '-',
+                                  text: 'Change order missed by pro',
+                                ),
+                              ]),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(
+                    height: 20,
+                  ),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(0, 0, 0, 0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        RichText(
+                          text: const TextSpan(
+                              // Note: Styles for TextSpans must be explicitly defined.
+                              // Child text spans will inherit styles from parent
+                              style: TextStyle(
+                                fontSize: 15.0,
+                                color: Colors.black54,
+                              ),
+                              children: <TextSpan>[
+                                TextSpan(
+                                  text: 'ACTUAL ISSUE',
+                                ),
+                              ]),
+                        ),
+                        SizedBox(
+                          height: 5,
+                        ),
+                        RichText(
+                          text: TextSpan(
+                              // Note: Styles for TextSpans must be explicitly defined.
+                              // Child text spans will inherit styles from parent
+                              style: TextStyle(
+                                fontSize: 15.0,
+                                color: Colors.black87,
+                              ),
+                              children: <TextSpan>[
+                                TextSpan(
+                                  text: 'Change order missed by pro',
                                 ),
                               ]),
                         ),
@@ -791,165 +883,200 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                     ),
                   ),
                   Row(
-                    //mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: <Widget>[
-                      Row(
-                        children: [
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              SizedBox(
-                                height: 20,
-                              ),
-                              RichText(
-                                text: const TextSpan(
-                                    // Note: Styles for TextSpans must be explicitly defined.
-                                    // Child text spans will inherit styles from parent
-                                    style: TextStyle(
-                                      fontSize: 15.0,
-                                      color: Colors.black54,
-                                    ),
-                                    children: <TextSpan>[
-                                      const TextSpan(
-                                        text: 'REMARKS',
-                                      ),
-                                    ]),
-                              ),
-                              SizedBox(
-                                width: MediaQuery.of(context).size.width * 0.4,
-                                height:
-                                    MediaQuery.of(context).size.height * 0.1,
-                                child: SizedBox(
-                                  width: 100,
-                                  height: 40,
-                                  child: TextFormField(
-                                    textInputAction: TextInputAction.newline,
-                                    minLines: 1,
-                                    maxLines: 5,
-                                    keyboardType: TextInputType.multiline,
-                                    onChanged: (str) {
-                                      setState(() {
-                                        isRemarksEditable = true;
-                                      });
-                                    },
-                                    controller: remarksController,
-                                    enabled:
-                                        (selectedJob?.status == "COMPLETED" ||
-                                                selectedJob?.status ==
-                                                    "CANCELLED" ||
-                                                selectedJob?.status == "KIV")
-                                            ? false
-                                            : true,
-                                    focusNode: remarksFocusNode,
-                                    decoration: InputDecoration(
-                                      border: InputBorder.none,
-                                    ),
-                                    style: TextStyle(
-                                      fontSize: 15.0,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
+                    children: [
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          SizedBox(
+                            height: 20,
+                          ),
+                          RichText(
+                            text: const TextSpan(
+                                // Note: Styles for TextSpans must be explicitly defined.
+                                // Child text spans will inherit styles from parent
+                                style: TextStyle(
+                                  fontSize: 15.0,
+                                  color: Colors.black54,
                                 ),
-                              )
-                            ],
+                                children: <TextSpan>[
+                                  const TextSpan(
+                                    text: 'REMARKS',
+                                  ),
+                                ]),
                           ),
-                          const SizedBox(
-                            width: 5,
-                          ),
-                          GestureDetector(
-                            onTap: () async {
-                              if (isRemarksEditable) {
-                                Helpers.showAlert(context);
-                                var res = await Repositories.updateRemarks(
-                                    selectedJob!.id ?? 0,
-                                    remarksController.text.toString());
-                                //TODO
-                                await _fetchJobs();
-                                setState(() {
-                                  isRemarksEditable = false;
-                                });
-                                FocusManager.instance.primaryFocus?.unfocus();
-                                Navigator.pop(context);
-                              } else {
-                                setState(() {
-                                  isRemarksEditable = true;
-                                  remarksFocusNode.requestFocus();
-                                });
-                              }
-                            },
-                            child: (selectedJob!.status != "CANCELLED" &&
-                                    selectedJob!.status != "COMPLETED" &&
-                                    selectedJob!.status != "KIV")
-                                ? isRemarksEditable
-                                    ? Icon(
-                                        // <-- Icon
-                                        Icons.check,
-                                        color: Colors.black54,
-                                        size: 25.0,
-                                      )
-                                    : Icon(
-                                        // <-- Icon
-                                        Icons.edit,
-                                        color: Colors.black54,
-                                        size: 25.0,
-                                      )
-                                : new Container(),
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width * 0.4,
+                            height: MediaQuery.of(context).size.height * 0.05,
+                            child: SizedBox(
+                              width: 100,
+                              height: 40,
+                              child: TextFormField(
+                                textInputAction: TextInputAction.newline,
+                                minLines: 1,
+                                maxLines: 5,
+                                keyboardType: TextInputType.multiline,
+                                onChanged: (str) {
+                                  setState(() {
+                                    isRemarksEditable = true;
+                                  });
+                                },
+                                controller: remarksController,
+                                enabled: false,
+                                focusNode: remarksFocusNode,
+                                decoration: InputDecoration(
+                                  border: InputBorder.none,
+                                ),
+                                style: TextStyle(
+                                  fontSize: 15.0,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
                           )
                         ],
                       ),
-                      Padding(
-                        padding: EdgeInsets.fromLTRB(100, 0, 0, 0),
-                        child: Container(
-                          width: MediaQuery.of(context).size.width * 0.25,
-                          child: Row(
-                            children: [
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  const Icon(
+                      const SizedBox(
+                        width: 5,
+                      ),
+                      GestureDetector(
+                        onTap: () async {
+                          if (isRemarksEditable) {
+                            Helpers.showAlert(context);
+                            var res = await Repositories.updateRemarks(
+                                selectedJob!.id ?? 0,
+                                remarksController.text.toString());
+                            //TODO
+                            await _fetchJobs();
+                            setState(() {
+                              isRemarksEditable = false;
+                            });
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            Navigator.pop(context);
+                          } else {
+                            setState(() {
+                              isRemarksEditable = true;
+                              remarksFocusNode.requestFocus();
+                            });
+                          }
+                        },
+                        child: true
+                            ? false
+                                ? Icon(
                                     // <-- Icon
-                                    Icons.payment_outlined,
+                                    Icons.check,
                                     color: Colors.black54,
                                     size: 25.0,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(
-                                width: 10,
-                              ),
-                              RichText(
-                                text: TextSpan(
-                                    // Note: Styles for TextSpans must be explicitly defined.
-                                    // Child text spans will inherit styles from parent
-                                    style: TextStyle(
-                                      fontSize: 15.0,
-                                      color: Colors.black54,
-                                    ),
-                                    children: <TextSpan>[
-                                      TextSpan(
-                                          text: ((selectedJob?.paymentMethod !=
-                                                      null &&
-                                                  (selectedJob?.paymentMethod
-                                                          ?.isNotEmpty ??
-                                                      false))
-                                              ? selectedJob?.paymentMethod
-                                                  ?.reduce((value, element) =>
-                                                      value +
-                                                      (element != ""
-                                                          ? " & "
-                                                          : "") +
-                                                      element)
-                                              : "-")),
-                                    ]),
-                              ),
-                            ],
-                          ),
-                        ),
+                                  )
+                                : Icon(
+                                    // <-- Icon
+                                    Icons.edit,
+                                    color: Colors.black54,
+                                    size: 25.0,
+                                  )
+                            : new Container(),
                       )
                     ],
                   ),
+                  Row(
+                    children: [
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          RichText(
+                            text: const TextSpan(
+                                // Note: Styles for TextSpans must be explicitly defined.
+                                // Child text spans will inherit styles from parent
+                                style: TextStyle(
+                                  fontSize: 15.0,
+                                  color: Colors.black54,
+                                ),
+                                children: <TextSpan>[
+                                  const TextSpan(
+                                    text: 'ADMIN REMARKS',
+                                  ),
+                                ]),
+                          ),
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width * 0.4,
+                            height: MediaQuery.of(context).size.height * 0.05,
+                            child: SizedBox(
+                              width: 100,
+                              height: 40,
+                              child: TextFormField(
+                                textInputAction: TextInputAction.newline,
+                                minLines: 1,
+                                maxLines: 5,
+                                keyboardType: TextInputType.multiline,
+                                onChanged: (str) {
+                                  setState(() {
+                                    isRemarksEditable = true;
+                                  });
+                                },
+                                controller: remarksController,
+                                enabled: false,
+                                focusNode: remarksFocusNode,
+                                decoration: InputDecoration(
+                                  border: InputBorder.none,
+                                ),
+                                style: TextStyle(
+                                  fontSize: 15.0,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                          )
+                        ],
+                      ),
+                      const SizedBox(
+                        width: 5,
+                      ),
+                      GestureDetector(
+                        onTap: () async {
+                          if (isRemarksEditable) {
+                            Helpers.showAlert(context);
+                            var res = await Repositories.updateRemarks(
+                                selectedJob!.id ?? 0,
+                                remarksController.text.toString());
+                            //TODO
+                            await _fetchJobs();
+                            setState(() {
+                              isRemarksEditable = false;
+                            });
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            Navigator.pop(context);
+                          } else {
+                            setState(() {
+                              isRemarksEditable = true;
+                              remarksFocusNode.requestFocus();
+                            });
+                          }
+                        },
+                        child: true
+                            ? false
+                                ? Icon(
+                                    // <-- Icon
+                                    Icons.check,
+                                    color: Colors.black54,
+                                    size: 25.0,
+                                  )
+                                : Icon(
+                                    // <-- Icon
+                                    Icons.edit,
+                                    color: Colors.black54,
+                                    size: 25.0,
+                                  )
+                            : new Container(),
+                      )
+                    ],
+                  ),
+                  // Row(
+                  //   //mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  //   children: <Widget>[
+
+                  //   ],
+                  // ),
                   const SizedBox(
                     height: 30,
                   ),
@@ -964,18 +1091,19 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
 
   Widget _renderForm() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(10)),
+          color: Colors.transparent, borderRadius: BorderRadius.circular(10)),
       child: Form(
         key: _formKey,
         child: Column(children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              SizedBox(
-                  width: MediaQuery.of(context).size.width * 0.5,
-                  child: Container(
+          Container(
+            child: Column(children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(
+                      child: Container(
                     child: Padding(
                       padding: const EdgeInsets.all(0.0),
                       child: Column(
@@ -1002,7 +1130,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                 ),
                                 SizedBox(
                                   width:
-                                      MediaQuery.of(context).size.width * 0.02,
+                                      MediaQuery.of(context).size.width * 0.01,
                                 ),
                                 RichText(
                                   text: TextSpan(
@@ -1014,28 +1142,21 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                       ),
                                       children: <TextSpan>[
                                         TextSpan(
-                                          text: selectedJob != null
-                                              ? '#${selectedJob!.refNo}'
-                                              : '-',
+                                          text: '#84739',
                                         ),
                                       ]),
                                 ),
                                 SizedBox(
                                   width:
-                                      MediaQuery.of(context).size.width * 0.02,
+                                      MediaQuery.of(context).size.width * 0.01,
                                 ),
                                 Row(
                                   children: [
                                     Icon(
                                       // <-- Icon
                                       Icons.circle,
-                                      color: (selectedJob!.status == "KIV" ||
-                                              selectedJob!.status ==
-                                                  "COMPLETED" ||
-                                              selectedJob!.status ==
-                                                  "CANCELLED")
-                                          ? Colors.green
-                                          : Colors.red,
+                                      color: Colors.green,
+
                                       size: 18.0,
                                     ),
                                     SizedBox(
@@ -1051,17 +1172,69 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                           ),
                                           children: <TextSpan>[
                                             TextSpan(
-                                              text: selectedJob!.status,
+                                              text: 'Pending Repair',
                                             ),
                                           ]),
                                     ),
                                   ],
+                                ),
+                                SizedBox(
+                                  width: 10,
+                                ),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Color(0xFF242A38),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Padding(
+                                    padding: EdgeInsets.all(10),
+                                    child: Center(
+                                      child: Text(
+                                        'Home Visit',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 10,
+                                ),
+                                Container(
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.2,
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.03,
+                                  child: Stack(
+                                    children: List.generate(4, (index) {
+                                      double position = index.toDouble() *
+                                          25; // Adjust the overlapping position
+                                      return Positioned(
+                                        left: position,
+                                        child: Container(
+                                            decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                    color: Colors.white,
+                                                    width: 2.0)),
+                                            child: CircleAvatar(
+                                              radius: 15.0,
+                                              backgroundImage:
+                                                  CachedNetworkImageProvider(
+                                                      imageUrls[index]),
+                                            )),
+                                      );
+                                    }),
+                                  ),
                                 )
 
                                 //Pending REPAIR
                               ]),
                           SizedBox(
-                            width: MediaQuery.of(context).size.width * 0.04,
+                            width: MediaQuery.of(context).size.width * 0.01,
                           ),
                           RichText(
                             text: TextSpan(
@@ -1072,7 +1245,8 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                   color: Colors.black54,
                                 ),
                                 children: <TextSpan>[
-                                  TextSpan(text: selectedJob?.dateTime),
+                                  TextSpan(
+                                      text: "31/20/2022 10:00 AM TO 2:00PM"),
                                 ]),
                           ),
                           const SizedBox(height: 10),
@@ -1133,99 +1307,23 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                       ),
                     ),
                   )),
-              Flexible(
-                fit: FlexFit.tight,
-                child: Padding(
-                  padding: const EdgeInsets.all(0.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: selectedJob!.status == "PENDING REPAIR"
-                            ? MediaQuery.of(context).size.width * 0.15
-                            : MediaQuery.of(context).size.width *
-                                0.22, // <-- match_parent
-                        height: MediaQuery.of(context).size.width *
-                            0.05, // <-- match-parent
-                        child: selectedJob!.status == "PENDING REPAIR"
-                            ? ElevatedButton(
-                                child: Padding(
-                                    padding: const EdgeInsets.all(0.0),
-                                    child: Row(
-                                      children: [
-                                        const Icon(
-                                          // <-- Icon
-                                          Icons.cancel,
-                                          color: Colors.white,
-                                          size: 18.0,
-                                        ),
-                                        const SizedBox(
-                                          width: 10,
-                                        ),
-                                        const Text(
-                                          'Cancel',
-                                          style: TextStyle(
-                                              fontSize: 15,
-                                              color: Colors.white),
-                                        )
-                                      ],
-                                    )),
-                                style: ButtonStyle(
-                                    foregroundColor:
-                                        MaterialStateProperty.all<Color>(
-                                            Colors.red),
-                                    backgroundColor:
-                                        MaterialStateProperty.all<Color>(
-                                            Colors.red),
-                                    shape:
-                                        MaterialStateProperty.all<RoundedRectangleBorder>(
-                                            RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(4.0),
-                                                side: const BorderSide(
-                                                    color: Colors.red)))),
-                                onPressed: () async {
-                                  var res = validateIfEditedValuesAreSaved();
-
-                                  if (res) {
-                                    Helpers.showAlert(context,
-                                        title:
-                                            "Are you sure you want to cancel this job?",
-                                        hasAction: true,
-                                        okTitle: "Yes",
-                                        noTitle: "No",
-                                        customImage: Image(
-                                            image: AssetImage(
-                                                'assets/images/info.png'),
-                                            width: 50,
-                                            height: 50),
-                                        hasCancel: true, onPressed: () async {
-                                      var result = await Repositories.cancelJob(
-                                          selectedJob!.id ?? 0);
-                                      Navigator.pop(context);
-
-                                      result
-                                          ? Helpers.showAlert(context,
-                                              hasAction: true,
-                                              title:
-                                                  "Job has been successfully cancelled ",
-                                              onPressed: () async {
-                                              await refreshJobDetails();
-                                              Navigator.pop(context);
-                                            })
-                                          : Helpers.showAlert(context,
-                                              hasAction: true,
-                                              title: "Could not cancel the job",
-                                              onPressed: () async {
-                                              await refreshJobDetails();
-                                              Navigator.pop(context);
-                                            });
-                                    });
-                                  }
-                                })
-                            : selectedJob!.status == "IN PROGRESS"
+                  Flexible(
+                    fit: FlexFit.tight,
+                    child: Padding(
+                      padding: const EdgeInsets.all(0.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: true
+                                ? MediaQuery.of(context).size.width * 0.18
+                                : MediaQuery.of(context).size.width *
+                                    0.22, // <-- match_parent
+                            height: MediaQuery.of(context).size.width *
+                                0.05, // <-- match-parent
+                            child: true
                                 ? ElevatedButton(
                                     child: Padding(
                                         padding: const EdgeInsets.all(0.0),
@@ -1233,7 +1331,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                           children: [
                                             const Icon(
                                               // <-- Icon
-                                              Icons.check,
+                                              Icons.cancel,
                                               color: Colors.white,
                                               size: 18.0,
                                             ),
@@ -1241,7 +1339,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                               width: 10,
                                             ),
                                             const Text(
-                                              'Complete Job',
+                                              'Cancel Job',
                                               style: TextStyle(
                                                   fontSize: 15,
                                                   color: Colors.white),
@@ -1250,227 +1348,314 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                         )),
                                     style: ButtonStyle(
                                         foregroundColor:
-                                            MaterialStateProperty.all<Color>(Colors.green),
-                                        backgroundColor: MaterialStateProperty.all<Color>(Colors.green),
-                                        shape: MaterialStateProperty.all<RoundedRectangleBorder>(RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.0), side: const BorderSide(color: Colors.green)))),
+                                            MaterialStateProperty.all<Color>(
+                                                Colors.red),
+                                        backgroundColor:
+                                            MaterialStateProperty.all<Color>(
+                                                Colors.red),
+                                        shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                                            RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(4.0),
+                                                side: const BorderSide(
+                                                    color: Colors.red)))),
                                     onPressed: () async {
                                       var res =
                                           validateIfEditedValuesAreSaved();
 
                                       if (res) {
-                                        if ((selectedJob!.isChargeable ??
-                                                false) &&
-                                            selectedJob!.sumTotal != 0) {
-                                          Helpers.showAlert(context,
-                                              title: "Confirm to Complete Job?",
-                                              desc:
-                                                  "Confirm后无法返回此页面进行更改，请仔细检查所有细节是否正确。",
-                                              hasAction: true,
-                                              okTitle: "Confirm",
-                                              maxWidth: 600.0,
-                                              customImage: Image(
-                                                  image: AssetImage(
-                                                      'assets/images/info.png'),
-                                                  width: 50,
-                                                  height: 50),
-                                              hasCancel: true,
-                                              onPressed: () async {
-                                            Navigator.pop(context);
-                                            setState(() {
-                                              images = [];
-                                              continuePressed = false;
-                                              nextImagePressed = false;
-                                            });
-                                            await pickImage(false, true);
-                                          });
-                                        } else {
-                                          Helpers.showAlert(context,
-                                              title: "Confirm to Complete Job?",
-                                              desc:
-                                                  "Confirm后无法返回此页面进行更改，请仔细检查所有细节是否正确。\n\n 你确定这是免收费的吗？",
-                                              hasAction: true,
-                                              okTitle: "Confirm",
-                                              maxWidth: 600.0,
-                                              customImage: Image(
-                                                  image: AssetImage(
-                                                      'assets/images/info.png'),
-                                                  width: 50,
-                                                  height: 50),
-                                              hasCancel: true,
-                                              onPressed: () async {
-                                            Navigator.pop(context);
-                                            setState(() {
-                                              images = [];
-                                              continuePressed = false;
-                                              nextImagePressed = false;
-                                            });
-                                            await pickImage(false, true);
-                                          });
-                                        }
+                                        Helpers.showAlert(context,
+                                            title:
+                                                "Are you sure you want to cancel this job?",
+                                            hasAction: true,
+                                            okTitle: "Yes",
+                                            noTitle: "No",
+                                            customImage: Image(
+                                                image: AssetImage(
+                                                    'assets/images/info.png'),
+                                                width: 50,
+                                                height: 50),
+                                            hasCancel: true,
+                                            onPressed: () async {
+                                          var result =
+                                              await Repositories.cancelJob(
+                                                  selectedJob!.id ?? 0);
+                                          Navigator.pop(context);
+
+                                          result
+                                              ? Helpers.showAlert(context,
+                                                  hasAction: true,
+                                                  title:
+                                                      "Job has been successfully cancelled ",
+                                                  onPressed: () async {
+                                                  await refreshJobDetails();
+                                                  Navigator.pop(context);
+                                                })
+                                              : Helpers.showAlert(context,
+                                                  hasAction: true,
+                                                  title:
+                                                      "Could not cancel the job",
+                                                  onPressed: () async {
+                                                  await refreshJobDetails();
+                                                  Navigator.pop(context);
+                                                });
+                                        });
                                       }
                                     })
-                                : (selectedJob!.status == "COMPLETED" && !(selectedJob?.jobOrderHasPayment ?? true))
+                                : selectedJob!.status == "IN PROGRESS"
                                     ? ElevatedButton(
                                         child: Padding(
                                             padding: const EdgeInsets.all(0.0),
                                             child: Row(
                                               children: [
+                                                const Icon(
+                                                  // <-- Icon
+                                                  Icons.check,
+                                                  color: Colors.white,
+                                                  size: 18.0,
+                                                ),
+                                                const SizedBox(
+                                                  width: 10,
+                                                ),
                                                 const Text(
-                                                  'Complete Payment',
+                                                  'Complete Job',
                                                   style: TextStyle(
                                                       fontSize: 15,
                                                       color: Colors.white),
                                                 )
                                               ],
                                             )),
-                                        style: ButtonStyle(foregroundColor: MaterialStateProperty.all<Color>(Colors.green), backgroundColor: MaterialStateProperty.all<Color>(Colors.green), shape: MaterialStateProperty.all<RoundedRectangleBorder>(RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.0), side: const BorderSide(color: Colors.green)))),
+                                        style: ButtonStyle(
+                                            foregroundColor:
+                                                MaterialStateProperty.all<Color>(Colors.green),
+                                            backgroundColor: MaterialStateProperty.all<Color>(Colors.green),
+                                            shape: MaterialStateProperty.all<RoundedRectangleBorder>(RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.0), side: const BorderSide(color: Colors.green)))),
                                         onPressed: () async {
                                           var res =
                                               validateIfEditedValuesAreSaved();
 
                                           if (res) {
-                                            Navigator.pushNamed(
-                                                    context, 'signature',
-                                                    arguments: selectedJob)
-                                                .then((val) async {
-                                              if ((val as bool)) {
-                                                await refreshJobDetails();
-                                              }
-                                            });
+                                            if ((selectedJob!.isChargeable ??
+                                                    false) &&
+                                                selectedJob!.sumTotal != 0) {
+                                              Helpers.showAlert(context,
+                                                  title:
+                                                      "Confirm to Complete Job?",
+                                                  desc:
+                                                      "Confirm后无法返回此页面进行更改，请仔细检查所有细节是否正确。",
+                                                  hasAction: true,
+                                                  okTitle: "Confirm",
+                                                  maxWidth: 600.0,
+                                                  customImage: Image(
+                                                      image: AssetImage(
+                                                          'assets/images/info.png'),
+                                                      width: 50,
+                                                      height: 50),
+                                                  hasCancel: true,
+                                                  onPressed: () async {
+                                                Navigator.pop(context);
+                                                setState(() {
+                                                  images = [];
+                                                  continuePressed = false;
+                                                  nextImagePressed = false;
+                                                });
+                                                await pickImage(false, true);
+                                              });
+                                            } else {
+                                              Helpers.showAlert(context,
+                                                  title:
+                                                      "Confirm to Complete Job?",
+                                                  desc:
+                                                      "Confirm后无法返回此页面进行更改，请仔细检查所有细节是否正确。\n\n 你确定这是免收费的吗？",
+                                                  hasAction: true,
+                                                  okTitle: "Confirm",
+                                                  maxWidth: 600.0,
+                                                  customImage: Image(
+                                                      image: AssetImage(
+                                                          'assets/images/info.png'),
+                                                      width: 50,
+                                                      height: 50),
+                                                  hasCancel: true,
+                                                  onPressed: () async {
+                                                Navigator.pop(context);
+                                                setState(() {
+                                                  images = [];
+                                                  continuePressed = false;
+                                                  nextImagePressed = false;
+                                                });
+                                                await pickImage(false, true);
+                                              });
+                                            }
                                           }
                                         })
-                                    : new Container(),
-                      ),
-                      const SizedBox(
-                        height: 10,
-                      ),
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width *
-                            0.15, // <-- match_parent
-                        height: MediaQuery.of(context).size.width *
-                            0.05, // <-- match-parent
-                        child: selectedJob!.status == "PENDING REPAIR"
-                            ? ElevatedButton(
-                                child: Padding(
-                                    padding: const EdgeInsets.all(0.0),
-                                    child: Row(children: [
-                                      const Icon(
-                                        // <-- Icon
-                                        Icons.camera_alt_outlined,
-                                        color: Colors.white,
-                                        size: 18.0,
-                                      ),
-                                      const SizedBox(
-                                        width: 10,
-                                      ),
-                                      const Text(
-                                        'KIV',
-                                        style: const TextStyle(
-                                            fontSize: 15, color: Colors.white),
-                                      )
-                                    ])),
-                                style: ButtonStyle(
-                                    foregroundColor:
-                                        MaterialStateProperty.all<Color>(
-                                            Colors.lightBlue),
-                                    backgroundColor:
-                                        MaterialStateProperty.all<Color>(
-                                            Colors.lightBlue),
-                                    shape: MaterialStateProperty.all<
-                                            RoundedRectangleBorder>(
-                                        RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(4.0),
-                                            side: const BorderSide(
-                                                color: Colors.lightBlue)))),
-                                onPressed: () async {
-                                  var res = validateIfEditedValuesAreSaved();
+                                    : (selectedJob!.status == "COMPLETED" && !(selectedJob?.jobOrderHasPayment ?? true))
+                                        ? ElevatedButton(
+                                            child: Padding(
+                                                padding: const EdgeInsets.all(0.0),
+                                                child: Row(
+                                                  children: [
+                                                    const Text(
+                                                      'Complete Payment',
+                                                      style: TextStyle(
+                                                          fontSize: 15,
+                                                          color: Colors.white),
+                                                    )
+                                                  ],
+                                                )),
+                                            style: ButtonStyle(foregroundColor: MaterialStateProperty.all<Color>(Colors.green), backgroundColor: MaterialStateProperty.all<Color>(Colors.green), shape: MaterialStateProperty.all<RoundedRectangleBorder>(RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.0), side: const BorderSide(color: Colors.green)))),
+                                            onPressed: () async {
+                                              var res =
+                                                  validateIfEditedValuesAreSaved();
 
-                                  if (res) {
-                                    setState(() {
-                                      images = [];
-                                      continuePressed = false;
-                                      nextImagePressed = false;
-                                    });
-                                    await pickImage(true, false);
-                                  }
-                                })
-                            : new Container(),
+                                              if (res) {
+                                                Navigator.pushNamed(
+                                                        context, 'signature',
+                                                        arguments: selectedJob)
+                                                    .then((val) async {
+                                                  if ((val as bool)) {
+                                                    await refreshJobDetails();
+                                                  }
+                                                });
+                                              }
+                                            })
+                                        : new Container(),
+                          ),
+                          const SizedBox(
+                            height: 10,
+                          ),
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width *
+                                0.15, // <-- match_parent
+                            height: MediaQuery.of(context).size.width *
+                                0.05, // <-- match-parent
+                            child: true
+                                ? ElevatedButton(
+                                    child: Padding(
+                                        padding: const EdgeInsets.all(0.0),
+                                        child: Row(children: [
+                                          const Icon(
+                                            // <-- Icon
+                                            Icons.camera_alt_outlined,
+                                            color: Colors.white,
+                                            size: 18.0,
+                                          ),
+                                          const SizedBox(
+                                            width: 10,
+                                          ),
+                                          const Text(
+                                            'KIV',
+                                            style: const TextStyle(
+                                                fontSize: 15,
+                                                color: Colors.white),
+                                          )
+                                        ])),
+                                    style: ButtonStyle(
+                                        foregroundColor:
+                                            MaterialStateProperty.all<Color>(
+                                                Colors.lightBlue),
+                                        backgroundColor:
+                                            MaterialStateProperty.all<Color>(
+                                                Colors.lightBlue),
+                                        shape: MaterialStateProperty.all<
+                                                RoundedRectangleBorder>(
+                                            RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(4.0),
+                                                side: const BorderSide(
+                                                    color: Colors.lightBlue)))),
+                                    onPressed: () async {
+                                      var res =
+                                          validateIfEditedValuesAreSaved();
+
+                                      if (res) {
+                                        setState(() {
+                                          images = [];
+                                          continuePressed = false;
+                                          nextImagePressed = false;
+                                        });
+                                        await pickImage(true, false);
+                                      }
+                                    })
+                                : new Container(),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+              const SizedBox(
+                height: 20,
+              ),
+            ]),
           ),
-          const SizedBox(
-            height: 50,
-          ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(0.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      RichText(
-                        text: const TextSpan(
-                            // Note: Styles for TextSpans must be explicitly defined.
-                            // Child text spans will inherit styles from parent
-                            style: TextStyle(
-                              fontSize: 20.0,
-                              color: Colors.black,
+          Container(
+              padding: EdgeInsets.all(30),
+              color: Colors.white,
+              child: Column(children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(0.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            RichText(
+                              text: const TextSpan(
+                                  // Note: Styles for TextSpans must be explicitly defined.
+                                  // Child text spans will inherit styles from parent
+                                  style: TextStyle(
+                                    fontSize: 20.0,
+                                    color: Colors.black,
+                                  ),
+                                  children: <TextSpan>[
+                                    TextSpan(
+                                      text: 'Job Description',
+                                    ),
+                                  ]),
                             ),
-                            children: <TextSpan>[
-                              TextSpan(
-                                text: 'Job Description',
-                              ),
-                            ]),
+                            const SizedBox(height: 10),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 10),
-                    ],
-                  ),
+                    ),
+                    Flexible(
+                      fit: FlexFit.tight,
+                      child: Padding(
+                        padding: const EdgeInsets.all(0.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              Flexible(
-                fit: FlexFit.tight,
-                child: Padding(
-                  padding: const EdgeInsets.all(0.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [],
-                  ),
+                const SizedBox(height: 20),
+                buildProductInfo(),
+                const SizedBox(height: 20),
+                Divider(),
+                const SizedBox(height: 20),
+                buildIssueInfo(),
+                const SizedBox(height: 20),
+                true
+                    ? _renderStartButton()
+                    : (selectedJob!.status.toString() != "KIV" &&
+                            selectedJob!.status.toString() != "CANCELLED")
+                        ? _renderPartsAndService()
+                        : new Container(),
+                SizedBox(
+                  height: 5,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          buildProductInfo(),
-          const SizedBox(height: 40),
-          buildIssueInfo(),
-          const SizedBox(height: 20),
-          selectedJob!.status.toString() == "PENDING REPAIR"
-              ? _renderStartButton()
-              : (selectedJob!.status.toString() != "KIV" &&
-                      selectedJob!.status.toString() != "CANCELLED")
-                  ? _renderPartsAndService()
-                  : new Container(),
-          SizedBox(
-            height: 5,
-          ),
-          (selectedJob!.solution != null &&
-                  (selectedJob!.status != "PENDING REPAIR"))
-              ? Divider(color: Colors.grey)
-              : new Container(),
-          selectedJob!.status != "PENDING REPAIR"
-              ? _renderSolutions()
-              : new Container()
+                true ? Divider(color: Colors.grey) : new Container(),
+                true ? _renderSolutions() : new Container()
+              ]))
         ]),
       ),
     );
@@ -1575,7 +1760,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const SizedBox(height: 25),
-                  selectedJob!.status == "IN PROGRESS"
+                  true
                       ? RichText(
                           text: const TextSpan(
                               // Note: Styles for TextSpans must be explicitly defined.
@@ -1592,7 +1777,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                         )
                       : new Container(),
                   const SizedBox(height: 10),
-                  selectedJob!.status == "IN PROGRESS"
+                  true
                       ? DropdownButtonFormField<String>(
                           isExpanded: true,
                           items: solutionLabels.map((String value) {
@@ -1627,7 +1812,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                         )
                       : new Container(),
                   SizedBox(height: 20),
-                  selectedJob!.solutionId != null
+                  true
                       ? Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
@@ -1640,7 +1825,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    selectedJob!.solutionCode != ""
+                                    true
                                         ? RichText(
                                             text: const TextSpan(
                                               style: TextStyle(
@@ -1655,12 +1840,12 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                             ),
                                           )
                                         : new Container(),
-                                    selectedJob!.solutionCode != ""
+                                    true
                                         ? SizedBox(
                                             height: 5,
                                           )
                                         : new Container(),
-                                    selectedJob!.solutionCode != ""
+                                    true
                                         ? RichText(
                                             text: TextSpan(
                                               style: TextStyle(
@@ -1669,9 +1854,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                               ),
                                               children: <TextSpan>[
                                                 TextSpan(
-                                                  text: selectedJob!
-                                                      .solutionCode
-                                                      .toString(),
+                                                  text: "555",
                                                 ),
                                               ],
                                             ),
@@ -1691,7 +1874,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    selectedJob!.solution != ""
+                                    true
                                         ? RichText(
                                             text: const TextSpan(
                                               style: TextStyle(
@@ -1706,12 +1889,12 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                             ),
                                           )
                                         : new Container(),
-                                    selectedJob!.solution != ""
+                                    true
                                         ? SizedBox(
                                             height: 5,
                                           )
                                         : new Container(),
-                                    selectedJob!.solution != ""
+                                    true
                                         ? RichText(
                                             text: TextSpan(
                                               style: TextStyle(
@@ -1720,8 +1903,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                               ),
                                               children: <TextSpan>[
                                                 TextSpan(
-                                                  text: selectedJob!.solution
-                                                      .toString(),
+                                                  text: "solu",
                                                 ),
                                               ],
                                             ),
@@ -1734,7 +1916,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                             SizedBox(
                               width: 50,
                             ),
-                            selectedJob!.status != "COMPLETED"
+                            true
                                 ? SizedBox(
                                     width: 70,
                                     height: 40.0,
@@ -1795,9 +1977,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
         ],
       ),
       const SizedBox(height: 10),
-      selectedJob!.solution != null
-          ? const Divider(color: Colors.grey)
-          : new Container(),
+      true ? const Divider(color: Colors.grey) : new Container(),
     ]);
   }
 
@@ -2049,10 +2229,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
           width: double.infinity,
           //padding: EdgeInsets.symmetric(horizontal: 10),
           //height: MediaQuery.of(context).size.height * 0.3,
-          child: (selectedJob?.jobSpareParts != null &&
-                      (selectedJob?.jobSpareParts!.length ?? 0) > 0) ||
-                  (selectedJob?.generalCodes != null &&
-                      (selectedJob?.generalCodes!.length ?? 0) > 0)
+          child: false
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -2081,8 +2258,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                         },
                       ),
                     ),
-                    selectedJob!.generalCodes != null &&
-                            selectedJob!.generalCodes!.length > 0
+                    true
                         ? Container(
                             alignment: Alignment.centerLeft,
                             child: RichText(
@@ -2099,9 +2275,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                             ),
                           )
                         : new Container(),
-                    selectedJob!.generalCodes != null &&
-                            selectedJob!.generalCodes!.length > 0 &&
-                            selectedJob!.status != "COMPLETED"
+                    true
                         ? Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
@@ -2183,75 +2357,75 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                         }
                                       })
                                   : new Container(),
-                              isGeneralCodeEditable
-                                  ? SizedBox(
-                                      width: 30,
-                                    )
-                                  : new Container(),
-                              isGeneralCodeEditable
-                                  ? ElevatedButton(
-                                      child: const Padding(
-                                          padding: EdgeInsets.all(0.0),
-                                          child: Text(
-                                            'Cancel',
-                                            style: TextStyle(
-                                                fontSize: 15,
-                                                color: Colors.white),
-                                          )),
-                                      style: ButtonStyle(
-                                          foregroundColor:
-                                              MaterialStateProperty.all<Color>(
-                                                  Color(0xFF242A38)),
-                                          backgroundColor:
-                                              MaterialStateProperty.all<Color>(
-                                                  Color(0xFF242A38)),
-                                          shape: MaterialStateProperty.all<
-                                                  RoundedRectangleBorder>(
-                                              RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(
-                                                      4.0),
-                                                  side: const BorderSide(
-                                                      color: Color(0xFF242A38))))),
-                                      onPressed: () async {
-                                        await refreshJobDetails();
-                                        setState(() {
-                                          isGeneralCodeEditable = false;
-                                        });
-                                      })
-                                  : new Container(),
+                              // isGeneralCodeEditable
+                              //     ? SizedBox(
+                              //         width: 30,
+                              //       )
+                              //     : new Container(),
+                              // isGeneralCodeEditable
+                              //     ? ElevatedButton(
+                              //         child: const Padding(
+                              //             padding: EdgeInsets.all(0.0),
+                              //             child: Text(
+                              //               'Cancel',
+                              //               style: TextStyle(
+                              //                   fontSize: 15,
+                              //                   color: Colors.white),
+                              //             )),
+                              //         style: ButtonStyle(
+                              //             foregroundColor:
+                              //                 MaterialStateProperty.all<Color>(
+                              //                     Color(0xFF242A38)),
+                              //             backgroundColor:
+                              //                 MaterialStateProperty.all<Color>(
+                              //                     Color(0xFF242A38)),
+                              //             shape: MaterialStateProperty.all<
+                              //                     RoundedRectangleBorder>(
+                              //                 RoundedRectangleBorder(
+                              //                     borderRadius: BorderRadius.circular(
+                              //                         4.0),
+                              //                     side: const BorderSide(
+                              //                         color: Color(0xFF242A38))))),
+                              //         onPressed: () async {
+                              //           await refreshJobDetails();
+                              //           setState(() {
+                              //             isGeneralCodeEditable = false;
+                              //           });
+                              //         })
+                              //     : new Container(),
                             ],
                           )
                         : new Container(),
-                    selectedJob!.generalCodes != null &&
-                            selectedJob!.generalCodes!.length > 0
-                        ? Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            //height: MediaQuery.of(context).size.height * 0.2,
-                            child: ListView.builder(
-                              physics: NeverScrollableScrollPhysics(),
-                              shrinkWrap: true,
-                              // shrinkWrap: false,
-                              itemCount: selectedJob?.generalCodes!.length,
-                              itemBuilder: (BuildContext context, int index) {
-                                return GeneralCodeItem(
-                                  width:
-                                      MediaQuery.of(context).size.width * 0.5,
-                                  generalCode: (selectedJob!.generalCodes!
-                                      .elementAt(index)),
-                                  jobId: (selectedJob!.id ?? 0),
-                                  job: selectedJob ?? new Job(),
-                                  index: index,
-                                  generalCodes:
-                                      (selectedJob!.generalCodes ?? []),
-                                  editable: isGeneralCodeEditable,
-                                  isDeletePressed: () async {
-                                    await refreshJobDetails();
-                                  },
-                                );
-                              },
-                            ),
-                          )
-                        : new Container(),
+                    // selectedJob!.generalCodes != null &&
+                    //         selectedJob!.generalCodes!.length > 0
+                    //     ? Container(
+                    //         padding: const EdgeInsets.symmetric(horizontal: 10),
+                    //         //height: MediaQuery.of(context).size.height * 0.2,
+                    //         child: ListView.builder(
+                    //           physics: NeverScrollableScrollPhysics(),
+                    //           shrinkWrap: true,
+                    //           // shrinkWrap: false,
+                    //           itemCount: selectedJob?.generalCodes!.length,
+                    //           itemBuilder: (BuildContext context, int index) {
+                    //             return GeneralCodeItem(
+                    //               width:
+                    //                   MediaQuery.of(context).size.width * 0.5,
+                    //               generalCode: (selectedJob!.generalCodes!
+                    //                   .elementAt(index)),
+                    //               jobId: (selectedJob!.id ?? 0),
+                    //               job: selectedJob ?? new Job(),
+                    //               index: index,
+                    //               generalCodes:
+                    //                   (selectedJob!.generalCodes ?? []),
+                    //               editable: isGeneralCodeEditable,
+                    //               isDeletePressed: () async {
+                    //                 await refreshJobDetails();
+                    //               },
+                    //             );
+                    //           },
+                    //         ),
+                    //       )
+                    //     : new Container(),
                     const SizedBox(
                       height: 30,
                     ),
@@ -2380,10 +2554,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                                 ),
                                                 children: <TextSpan>[
                                                   TextSpan(
-                                                    text: '\$' +
-                                                        selectedJob!
-                                                            .sumSubTotal!
-                                                            .toStringAsFixed(2),
+                                                    text: '\$50',
                                                   ),
                                                 ]),
                                           ),
@@ -2400,10 +2571,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                                 ),
                                                 children: <TextSpan>[
                                                   TextSpan(
-                                                    text: '\$' +
-                                                        selectedJob!
-                                                            .sumDiscount!
-                                                            .toStringAsFixed(2),
+                                                    text: '\$50',
                                                   ),
                                                 ]),
                                           ),
@@ -2420,9 +2588,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
                                                 ),
                                                 children: <TextSpan>[
                                                   TextSpan(
-                                                    text: '\$' +
-                                                        selectedJob!.sumTotal!
-                                                            .toStringAsFixed(2),
+                                                    text: '\$100',
                                                   ),
                                                 ]),
                                           ),
@@ -2439,7 +2605,7 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    selectedJob!.status != "COMPLETED"
+                    true
                         ? Container(
                             alignment: Alignment.center,
                             child: Column(
@@ -2738,41 +2904,255 @@ class _JobDetailsState extends State<JobDetails> with WidgetsBindingObserver {
     return WillPopScope(
         onWillPop: _onWillPop,
         child: RefreshIndicator(
-          key: _refreshKey,
-          onRefresh: () async {
-            await this.refreshJobDetails();
-          },
-          child: Scaffold(
-            key: _scaffoldKey,
-            appBar: Helpers.customAppBar(context, _scaffoldKey,
-                title: "Job Details",
-                isBack: true,
-                isAppBarTranparent: true,
-                hasActions: false, handleBackPressed: () {
-              var res = validateIfEditedValuesAreSaved();
-              if (res) {
-                Navigator.pop(context);
-              }
-            }),
-            body: CustomPaint(
-                child: SingleChildScrollView(
-                    physics: AlwaysScrollableScrollPhysics(),
-                    child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 40, vertical: 10),
-                        decoration: new BoxDecoration(
-                            color: Colors.white.withOpacity(0.0)),
-                        child: Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              errorMsg != "" ? _renderError() : Container(),
-                              _renderForm(),
-                              const SizedBox(height: 10),
-                              //Expanded(child: _renderBottom()),
-                              //version != "" ? _renderVersion() : Container()
-                            ])))),
-          ),
-        ));
+            key: _refreshKey,
+            onRefresh: () async {
+              await this.refreshJobDetails();
+            },
+            child: Scaffold(
+              key: _scaffoldKey,
+              appBar: Helpers.customAppBar(context, _scaffoldKey,
+                  title: "Job Details",
+                  isBack: true,
+                  isAppBarTranparent: true,
+                  hasActions: false, handleBackPressed: () {
+                var res = validateIfEditedValuesAreSaved();
+                if (res) {
+                  Navigator.pop(context);
+                }
+              }),
+              body: ExpandableBottomSheet(
+                //use the key to get access to expand(), contract() and expansionStatus
+                key: key,
+
+                onIsContractedCallback: () => print('contracted'),
+                onIsExtendedCallback: () => print('extended'),
+                animationDurationExtend: Duration(milliseconds: 500),
+                animationDurationContract: Duration(milliseconds: 250),
+                animationCurveExpand: Curves.bounceOut,
+                animationCurveContract: Curves.ease,
+                persistentContentHeight:
+                    isExpanded ? MediaQuery.of(context).size.height * .15 : 0,
+                background: Stack(children: [
+                  CustomPaint(
+                      child: SingleChildScrollView(
+                          physics: AlwaysScrollableScrollPhysics(),
+                          child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 30, vertical: 10),
+                              decoration: new BoxDecoration(
+                                  color: Colors.white.withOpacity(0.0)),
+                              child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    errorMsg != ""
+                                        ? _renderError()
+                                        : Container(),
+                                    _renderForm(),
+                                    const SizedBox(height: 10),
+                                    //Expanded(child: _renderBottom()),
+                                    //version != "" ? _renderVersion() : Container()
+                                  ])))),
+                  isExpanded
+                      ? GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              isExpanded = false;
+                            });
+                          },
+                          child: IgnorePointer(
+                            child: BackdropFilter(
+                              filter:
+                                  ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                              child: Container(
+                                width: 200.0,
+                                height: 200.0,
+                                color: Colors.transparent,
+                                child: Center(
+                                  child: Text(
+                                    'Blurred Content',
+                                    style: TextStyle(
+                                      fontSize: 20.0,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ))
+                      : new Container(),
+                ]),
+                expandableContent: isExpanded
+                    ? Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10.0),
+                          border:
+                              Border.all(color: Colors.grey[400]!, width: 1),
+                          color: Colors.white,
+                        ),
+                        width: MediaQuery.of(context).size.width * 1,
+                        child: SingleChildScrollView(
+                          child: Container(
+                            alignment: Alignment.centerLeft,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 40, vertical: 30),
+                            child: Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    alignment: Alignment.centerLeft,
+                                    child: RichText(
+                                      text: TextSpan(
+                                          style: const TextStyle(
+                                            fontSize: 20.0,
+                                            color: Colors.black,
+                                          ),
+                                          children: <TextSpan>[
+                                            TextSpan(
+                                                text: 'Checklist Attachment',
+                                                style: const TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold)),
+                                          ]),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    height: 300,
+                                  ),
+                                  Container(
+                                    alignment: Alignment.centerLeft,
+                                    child: RichText(
+                                      textAlign: TextAlign.left,
+                                      text: TextSpan(
+                                          style: const TextStyle(
+                                            fontSize: 20.0,
+                                            color: Colors.black,
+                                          ),
+                                          children: <TextSpan>[
+                                            TextSpan(
+                                                text: 'Comments',
+                                                style: const TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold)),
+                                          ]),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    height: 20,
+                                  ),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10.0),
+                                      border: Border.all(
+                                          color: Colors.grey[400]!, width: 1),
+                                      color: Colors.white,
+                                    ),
+                                    height: MediaQuery.of(context).size.height *
+                                        0.2,
+                                    alignment: Alignment.centerLeft,
+                                    child: Column(children: [
+                                      Container(
+                                          padding:
+                                              EdgeInsets.fromLTRB(20, 0, 20, 0),
+                                          child: TextFormField(
+                                            maxLines: 10,
+                                            textInputAction:
+                                                TextInputAction.newline,
+                                            // focusNode: focusEmail,
+                                            keyboardType:
+                                                TextInputType.multiline,
+                                            validator: (value) {},
+                                            // controller: emailCT,
+                                            onFieldSubmitted: (val) {
+                                              FocusScope.of(context)
+                                                  .requestFocus(
+                                                      new FocusNode());
+                                            },
+                                            style: TextStyle(fontSize: 15),
+                                          )),
+                                      
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.end,
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children:[ Container(
+                          color: Colors.white,
+                          height: 40,
+                          width: MediaQuery.of(context).size.width * 0.1,
+                          child: ElevatedButton(
+                              child: Padding(
+                                  padding: const EdgeInsets.all(5.0),
+                                  child: Text(
+                                    'CLEAR',
+                                    style: TextStyle(
+                                        fontSize: 11, color: Colors.white),
+                                  )),
+                              style: ButtonStyle(
+                                  foregroundColor:
+                                      MaterialStateProperty.all<Color>(
+                                          Color(0xFF),
+                                  backgroundColor:
+                                      MaterialStateProperty.all<Color>(
+                                          AppColors.primary),
+                                  shape: MaterialStateProperty.all<
+                                          RoundedRectangleBorder>(
+                                      RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(5.0),
+                                          side: BorderSide(
+                                              color: AppColors.primary)))),
+                              onPressed: () async {
+                                setState(() {
+                                  startDate = "";
+                                  endDate = "";
+                                  tempStartDate = "";
+                                  tempEndDate = "";
+                                  isFiltersAdded = false;
+                                  filterCT.text = "";
+                                  currentPage = 1;
+                                });
+                                await _fetchPaymentHistory(true);
+                              }),
+                        )]
+                                      )
+                                    ]),
+                                  ),
+                                  SizedBox(
+                                    height: 300,
+                                  ),
+                                  RichText(
+                                    text: TextSpan(
+                                        style: const TextStyle(
+                                          fontSize: 20.0,
+                                          color: Colors.black,
+                                        ),
+                                        children: <TextSpan>[
+                                          TextSpan(
+                                              text: 'Checklist Attachment',
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold)),
+                                        ]),
+                                  ),
+                                  SizedBox(
+                                    height: 300,
+                                  )
+                                ]),
+                          ),
+                        ),
+                      )
+                    : new Container(),
+              ),
+              floatingActionButton: !isExpanded
+                  ? FloatingActionButton.large(
+                      onPressed: () {
+                        setState(() {
+                          isExpanded = true;
+                        });
+                      },
+                      foregroundColor: Color(0xFF005FF5),
+                      backgroundColor: Color(0xFFFDFDFD),
+                      child: const Icon(Icons.chat_outlined),
+                    )
+                  : new Container(),
+            )));
   }
 }
 

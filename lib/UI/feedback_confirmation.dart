@@ -119,7 +119,7 @@ class _FeedBackConfirmationState extends State<FeedBackConfirmation> {
                 child: Padding(
                     padding: const EdgeInsets.all(5.0),
                     child: Text(
-                      'Back To home',
+                      'Back To Home',
                       style: TextStyle(fontSize: 20, color: Colors.red),
                     )),
                 style: ButtonStyle(

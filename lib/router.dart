@@ -24,8 +24,7 @@ class AppRouter {
       case 'home':
         return MaterialPageRoute(builder: (_) => MyHomePage());
       case 'jobDetails':
-        return MaterialPageRoute(
-            builder: (_) => JobDetails(data: arguments as Job));
+        return MaterialPageRoute(builder: (_) => JobDetails());
       case 'warehouse':
         return MaterialPageRoute(
             builder: (_) => Warehouse(data: arguments as Job));

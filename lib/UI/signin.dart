@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
@@ -7,10 +8,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_config/flutter_config.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:kcs_engineer/themes/app_colors.dart';
 import 'package:kcs_engineer/themes/text_styles.dart';
 import 'package:kcs_engineer/util/api.dart';
 import 'package:kcs_engineer/util/helpers.dart';
 import 'package:kcs_engineer/util/key.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 class SignIn extends StatefulWidget {
   int? data;
@@ -60,29 +63,45 @@ class _SignInState extends State<SignIn> {
   }
 
   void _handleSignIn() async {
-    Helpers.showAlert(context);
+    // Helpers.showAlert(context);
+    setState(() {
+      isLoading = true;
+    });
 
     final Map<String, dynamic> map = {
       'email': emailCT.text.toString(),
       'password': passwordCT.text.toString(),
     };
 
-    final response = await Api.bearerPost('login', params: jsonEncode(map));
-    Navigator.pop(context);
+    // final response = await Api.bearerPost('login', params: jsonEncode(map));
+    await setTimeout(1000);
+    // Navigator.pop(context);
 
-    if (response["success"] != false) {
-      Helpers.isAuthenticated = true;
-      await storage.write(key: TOKEN, value: response['data']?['token']);
-      await storage.write(
-          key: USERID, value: response['data']?['user']?['user_id'].toString());
+    // if (response["success"] != false) {
+    //   Helpers.isAuthenticated = true;
+    //   await storage.write(key: TOKEN, value: response['data']?['token']);
+    //   await storage.write(
+    //       key: USERID, value: response['data']?['user']?['user_id'].toString());
 
-      Navigator.pushReplacementNamed(context, 'home');
-    } else {
-      setState(() {
-        isErrorEmail = true;
-        isErrorPassword = true;
-      });
-    }
+    //   Navigator.pushReplacementNamed(context, 'home');
+    // } else {
+    //   setState(() {
+    //     isErrorEmail = true;
+    //     isErrorPassword = true;
+    //   });
+    // }
+  }
+
+  setTimeout(time) {
+    Duration timeDelay = Duration(milliseconds: time);
+    return Timer(
+        timeDelay,
+        () => {
+              setState(() {
+                isLoading = false;
+              }),
+              Navigator.pushReplacementNamed(context, 'home')
+            });
   }
 
   // _registerOnFirebase() async {
@@ -141,7 +160,10 @@ class _SignInState extends State<SignIn> {
           children: [
             Row(
               children: [
-                Text("Email"),
+                Text(
+                  "Email",
+                  style: TextStyle(color: Color(0xFF333333), fontSize: 14),
+                ),
               ],
               mainAxisAlignment: MainAxisAlignment.start,
             ),
@@ -168,7 +190,7 @@ class _SignInState extends State<SignIn> {
                   enabledBorder: OutlineInputBorder(
                     // borderRadius: BorderRadius.circular(25.0),
                     borderSide: BorderSide(
-                      color: isErrorEmail ? Colors.red : Colors.black45,
+                      color: isErrorEmail ? Colors.red : Color(0xFFD4D4D4),
                       width: 2.0,
                     ),
                   ),
@@ -199,9 +221,13 @@ class _SignInState extends State<SignIn> {
                   ])
                 : new Container(),
             SizedBox(height: 10),
+
             Row(
               children: [
-                Text("Password"),
+                Text(
+                  "Password",
+                  style: TextStyle(color: Color(0xFF333333), fontSize: 14),
+                ),
               ],
               mainAxisAlignment: MainAxisAlignment.start,
             ),
@@ -231,7 +257,8 @@ class _SignInState extends State<SignIn> {
                       enabledBorder: OutlineInputBorder(
                         // borderRadius: BorderRadius.circular(25.0),
                         borderSide: BorderSide(
-                          color: isErrorPassword ? Colors.red : Colors.black45,
+                          color:
+                              isErrorPassword ? Colors.red : Color(0xFFD4D4D4),
                           width: 2.0,
                         ),
                       ),
@@ -250,7 +277,49 @@ class _SignInState extends State<SignIn> {
                             : Icons.visibility_off)))
               ],
             ),
-            SizedBox(height: 5),
+            SizedBox(height: 25),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Column(
+                children: [
+                  Row(
+                    children: <Widget>[
+                      Row(
+                        children: [
+                          Container(
+                            alignment: Alignment.centerLeft,
+                            child: Checkbox(
+                                value: isRememberMe,
+                                onChanged: (value) {
+                                  setState(() {
+                                    isRememberMe = value ?? false;
+                                  });
+                                }),
+                          ),
+                          Container(
+                            padding: EdgeInsets.fromLTRB(0, 0, 20, 0),
+                            child: Text('Remember Me'),
+                          )
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              RichText(
+                text: TextSpan(
+                    // Note: Styles for TextSpans must be explicitly defined.
+                    // Child text spans will inherit styles from parent
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: Color(0xFF3FA2F7),
+                    ),
+                    children: <TextSpan>[
+                      TextSpan(
+                        text: 'Forgot password',
+                      ),
+                    ]),
+              ),
+            ]),
             isErrorPassword
                 ? Row(children: [
                     Icon(
@@ -304,12 +373,20 @@ class _SignInState extends State<SignIn> {
               height:
                   MediaQuery.of(context).size.height * 0.04, // <-- match-parent
               child: ElevatedButton(
-                  child: Padding(
-                      padding: const EdgeInsets.all(5.0),
-                      child: Text(
-                        'Log in',
-                        style: TextStyle(fontSize: 20, color: Colors.white),
-                      )),
+                  child: isLoading
+                      ? Padding(
+                          padding: const EdgeInsets.all(5.0),
+                          child: LoadingAnimationWidget.staggeredDotsWave(
+                            color: Color(0xFFFFFFFF),
+                            size: MediaQuery.of(context).size.height * 0.03,
+                          ),
+                        )
+                      : Padding(
+                          padding: const EdgeInsets.all(5.0),
+                          child: Text(
+                            'Log in',
+                            style: TextStyle(fontSize: 20, color: Colors.white),
+                          )),
                   style: ButtonStyle(
                       foregroundColor:
                           MaterialStateProperty.all<Color>(Colors.black),
@@ -344,8 +421,8 @@ class _SignInState extends State<SignIn> {
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-        onWillPop: _onWillPop,
-        child: Scaffold(
+      onWillPop: _onWillPop,
+      child: Scaffold(
           key: _scaffoldKey,
           //resizeToAvoidBottomInset: false,
           body: CustomPaint(
@@ -354,24 +431,27 @@ class _SignInState extends State<SignIn> {
                   child: ConstrainedBox(
                       constraints: BoxConstraints(
                           maxHeight: MediaQuery.of(context).size.height),
-                      child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 10),
-                          decoration: new BoxDecoration(color: Colors.white),
-                          child: Column(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                SizedBox(
-                                    height: MediaQuery.of(context).size.height *
-                                        0.30),
-                                _renderHeader(),
-                                SizedBox(height: errorMsg != "" ? 20 : 50),
-                                errorMsg != "" ? _renderError() : Container(),
-                                _renderForm(),
-                                SizedBox(height: 10),
-                                //Expanded(child: _renderBottom()),
-                                //version != "" ? _renderVersion() : Container()
-                              ]))))),
-        ));
+                      child: Stack(children: [
+                        Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 10),
+                            decoration: new BoxDecoration(color: Colors.white),
+                            child: Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                      height:
+                                          MediaQuery.of(context).size.height *
+                                              0.30),
+                                  _renderHeader(),
+                                  SizedBox(height: errorMsg != "" ? 20 : 50),
+                                  errorMsg != "" ? _renderError() : Container(),
+                                  _renderForm(),
+                                  SizedBox(height: 10),
+                                  //Expanded(child: _renderBottom()),
+                                  //version != "" ? _renderVersion() : Container()
+                                ])),
+                      ]))))),
+    );
   }
 }

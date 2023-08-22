@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kcs_engineer/model/job.dart';
@@ -9,6 +10,7 @@ import 'package:kcs_engineer/model/job_order_seq.dart';
 import 'package:kcs_engineer/model/user.dart';
 import 'package:kcs_engineer/themes/text_styles.dart';
 import 'package:kcs_engineer/util/api.dart';
+import 'package:kcs_engineer/util/components/calendarView.dart';
 import 'package:kcs_engineer/util/helpers.dart';
 import 'package:kcs_engineer/util/repositories.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -44,6 +46,8 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
   String currentSearchTextCompleted = "";
   List<Job> inProgressJobs = [];
   List<Job> completedJobs = [];
+
+  int? currentSelectedIndex = 0;
 
   User? user;
 
@@ -86,47 +90,70 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
       user = Helpers.loggedInUser;
     }
 
-    final response = await Api.bearerGet('job-orders/with-relationship');
-    print("#Resp: ${jsonEncode(response)}");
-    // Navigator.pop(context);
-    if (response["success"] != null) {
-      if (user == null) {
-        user = new User();
-      }
+    // final response = await Api.bearerGet('job-orders/with-relationship');
+    // print("#Resp: ${jsonEncode(response)}");
+    // // Navigator.pop(context);
+    // if (response["success"] != null) {
+    //   if (user == null) {
+    //     user = new User();
+    //   }
 
-      user!.allJobsCount = response["meta"]?["allJobsCount"];
-      user!.completedJobsCount = response["meta"]?["completedJobsCount"];
-      user!.uncompletedJobsCount = response["meta"]?["uncompletedJobsCount"];
+    //   user!.allJobsCount = response["meta"]?["allJobsCount"];
+    //   user!.completedJobsCount = response["meta"]?["completedJobsCount"];
+    //   user!.uncompletedJobsCount = response["meta"]?["uncompletedJobsCount"];
 
-      var fetchedJobs = (response['data'] as List)
-          .map((i) => Job.jobListfromJson(i))
-          .toList();
+    //   var fetchedJobs = (response['data'] as List)
+    //       .map((i) => Job.jobListfromJson(i))
+    //       .toList();
 
-      fetchedJobs.sort((a, b) => int.parse((a.sequence ?? "100"))
-          .compareTo(int.parse(b.sequence ?? "100")));
+    //   fetchedJobs.sort((a, b) => int.parse((a.sequence ?? "100"))
+    //       .compareTo(int.parse(b.sequence ?? "100")));
 
-      List<Job> completed = [];
-      List<Job> inProgress = [];
+    //   List<Job> completed = [];
+    //   List<Job> inProgress = [];
 
-      for (int i = 0; i < fetchedJobs.length; i++) {
-        if (fetchedJobs[i].status == "IN PROGRESS" ||
-            fetchedJobs[i].status == "PENDING REPAIR") {
-          inProgress.add(fetchedJobs[i]);
-        } else {
-          completed.add(fetchedJobs[i]);
-        }
-      }
-      setState(() {
-        inProgressJobs = inProgress;
-        completedJobs = completed;
-        Helpers.completedJobs = completed;
-        Helpers.inProgressJobs = inProgress;
-        Helpers.loggedInUser = user;
-      });
-      await updateJobSequence();
-    } else {
-      //show ERROR
-    }
+    //   for (int i = 0; i < fetchedJobs.length; i++) {
+    //     if (fetchedJobs[i].status == "IN PROGRESS" ||
+    //         fetchedJobs[i].status == "PENDING REPAIR") {
+    //       inProgress.add(fetchedJobs[i]);
+    //     } else {
+    //       completed.add(fetchedJobs[i]);
+    //     }
+    //   }
+    //   setState(() {
+    //     inProgressJobs = inProgress;
+    //     completedJobs = completed;
+    //     Helpers.completedJobs = completed;
+    //     Helpers.inProgressJobs = inProgress;
+    //     Helpers.loggedInUser = user;
+    //   });
+    //   await updateJobSequence();
+    // } else {
+    //   //show ERROR
+    // }
+
+    var jobs = [];
+
+    setState(() {
+      inProgressJobs = [new Job(), new Job(), new Job(), new Job(), new Job()];
+      completedJobs = [new Job(), new Job(), new Job(), new Job(), new Job()];
+      Helpers.completedJobs = [
+        new Job(),
+        new Job(),
+        new Job(),
+        new Job(),
+        new Job()
+      ];
+      Helpers.inProgressJobs = [
+        new Job(),
+        new Job(),
+        new Job(),
+        new Job(),
+        new Job()
+      ];
+      Helpers.loggedInUser = user;
+    });
+
     Navigator.pop(context);
   }
 
@@ -203,10 +230,10 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: <Widget>[
         Container(
-            width: MediaQuery.of(context).size.width * 0.22,
+            width: MediaQuery.of(context).size.width * 0.2,
             height: MediaQuery.of(context).size.height * 0.15,
             decoration:
-                BoxDecoration(border: Border.all(color: Colors.black38)),
+                BoxDecoration(border: Border.all(color: Color(0xFFD4D4D4))),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -251,7 +278,7 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
                     ),
                     children: <TextSpan>[
                       TextSpan(
-                          text: 'Uncompleted',
+                          text: 'Uncompleted Jobs',
                           style: const TextStyle(fontWeight: FontWeight.bold)),
                     ],
                   ),
@@ -259,9 +286,10 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
               ],
             )),
         Container(
-          width: MediaQuery.of(context).size.width * 0.22,
+          width: MediaQuery.of(context).size.width * 0.2,
           height: MediaQuery.of(context).size.height * 0.15,
-          decoration: BoxDecoration(border: Border.all(color: Colors.black38)),
+          decoration:
+              BoxDecoration(border: Border.all(color: Color(0xFFD4D4D4))),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -300,7 +328,7 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
                   ),
                   children: <TextSpan>[
                     TextSpan(
-                        text: 'Assigned',
+                        text: 'Total Jobs',
                         style: const TextStyle(fontWeight: FontWeight.bold)),
                   ],
                 ),
@@ -309,9 +337,10 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
           ),
         ),
         Container(
-          width: MediaQuery.of(context).size.width * 0.22,
+          width: MediaQuery.of(context).size.width * 0.2,
           height: MediaQuery.of(context).size.height * 0.15,
-          decoration: BoxDecoration(border: Border.all(color: Colors.black38)),
+          decoration:
+              BoxDecoration(border: Border.all(color: Color(0xFFD4D4D4))),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -351,7 +380,7 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
                   ),
                   children: <TextSpan>[
                     TextSpan(
-                        text: 'Completed',
+                        text: 'Completed Jobs',
                         style: const TextStyle(fontWeight: FontWeight.bold)),
                   ],
                 ),
@@ -437,6 +466,18 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
             ),
           ),
           SizedBox(height: 20),
+          Container(
+            height: MediaQuery.of(context).size.height * .08,
+            width: MediaQuery.of(context).size.width * 1,
+            child: CalendarView(
+              selectedIndex: currentSelectedIndex,
+              dateSelected: (index) {
+                setState(() {
+                  currentSelectedIndex = index;
+                });
+              },
+            ),
+          ),
           Padding(
             padding: EdgeInsets.fromLTRB(10.0, 0, 0, 0),
             child: Container(
@@ -481,7 +522,7 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
                           ),
                           children: <TextSpan>[
                             TextSpan(
-                              text: 'IN PROGRESS JOBS',
+                              text: 'LIST OF JOBS',
                             ),
                           ]),
                     ),
@@ -547,7 +588,7 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
 
                     shrinkWrap: true,
                     // shrinkWrap: false,
-                    itemCount: Helpers.inProgressJobs.length,
+                    itemCount: 5,
                     itemBuilder: (BuildContext context, int index) {
                       return GestureDetector(
                         child: JobItem(
@@ -558,17 +599,18 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
                         onTap: () async {
                           Helpers.selectedJobIndex = index;
                           Helpers.showAlert(context);
-                          Job? job = await Repositories.fetchJobDetails(
-                              jobId: Helpers.inProgressJobs[index].id);
+                          // Job? job = await Repositories.fetchJobDetails(
+                          //     jobId: Helpers.inProgressJobs[index].id);
+                          Job? job;
                           Navigator.pop(context);
-                          if (job != null) {
-                            Helpers.selectedJob = job;
-                            Navigator.pushNamed(context, 'jobDetails',
-                                    arguments: Helpers.selectedJob)
-                                .then((value) async {
-                              await _fetchJobs();
-                            });
-                          }
+                          // if (job != null) {
+                          Helpers.selectedJob = job;
+                          Navigator.pushNamed(context, 'jobDetails',
+                                  arguments: Helpers.selectedJob)
+                              .then((value) async {
+                            await _fetchJobs();
+                          });
+                          // }
                         },
                         key: ValueKey(index),
                       );
@@ -579,105 +621,6 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
           SizedBox(
             height: 30,
           ),
-          (completedJobs != null && completedJobs.length > 0)
-              ? Padding(
-                  padding: EdgeInsets.fromLTRB(10.0, 0, 0, 0),
-                  child: Container(
-                    alignment: Alignment.centerLeft,
-                    child: RichText(
-                      text: TextSpan(
-                          // Note: Styles for TextSpans must be explicitly defined.
-                          // Child text spans will inherit styles from parent
-                          style: const TextStyle(
-                            fontSize: 25.0,
-                            color: Colors.black,
-                          ),
-                          children: <TextSpan>[
-                            TextSpan(
-                              text: 'COMPLETED JOBS',
-                            ),
-                          ]),
-                    ),
-                  ),
-                )
-              : new Container(),
-          SizedBox(
-            height: 20,
-          ),
-          (completedJobs != null && completedJobs.length > 0)
-              ? Padding(
-                  padding: EdgeInsets.fromLTRB(0, 0, 420.0, 0),
-                  child: Container(
-                    width: 250,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          height: 40,
-                          child: TextFormField(
-                              focusNode: focusCompletedSearch,
-                              keyboardType: TextInputType.text,
-                              onChanged: _onChangeHandlerForCompletion,
-                              controller: completedSearchCT,
-                              onFieldSubmitted: (val) {
-                                FocusScope.of(context)
-                                    .requestFocus(new FocusNode());
-                              },
-                              style: TextStyles.textDefaultBold,
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText: 'Search',
-                                contentPadding: EdgeInsets.fromLTRB(0, 5, 0, 0),
-                                prefixIcon: Icon(Icons.search),
-                              )),
-                        ),
-                      ],
-                    ),
-                  ))
-              : new Container(),
-          (completedJobs != null && completedJobs.length > 0)
-              ? SizedBox(
-                  height: 20,
-                )
-              : new Container(),
-          (completedJobs != null && completedJobs.length > 0)
-              ? ConstrainedBox(
-                  constraints: BoxConstraints(maxHeight: 500, minHeight: 200),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: Helpers.completedJobs.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      return GestureDetector(
-                        onTap: () async {
-                          Helpers.selectedJobIndex = index;
-                          Job? job = await Repositories.fetchJobDetails(
-                              jobId: Helpers.completedJobs[index].id);
-                          if (job != null) {
-                            Helpers.selectedJob = job;
-                            Navigator.pushNamed(context, 'jobDetails',
-                                    arguments: Helpers.selectedJob)
-                                .then((value) async {
-                              await _fetchJobs();
-                            });
-                          }
-                        },
-                        child: JobItem(
-                            key: ValueKey(index),
-                            width: MediaQuery.of(context).size.width,
-                            job: Helpers.completedJobs[index],
-                            index: index),
-                      );
-                    },
-                  ),
-                )
-              : new Container(),
-          (Helpers.completedJobs != null && Helpers.completedJobs.length > 0)
-              ? SizedBox(
-                  height: 60,
-                )
-              : new Container()
         ]),
       ),
     );
@@ -744,13 +687,20 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
 }
 
 class JobItem extends StatelessWidget {
-  const JobItem(
+  JobItem(
       {Key? key, required this.width, required this.job, required this.index})
       : super(key: key);
 
   final double width;
   final Job job;
   final int index;
+
+  final imageUrls = [
+    "https://www.pngitem.com/pimgs/m/30-307416_profile-icon-png-image-free-download-searchpng-employee.png",
+    "https://www.pngitem.com/pimgs/m/30-307416_profile-icon-png-image-free-download-searchpng-employee.png",
+    "https://www.pngitem.com/pimgs/m/30-307416_profile-icon-png-image-free-download-searchpng-employee.png",
+    "https://www.pngitem.com/pimgs/m/30-307416_profile-icon-png-image-free-download-searchpng-employee.png"
+  ];
 
   Color getColor() {
     if (job.status == "IN PROGRESS" || job.status == "PENDING REPAIR") {
@@ -787,16 +737,13 @@ class JobItem extends StatelessWidget {
                   SizedBox(
                     height: 15,
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: Container(
-                          child: Padding(
-                            padding: EdgeInsets.fromLTRB(20.0, 0, 0, 0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(20, 0, 20, 0),
+                    child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
                                 RichText(
                                   text: TextSpan(
@@ -806,194 +753,310 @@ class JobItem extends StatelessWidget {
                                     ),
                                     children: <TextSpan>[
                                       TextSpan(
-                                          text: job != null
-                                              ? '# ${job.refNo}'.toString()
-                                              : '#-',
+                                          text: "#38472",
+
+                                          // job != null
+                                          //     ? '# ${job.refNo}'.toString()
+                                          //     : '#38472',
                                           style: const TextStyle(
                                               fontWeight: FontWeight.bold)),
                                     ],
                                   ),
                                 ),
                                 SizedBox(
-                                  height: 10,
+                                  width: 20,
                                 ),
-                                Row(
-                                  children: [
-                                    RichText(
-                                      text: TextSpan(
-                                        // Note: Styles for TextSpans must be explicitly defined.
-                                        // Child text spans will inherit styles from parent
-                                        style: const TextStyle(
-                                          fontSize: 14.0,
-                                          color: Colors.black87,
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Color(0xFF56C568),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Padding(
+                                    padding: EdgeInsets.all(10),
+                                    child: Center(
+                                      child: Text(
+                                        'Paid',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
                                         ),
-                                        children: <TextSpan>[
-                                          TextSpan(
-                                              text: job.date != null
-                                                  ? job.date
-                                                  : 'Date not found',
-                                              style: const TextStyle(
-                                                  fontWeight: FontWeight.bold)),
-                                        ],
                                       ),
                                     ),
-                                    RichText(
-                                      text: TextSpan(
-                                        // Note: Styles for TextSpans must be explicitly defined.
-                                        // Child text spans will inherit styles from parent
-                                        style: const TextStyle(
-                                          fontSize: 14.0,
-                                          color: Colors.red,
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 20,
+                                ),
+                                Container(
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.3,
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.03,
+                                  child: Stack(
+                                    children: List.generate(4, (index) {
+                                      double position = index.toDouble() *
+                                          25; // Adjust the overlapping position
+                                      return Positioned(
+                                        left: position,
+                                        child: Container(
+                                            decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                    color: Colors.white,
+                                                    width: 2.0)),
+                                            child: CircleAvatar(
+                                              radius: 15.0,
+                                              backgroundImage:
+                                                  CachedNetworkImageProvider(
+                                                      imageUrls[index]),
+                                            )),
+                                      );
+                                    }),
+                                  ),
+                                )
+                              ]),
+                          Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Color(0xFF323F4B),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Padding(
+                                    padding: EdgeInsets.fromLTRB(20, 8, 20, 8),
+                                    child: Center(
+                                      child: Text(
+                                        'Drop-In',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
                                         ),
-                                        children: <TextSpan>[
-                                          TextSpan(
-                                              text: job.time != null
-                                                  ? job.time
-                                                  : 'time not found',
-                                              style: const TextStyle(
-                                                  fontWeight: FontWeight.bold)),
-                                        ],
                                       ),
                                     ),
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 10,
+                                ),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Color(0xFF56C568),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Padding(
+                                    padding: EdgeInsets.fromLTRB(20, 8, 20, 8),
+                                    child: Center(
+                                      child: Text(
+                                        'Completed',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ])
+                        ]),
+                  ),
+                  SizedBox(
+                    height: 15,
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(20.0, 0, 0, 0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  RichText(
+                                    text: TextSpan(
+                                      // Note: Styles for TextSpans must be explicitly defined.
+                                      // Child text spans will inherit styles from parent
+                                      style: const TextStyle(
+                                        fontSize: 14.0,
+                                        color: Colors.black87,
+                                      ),
+                                      children: <TextSpan>[
+                                        TextSpan(
+                                            text: job.date != null
+                                                ? job.date
+                                                : '06/02/2019',
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold)),
+                                      ],
+                                    ),
+                                  ),
+                                  RichText(
+                                    text: TextSpan(
+                                      // Note: Styles for TextSpans must be explicitly defined.
+                                      // Child text spans will inherit styles from parent
+                                      style: const TextStyle(
+                                        fontSize: 14.0,
+                                        color: Colors.red,
+                                      ),
+                                      children: <TextSpan>[
+                                        TextSpan(
+                                            text: job.time != null
+                                                ? job.time
+                                                : '10:00 AM TO 02:00PM',
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(
+                                height: 5,
+                              ),
+                              RichText(
+                                text: TextSpan(
+                                  // Note: Styles for TextSpans must be explicitly defined.
+                                  // Child text spans will inherit styles from parent
+                                  style: const TextStyle(
+                                    fontSize: 14.0,
+                                    color: Colors.black45,
+                                  ),
+                                  children: <TextSpan>[
+                                    TextSpan(
+                                        text:
+                                            "3517 W. Gray St. Utica, Pennsylvania 57867",
+
+                                        // job != null
+                                        //     ? job.address
+                                        //         .toString()
+                                        //         .replaceAll("\n", " ")
+                                        //     : '',
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold)),
                                   ],
                                 ),
-                                SizedBox(
-                                  height: 5,
-                                ),
-                                RichText(
-                                  text: TextSpan(
-                                    // Note: Styles for TextSpans must be explicitly defined.
-                                    // Child text spans will inherit styles from parent
-                                    style: const TextStyle(
-                                      fontSize: 14.0,
-                                      color: Colors.black45,
-                                    ),
-                                    children: <TextSpan>[
-                                      TextSpan(
-                                          text: job != null
-                                              ? job.address
-                                                  .toString()
-                                                  .replaceAll("\n", " ")
-                                              : '',
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold)),
-                                    ],
-                                  ),
-                                ),
-                                SizedBox(
-                                  height: 10,
-                                ),
-                                RichText(
-                                  text: TextSpan(
-                                    // Note: Styles for TextSpans must be explicitly defined.
-                                    // Child text spans will inherit styles from parent
-                                    style: const TextStyle(
-                                      fontSize: 14.0,
-                                      color: Colors.black87,
-                                    ),
-                                    children: <TextSpan>[
-                                      TextSpan(
-                                          text: job != null
-                                              ? job.postcode
-                                                  .toString()
-                                                  .replaceAll("\n", " ")
-                                              : '',
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold)),
-                                    ],
-                                  ),
-                                ),
-                                SizedBox(
-                                  height: 15,
-                                ),
-                              ],
-                            ),
+                              ),
+                              SizedBox(
+                                height: 10,
+                              ),
+                              // RichText(
+                              //   text: TextSpan(
+                              //     // Note: Styles for TextSpans must be explicitly defined.
+                              //     // Child text spans will inherit styles from parent
+                              //     style: const TextStyle(
+                              //       fontSize: 14.0,
+                              //       color: Colors.black87,
+                              //     ),
+                              //     children: <TextSpan>[
+                              //       TextSpan(
+                              //           text: job != null
+                              //               ? job.postcode
+                              //                   .toString()
+                              //                   .replaceAll("\n", " ")
+                              //               : '',
+                              //           style: const TextStyle(
+                              //               fontWeight: FontWeight.bold)),
+                              //     ],
+                              //   ),
+                              // ),
+                              SizedBox(
+                                height: 15,
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                      Expanded(
-                          flex: 2,
-                          child: Container(
-                              width: width,
-                              child: Padding(
-                                  padding:
-                                      EdgeInsets.fromLTRB(20.0, 0, 0, 40.0),
-                                  child: Column(
-                                    children: [
-                                      RichText(
-                                        textAlign: TextAlign.center,
-                                        text: TextSpan(
-                                          // Note: Styles for TextSpans must be explicitly defined.
-                                          // Child text spans will inherit styles from parent
-                                          style: const TextStyle(
-                                            fontSize: 16.0,
-                                            color: Colors.black54,
-                                          ),
-                                          children: <TextSpan>[
-                                            TextSpan(
-                                                text: job != null
-                                                    ? '${job.customerName} (${job.customerContactNo})'
-                                                    : 'Esther Howard (+65 9572 0181)',
-                                                style: const TextStyle(
-                                                    fontWeight:
-                                                        FontWeight.bold)),
-                                          ],
-                                        ),
-                                      ),
-                                      SizedBox(
-                                        height: 5,
-                                      ),
-                                      RichText(
-                                        textAlign: TextAlign.center,
-                                        text: TextSpan(
-                                          // Note: Styles for TextSpans must be explicitly defined.
-                                          // Child text spans will inherit styles from parent
-                                          style: const TextStyle(
-                                            fontSize: 14.0,
-                                            color: Colors.black45,
-                                          ),
-                                          children: <TextSpan>[
-                                            TextSpan(
-                                                text: job != null
-                                                    ? job.productDescription
-                                                    : 'Disney x Mayer 3L Air Fryer',
-                                                style: const TextStyle(
-                                                    fontWeight:
-                                                        FontWeight.bold)),
-                                          ],
-                                        ),
-                                      ),
-                                      RichText(
-                                        textAlign: TextAlign.center,
-                                        text: TextSpan(
-                                          // Note: Styles for TextSpans must be explicitly defined.
-                                          // Child text spans will inherit styles from parent
-                                          style: const TextStyle(
-                                            fontSize: 14.0,
-                                            color: Colors.black45,
-                                          ),
-                                          children: <TextSpan>[
-                                            TextSpan(
-                                                text: job != null
-                                                    ? job.productCode
-                                                    : '',
-                                                style: const TextStyle(
-                                                    fontWeight:
-                                                        FontWeight.bold)),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  )))),
-                      Expanded(
-                          flex: 1,
-                          child: Container(
-                              child: Column(
+                      Container(
+                          child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          RichText(
+                            textAlign: TextAlign.start,
+                            text: TextSpan(
+                              // Note: Styles for TextSpans must be explicitly defined.
+                              // Child text spans will inherit styles from parent
+                              style: const TextStyle(
+                                fontSize: 16.0,
+                                color: Colors.black54,
+                              ),
+                              children: <TextSpan>[
+                                TextSpan(
+                                    text: 'Esther Howard (+65 9572 0181)',
+
+                                    // job != null
+                                    //     ? '${job.customerName} (${job.customerContactNo})'
+                                    //     : 'Esther Howard (+65 9572 0181)',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                          SizedBox(
+                            height: 5,
+                          ),
+                          RichText(
+                            textAlign: TextAlign.center,
+                            text: TextSpan(
+                              // Note: Styles for TextSpans must be explicitly defined.
+                              // Child text spans will inherit styles from parent
+                              style: const TextStyle(
+                                fontSize: 14.0,
+                                color: Colors.black45,
+                              ),
+                              children: <TextSpan>[
+                                TextSpan(
+                                    text: 'Disney x Mayer 3L Air Fryer',
+
+                                    // job != null
+                                    //     ? job.productDescription
+                                    //     : 'Disney x Mayer 3L Air Fryer',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                          RichText(
+                            textAlign: TextAlign.center,
+                            text: TextSpan(
+                              // Note: Styles for TextSpans must be explicitly defined.
+                              // Child text spans will inherit styles from parent
+                              style: const TextStyle(
+                                fontSize: 14.0,
+                                color: Colors.black45,
+                              ),
+                              children: <TextSpan>[
+                                TextSpan(
+                                    text: "MMDO12C",
+
+                                    // job != null
+                                    //     ? job.productCode
+                                    //     : '',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      )),
+                      Container(
+                          alignment: Alignment.topRight,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Padding(
-                                padding:
-                                    EdgeInsets.fromLTRB(50.0, 0.0, 0, 80.0),
+                                padding: EdgeInsets.fromLTRB(0.0, 0.0, 0,
+                                    MediaQuery.of(context).size.height * 0.03),
                                 child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     this.job.address != ""
                                         ? GestureDetector(
@@ -1017,7 +1080,6 @@ class JobItem extends StatelessWidget {
                                       width: 10,
                                     ),
                                     Icon(
-                                      // <-- Icon
                                       Icons.navigate_next_outlined,
                                       color: Colors.black54,
                                       size: 25.0,
@@ -1026,7 +1088,7 @@ class JobItem extends StatelessWidget {
                                 ),
                               )
                             ],
-                          ))),
+                          )),
                     ],
                   ),
                   Padding(
@@ -1034,12 +1096,13 @@ class JobItem extends StatelessWidget {
                     child: Container(
                       alignment: Alignment.centerLeft,
                       child: ReadMoreText(
-                        job != null
-                            ? job.problem
-                                .toString()
-                                .toLowerCase()
-                                .replaceAll("\n", " ")
-                            : '-',
+                        // job != null
+                        //     ? job.problem
+                        //         .toString()
+                        //         .toLowerCase()
+                        //         .replaceAll("\n", " ")
+                        //     : '-',
+                        "Changed order missed by pro",
                         trimLines: 2,
                         colorClickableText: Colors.black54,
                         trimMode: TrimMode.Line,
@@ -1094,9 +1157,11 @@ class JobItem extends StatelessWidget {
                         Container(
                           width: 500,
                           child: ReadMoreText(
-                            job.comment != null
-                                ? job.comment.toString().toLowerCase()
-                                : '-',
+                            // job.comment != null
+                            //     ? job.comment.toString().toLowerCase()
+                            //     : '-',
+
+                            "Start collecting on Friday morning, not Thursday",
                             trimLines: 2,
                             colorClickableText: Colors.black54,
                             trimMode: TrimMode.Line,
