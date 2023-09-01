@@ -1,99 +1,109 @@
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_interceptor/http_interceptor.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_config/flutter_config.dart';
+import 'package:intl/intl.dart';
+import 'package:kcs_engineer/util/helpers.dart';
 import 'package:kcs_engineer/util/key.dart';
+import 'package:kcs_engineer/util/repositories.dart';
 
 final storage = new FlutterSecureStorage();
 
-class AuthInterceptor implements InterceptorContract {
-  @override
-  Future<RequestData> interceptRequest({required RequestData data}) async {
-    try {
-      String username = FlutterConfig.get("CLIENT_USERNAME");
-      String password = FlutterConfig.get("CLIENT_PASSWORD") as String;
-      String basicAuth =
-          'Basic ' + base64Encode(utf8.encode('$username:$password'));
-      print('BasicAuth $basicAuth');
-      data.headers['Content-Type'] = 'application/json';
-      data.headers['authorization'] = basicAuth;
-    } catch (e) {
-      print('Auth Interceptor error $e');
-    }
-    return data;
-  }
+// class AuthInterceptor implements InterceptorContract {
+//   @override
+//   Future<RequestData> interceptRequest({required RequestData data}) async {
+//     try {
+//       String refreshToken = storage.read(key: REFRESH_TOKEN).toString();
+//     } catch (e) {
+//       print('Auth Interceptor error $e');
+//     }
+//     return data;
+//   }
 
-  @override
-  Future<ResponseData> interceptResponse({required ResponseData data}) async {
-    return data;
-  }
-}
+//   @override
+//   Future<ResponseData> interceptResponse({required ResponseData data}) async {
+//     return data;
+//   }
+// }
 
 class ApiInterceptor implements InterceptorContract {
-  String baseUrl = "https://mc.mayer.sg/api/v1";
+  String baseUrl = dotenv.env["API_BASE_URL"] ?? "";
 
   @override
   Future<RequestData> interceptRequest({required RequestData data}) async {
     try {
-      data.headers['Content-Type'] = 'application/json';
-      data.headers['Accept'] = 'application/json';
-
-      var token = await storage.read(key: TOKEN);
-
-      var oldToken = token.toString();
-      print('OLD TOKEN: $oldToken');
-      if (oldToken != '') {
-        String? tokenExp = await storage.read(key: TOKEN_EXPIRY);
-
-        if (tokenExp != null) {
-          var expDate =
-              DateTime.fromMillisecondsSinceEpoch(int.parse(tokenExp));
-
-          if (expDate
-                  .difference(DateTime.now().add(Duration(minutes: 30)))
-                  .inMinutes <=
-              0) {
-            //token = await Api._fetchRefreshToken(oldToken);
-            print('new TOKEN From $oldToken : $token');
-          } else {
-            print("Token Not Expired");
-          }
-        }
-        String bearerAuth = 'Bearer $token';
-        data.headers['Authorization'] = bearerAuth;
-        print("#HEADERS: ${bearerAuth}");
-        String? other = await storage.read(key: TEST);
-        print('#OTHER: $other');
-      } else {
-        String bearerAuth = 'Bearer $oldToken';
-        data.headers['Authorization'] = bearerAuth;
-        print("#HEADERS: ${bearerAuth}");
-        String? other = await storage.read(key: TEST);
-        print('#OTHER: $other');
+      var epoch = await storage.read(key: TOKEN_EXPIRY);
+      num tokenExpiry = num.parse(epoch.toString());
+      var now = DateTime.now().toUtc().millisecondsSinceEpoch;
+      if (tokenExpiry < now) {
+        await renewAccessToken();
       }
+      data.headers['Content-Type'] = 'application/json';
+      data.headers['Accept'] = '*/*';
+      var token = await storage.read(key: TOKEN);
+      String bearerAuth = 'Bearer $token';
+      data.headers['Authorization'] = bearerAuth;
+      print("#HEADERS: ${bearerAuth}");
     } catch (e) {
       print('Api Interceptor error $e');
     }
     return data;
   }
 
+  static Future<String> renewAccessToken() async {
+    var baseUrl = await dotenv.env["API_BASE_URL"];
+    var refreshToken = await storage.read(key: REFRESH_TOKEN);
+
+    var data = {"refresh_token": refreshToken};
+
+    final res =
+        await http.post(Uri.parse("$baseUrl/auth/refresh-token"), body: data);
+
+    var response = json.decode(res.body) as Map<String, dynamic>;
+
+    print("#Resp: ${jsonEncode(response)}");
+
+    if (response["success"]) {
+      Helpers.isAuthenticated = false;
+      var dateTimeFormat = DateFormat("yyyy-MM-ddTHH:mm:ss.SSSSSS'Z'")
+          .parse(response?['data']?['token']?['expires_at']);
+
+      await storage.write(
+          key: TOKEN, value: response?['data']?['token']?['token']);
+      await storage.write(
+          key: TOKEN_EXPIRY,
+          value: dateTimeFormat.millisecondsSinceEpoch.toString());
+
+      return response?['data']?['token']?['token'];
+    } else {
+      Helpers.isAuthenticated = false;
+      await storage.delete(key: TOKEN);
+      await storage.delete(key: TOKEN_EXPIRY);
+      await storage.delete(key: REFRESH_TOKEN);
+      await storage.delete(key: USERID);
+      return "unauthenticated";
+    }
+  }
+
   @override
   Future<ResponseData> interceptResponse({required ResponseData data}) async {
+    //handleunauthenticated;
     return data;
   }
 }
 
 class Api {
-  static http.Client authClient =
-      InterceptedClient.build(interceptors: [AuthInterceptor()]);
+  // static http.Client authClient =
+  //     InterceptedClient.build(interceptors: [AuthInterceptor()]);
   static http.Client client =
       InterceptedClient.build(interceptors: [ApiInterceptor()]);
 
   static bearerGet(endpoint, {params}) async {
     try {
       final response;
-      String baseUrl = "https://mc.mayer.sg/api/v1";
+      String baseUrl = dotenv.env["API_BASE_URL"] ?? "";
 
       String url = '$baseUrl/$endpoint';
 
@@ -118,8 +128,7 @@ class Api {
   static bearerPatch(endpoint, {params, queryParams}) async {
     try {
       final response;
-      String baseUrl = "https://mc.mayer.sg/api/v1";
-
+      String baseUrl = dotenv.env["API_BASE_URL"] ?? "";
       String url = '$baseUrl/$endpoint';
 
       print("bearerPatch Url: $url");
@@ -145,7 +154,7 @@ class Api {
   static bearerDelete(endpoint, {params, queryParams}) async {
     try {
       final response;
-      String baseUrl = "https://mc.mayer.sg/api/v1";
+      String baseUrl = dotenv.env["API_BASE_URL"] ?? "";
 
       String url = '$baseUrl/$endpoint';
 
@@ -172,7 +181,7 @@ class Api {
   static bearerPost(endpoint, {params, queryParams}) async {
     try {
       final response;
-      String baseUrl = "https://mc.mayer.sg/api/v1";
+      String baseUrl = dotenv.env["API_BASE_URL"] ?? "";
 
       String url = '$baseUrl/$endpoint';
 

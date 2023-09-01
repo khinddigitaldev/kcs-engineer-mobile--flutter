@@ -62,9 +62,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 Container(
                   color: Colors.white,
-                  child: Center(
-                    child: JobHistory(),
-                  ),
+                  child: Center(child: new Container()
+                      // child: JobHistory(),
+                      ),
                 ),
                 Container(
                   color: Colors.white,

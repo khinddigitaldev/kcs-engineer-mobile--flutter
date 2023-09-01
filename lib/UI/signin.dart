@@ -1,18 +1,14 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
-import 'dart:ui';
 
 //import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_config/flutter_config.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
-import 'package:kcs_engineer/themes/app_colors.dart';
 import 'package:kcs_engineer/themes/text_styles.dart';
-import 'package:kcs_engineer/util/api.dart';
-import 'package:kcs_engineer/util/helpers.dart';
 import 'package:kcs_engineer/util/key.dart';
+import 'package:kcs_engineer/util/repositories.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 class SignIn extends StatefulWidget {
@@ -68,40 +64,20 @@ class _SignInState extends State<SignIn> {
       isLoading = true;
     });
 
-    final Map<String, dynamic> map = {
-      'email': emailCT.text.toString(),
-      'password': passwordCT.text.toString(),
-    };
-
-    // final response = await Api.bearerPost('login', params: jsonEncode(map));
-    await setTimeout(1000);
-    // Navigator.pop(context);
-
-    // if (response["success"] != false) {
-    //   Helpers.isAuthenticated = true;
-    //   await storage.write(key: TOKEN, value: response['data']?['token']);
-    //   await storage.write(
-    //       key: USERID, value: response['data']?['user']?['user_id'].toString());
-
-    //   Navigator.pushReplacementNamed(context, 'home');
-    // } else {
-    //   setState(() {
-    //     isErrorEmail = true;
-    //     isErrorPassword = true;
-    //   });
-    // }
-  }
-
-  setTimeout(time) {
-    Duration timeDelay = Duration(milliseconds: time);
-    return Timer(
-        timeDelay,
-        () => {
-              setState(() {
-                isLoading = false;
-              }),
-              Navigator.pushReplacementNamed(context, 'home')
-            });
+    var res = await Repositories.handleSignIn(
+        emailCT.text.toString(), passwordCT.text.toString());
+    setState(() {
+      isLoading = false;
+    });
+    if (res["success"]) {
+      Navigator.pushReplacementNamed(context, 'home');
+    } else {
+      setState(() {
+        isErrorEmail = true;
+        isErrorPassword = true;
+      });
+    }
+    print("RES");
   }
 
   // _registerOnFirebase() async {
@@ -277,6 +253,31 @@ class _SignInState extends State<SignIn> {
                             : Icons.visibility_off)))
               ],
             ),
+            SizedBox(height: 5),
+            isErrorPassword
+                ? Row(children: [
+                    Icon(
+                      Icons.warning_outlined,
+                      color: Colors.red,
+                      size: 25.0,
+                    ),
+                    SizedBox(width: 5),
+                    RichText(
+                      text: TextSpan(
+                          // Note: Styles for TextSpans must be explicitly defined.
+                          // Child text spans will inherit styles from parent
+                          style: const TextStyle(
+                            fontSize: 13.0,
+                            color: Colors.red,
+                          ),
+                          children: <TextSpan>[
+                            TextSpan(
+                              text: 'Invalid password',
+                            ),
+                          ]),
+                    ),
+                  ])
+                : new Container(),
             SizedBox(height: 25),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               Column(
@@ -320,30 +321,7 @@ class _SignInState extends State<SignIn> {
                     ]),
               ),
             ]),
-            isErrorPassword
-                ? Row(children: [
-                    Icon(
-                      Icons.warning_outlined,
-                      color: Colors.red,
-                      size: 25.0,
-                    ),
-                    SizedBox(width: 5),
-                    RichText(
-                      text: TextSpan(
-                          // Note: Styles for TextSpans must be explicitly defined.
-                          // Child text spans will inherit styles from parent
-                          style: const TextStyle(
-                            fontSize: 13.0,
-                            color: Colors.red,
-                          ),
-                          children: <TextSpan>[
-                            TextSpan(
-                              text: 'Invalid password',
-                            ),
-                          ]),
-                    ),
-                  ])
-                : new Container(),
+
             SizedBox(height: 15),
             // Row(
             //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -403,8 +381,6 @@ class _SignInState extends State<SignIn> {
       ),
     );
   }
-
-  _handleSignin() {}
 
   _renderError() {
     return Column(crossAxisAlignment: CrossAxisAlignment.center, children: [

@@ -1,12 +1,20 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:ui';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:kcs_engineer/model/engineer.dart';
 import 'package:kcs_engineer/model/user.dart';
 import 'package:kcs_engineer/util/api.dart';
 import 'package:kcs_engineer/util/helpers.dart';
+import 'package:kcs_engineer/util/repositories.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:after_layout/after_layout.dart';
 
 class UserProfile extends StatefulWidget {
   int? data;
@@ -16,7 +24,7 @@ class UserProfile extends StatefulWidget {
   _UserProfileState createState() => _UserProfileState();
 }
 
-class _UserProfileState extends State<UserProfile> {
+class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
   GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   TextEditingController emailCT = new TextEditingController();
@@ -29,8 +37,9 @@ class _UserProfileState extends State<UserProfile> {
   String version = "";
   final storage = new FlutterSecureStorage();
   String? token;
-  User user = new User();
+  Engineer? engineer;
 
+  File? _imageFile;
   @override
   void initState() {
     // emailCT.text = 'khindtest1@gmail.com';
@@ -39,10 +48,15 @@ class _UserProfileState extends State<UserProfile> {
     // passwordCT.text = 'Khindanshin118';
 
     super.initState();
-    fetchProfileData();
-    _loadVersion();
+
     //_loadToken();
     //_checkPermisions();
+  }
+
+  @override
+  FutureOr<void> afterFirstLayout(BuildContext context) async {
+    await fetchProfileData();
+    await _loadVersion();
   }
 
   @override
@@ -50,6 +64,40 @@ class _UserProfileState extends State<UserProfile> {
     emailCT.dispose();
     passwordCT.dispose();
     super.dispose();
+  }
+
+  Future<void> _getImage() async {
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      CroppedFile? croppedFile = await ImageCropper().cropImage(
+          sourcePath: pickedFile.path,
+          aspectRatio: CropAspectRatio(ratioX: 4, ratioY: 4),
+          aspectRatioPresets: [
+            CropAspectRatioPreset.square
+          ],
+          uiSettings: [
+            AndroidUiSettings(
+              toolbarTitle: 'Crop Image',
+              toolbarColor: Colors.transparent,
+              toolbarWidgetColor: Colors.red,
+              statusBarColor: Colors.transparent,
+              initAspectRatio: CropAspectRatioPreset.original,
+              lockAspectRatio: false,
+            ),
+            IOSUiSettings(title: "Crop Image")
+          ]);
+      if (croppedFile != null) {
+        setState(() {
+          _imageFile = File(croppedFile.path);
+        });
+        await updateProfilePicture();
+      }
+    }
+  }
+
+  updateProfilePicture() async {
+    await Repositories.updateProfilePicuture(_imageFile?.path ?? "");
   }
 
   _loadVersion() async {
@@ -69,23 +117,15 @@ class _UserProfileState extends State<UserProfile> {
   //   });
   // }
 
-  void fetchProfileData() async {
+  Future<dynamic> fetchProfileData() async {
     //Helpers.showAlert(context);
 
-    final response = await Api.bearerGet('users/currently-authenticated');
-    print("#Resp: ${jsonEncode(response)}");
+    Engineer? fetchedUser = await Repositories.fetchProfile();
 
     // Navigator.pop(context);
-    if (response["success"] != null) {
-      User usr = User.fromJson(response['data']);
-
-      setState(() {
-        user = usr;
-        Helpers.loggedInUser = usr;
-      });
-    } else {
-      //show ERROR
-    }
+    setState(() {
+      engineer = fetchedUser;
+    });
   }
 
   Widget _renderForm() {
@@ -127,19 +167,79 @@ class _UserProfileState extends State<UserProfile> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  alignment: Alignment.centerLeft,
-                  child: user.profileImage != null
-                      ? Image.network(
-                          user.profileImage ?? "",
-                          height: 300,
-                          width: 200,
-                        )
-                      : Image(
-                          height: 300,
-                          width: 200,
-                          image: AssetImage('assets/images/user_profile.png'),
-                        ),
-                ),
+                    alignment: Alignment.centerLeft,
+                    child: engineer?.profileImage != null
+                        ? Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: <Widget>[
+                              Stack(
+                                children: [
+                                  _imageFile != null && engineer != null
+                                      ? Container(
+                                          width: 280,
+                                          height: 300,
+                                          decoration: BoxDecoration(
+                                              color: Color(0xFF081b29),
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                              image: DecorationImage(
+                                                image: FileImage(
+                                                    _imageFile ?? new File("")),
+                                              )))
+                                      : engineer != null
+                                          ? Container(
+                                              width: 280,
+                                              height: 300,
+                                              decoration: BoxDecoration(
+                                                  color: Color(0xFF081b29),
+                                                  borderRadius:
+                                                      BorderRadius.circular(20),
+                                                  image: DecorationImage(
+                                                      image:
+                                                          CachedNetworkImageProvider(
+                                                        engineer?.profileImage ??
+                                                            "",
+                                                        // maxHeight: 200,
+                                                        // maxWidth: 300,
+                                                      ),
+                                                      fit: BoxFit.cover)),
+                                            )
+                                          : Container(
+                                              width: 280,
+                                              height: 300,
+                                              decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(20),
+                                                  color: Color(0xFF081b29),
+                                                  image: DecorationImage(
+                                                    image: AssetImage(
+                                                        'assets/images/user_profile.png'),
+                                                    fit: BoxFit.cover,
+                                                  ))),
+                                  Positioned(
+                                    right: 0,
+                                    bottom: 0,
+                                    child: Padding(
+                                      padding: EdgeInsets.only(
+                                          right: 20, bottom: 10),
+                                      child: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                            primary: Color(0xFF455059)
+                                                .withOpacity(0.4)),
+                                        onPressed: _getImage,
+                                        child: Icon(
+                                          size: 30.0,
+                                          Icons.camera_alt_outlined,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                ],
+                              )
+                            ],
+                          )
+                        : new Container()),
               ],
             ),
 
@@ -156,7 +256,7 @@ class _UserProfileState extends State<UserProfile> {
                   ),
                   children: <TextSpan>[
                     TextSpan(
-                        text: user != null ? user.full_name : 'Arlene McCoy',
+                        text: engineer != null ? engineer?.fullName : '',
                         style: const TextStyle(fontWeight: FontWeight.bold)),
                   ],
                 ),
@@ -175,7 +275,7 @@ class _UserProfileState extends State<UserProfile> {
                   ),
                   children: <TextSpan>[
                     TextSpan(
-                        text: user != null ? user.role : 'Mayer Technician',
+                        text: engineer != null ? engineer?.role : '',
                         style: const TextStyle(fontWeight: FontWeight.bold)),
                   ],
                 ),
@@ -259,9 +359,9 @@ class _UserProfileState extends State<UserProfile> {
                               ),
                               children: <TextSpan>[
                                 TextSpan(
-                                  text: user != null
-                                      ? user.reference_user_id
-                                      : 'TA6-D',
+                                  text: engineer != null
+                                      ? engineer?.engineerId
+                                      : '',
                                 ),
                               ]),
                         ),
@@ -291,7 +391,7 @@ class _UserProfileState extends State<UserProfile> {
                               ),
                               children: <TextSpan>[
                                 TextSpan(
-                                  text: 'mayer.enquiry@mayer.sg',
+                                  text: engineer?.email,
                                 ),
                               ]),
                         ),
@@ -339,7 +439,7 @@ class _UserProfileState extends State<UserProfile> {
                                     ),
                                     children: <TextSpan>[
                                       TextSpan(
-                                        text: '+65 6542 8383',
+                                        text: engineer?.contactNo,
                                       ),
                                     ]),
                               ),
@@ -359,7 +459,7 @@ class _UserProfileState extends State<UserProfile> {
                                     ),
                                     children: <TextSpan>[
                                       TextSpan(
-                                        text: '(Mon-Fri: 9:00am - 5:00pm)',
+                                        text: engineer?.operatingHours,
                                       ),
                                     ]),
                               ),
@@ -392,8 +492,7 @@ class _UserProfileState extends State<UserProfile> {
                               ),
                               children: <TextSpan>[
                                 TextSpan(
-                                  text:
-                                      '71 Ubi Crescent, Excalibur Centre, #06-02 Singapore 408571',
+                                  text: engineer?.hubLocation,
                                 ),
                               ]),
                         ),

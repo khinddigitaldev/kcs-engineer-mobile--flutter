@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 
+import 'package:after_layout/after_layout.dart';
+import 'package:bottom_sheet_bar/bottom_sheet_bar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -25,7 +27,8 @@ class JobList extends StatefulWidget with WidgetsBindingObserver {
   _JobListState createState() => _JobListState();
 }
 
-class _JobListState extends State<JobList> with WidgetsBindingObserver {
+class _JobListState extends State<JobList>
+    with WidgetsBindingObserver, AfterLayoutMixin {
   var _refreshKey = GlobalKey<RefreshIndicatorState>();
   GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
@@ -46,6 +49,29 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
   String currentSearchTextCompleted = "";
   List<Job> inProgressJobs = [];
   List<Job> completedJobs = [];
+  final _listSizeController = TextEditingController(text: '5');
+  int _listSize = 5;
+  final _bsbController = BottomSheetBarController();
+  bool _isLocked = false;
+  bool isExpandedFilters = false;
+
+  var serviceTypes = ["Drop-In", "Home-Visit", "For Pickup"];
+  var paymentStatuses = ["Paid", "Unpaid"];
+  var serviceStatuses = [
+    "Request Created",
+    "Repairing",
+    "Pending Colletion",
+    "Pending Pickup",
+    "Pending Drop-In",
+    "Collected",
+    "Cancelled",
+  ];
+
+  var selectedServiceTypes = [];
+  var selectedPaymentStatuses = [];
+  var selectedServiceStatuses = [];
+
+  JobData? jobData;
 
   int? currentSelectedIndex = 0;
 
@@ -57,10 +83,12 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration.zero, () {
-      _loadVersion();
-      _fetchJobs();
-    });
+  }
+
+  @override
+  FutureOr<void> afterFirstLayout(BuildContext context) async {
+    await _loadVersion();
+    await _fetchJobs();
   }
 
   @override
@@ -89,6 +117,9 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
     if (Helpers.loggedInUser != null) {
       user = Helpers.loggedInUser;
     }
+    var fetchedJobData = null;
+
+    fetchedJobData = await Repositories.fetchJobs();
 
     // final response = await Api.bearerGet('job-orders/with-relationship');
     // print("#Resp: ${jsonEncode(response)}");
@@ -132,25 +163,12 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
     //   //show ERROR
     // }
 
-    var jobs = [];
-
     setState(() {
-      inProgressJobs = [new Job(), new Job(), new Job(), new Job(), new Job()];
-      completedJobs = [new Job(), new Job(), new Job(), new Job(), new Job()];
-      Helpers.completedJobs = [
-        new Job(),
-        new Job(),
-        new Job(),
-        new Job(),
-        new Job()
-      ];
-      Helpers.inProgressJobs = [
-        new Job(),
-        new Job(),
-        new Job(),
-        new Job(),
-        new Job()
-      ];
+      jobData = fetchedJobData;
+      inProgressJobs = (jobData as JobData).jobs ?? [];
+      completedJobs = (jobData as JobData).jobs ?? [];
+      Helpers.completedJobs = inProgressJobs;
+      Helpers.inProgressJobs = completedJobs;
       Helpers.loggedInUser = user;
     });
 
@@ -166,8 +184,6 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
     setState(() {
       if (isInprogress) {
         Helpers.inProgressJobs = Helpers.inProgressJobs.where((element) {
-          final comment =
-              element.comment != null ? element.comment!.toLowerCase() : "";
           final customerName = element.customerName != null
               ? element.customerName!.toLowerCase()
               : "";
@@ -177,23 +193,14 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
           final productDesc = element.productDescription != null
               ? element.productDescription!.toLowerCase()
               : "";
-          final remark =
-              element.problem != null ? element.problem!.toLowerCase() : "";
-          final jobRefNo =
-              element.refNo != null ? element.refNo!.toLowerCase() : "";
           final input = query.toLowerCase();
 
-          return (comment.toLowerCase().contains(input) ||
-              customerName.toLowerCase().contains(input) ||
+          return (customerName.toLowerCase().contains(input) ||
               productCode.toLowerCase().contains(input) ||
-              productDesc.toLowerCase().contains(input) ||
-              jobRefNo.toLowerCase().contains(input) ||
-              remark.toLowerCase().contains(input));
+              productDesc.toLowerCase().contains(input));
         }).toList();
       } else {
         Helpers.completedJobs = Helpers.completedJobs.where((element) {
-          final comment =
-              element.comment != null ? element.comment!.toLowerCase() : "";
           final customerName = element.customerName != null
               ? element.customerName!.toLowerCase()
               : "";
@@ -203,18 +210,12 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
           final productDesc = element.productDescription != null
               ? element.productDescription!.toLowerCase()
               : "";
-          final remark =
-              element.problem != null ? element.problem!.toLowerCase() : "";
-          final jobRefNo =
-              element.refNo != null ? element.refNo!.toLowerCase() : "";
+
           final input = query.toLowerCase();
 
-          return (comment.toLowerCase().contains(input) ||
-              customerName.toLowerCase().contains(input) ||
+          return (customerName.toLowerCase().contains(input) ||
               productCode.toLowerCase().contains(input) ||
-              productDesc.toLowerCase().contains(input) ||
-              jobRefNo.toLowerCase().contains(input) ||
-              remark.toLowerCase().contains(input));
+              productDesc.toLowerCase().contains(input));
         }).toList();
       }
     });
@@ -256,11 +257,7 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
                     ),
                     children: <TextSpan>[
                       TextSpan(
-                          text:
-                              Helpers.loggedInUser?.uncompletedJobsCount != null
-                                  ? Helpers.loggedInUser?.uncompletedJobsCount
-                                      .toString()
-                                  : "",
+                          text: '${jobData?.meta?.uncompleted ?? 0}',
                           style: const TextStyle(fontWeight: FontWeight.bold)),
                     ],
                   ),
@@ -310,9 +307,8 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
                   ),
                   children: <TextSpan>[
                     TextSpan(
-                        text: Helpers.loggedInUser?.allJobsCount != null
-                            ? Helpers.loggedInUser?.allJobsCount.toString()
-                            : "",
+                        text:
+                            '${(jobData?.meta?.completed ?? 0) + (jobData?.meta?.uncompleted ?? 0)}',
                         style: const TextStyle(fontWeight: FontWeight.bold)),
                   ],
                 ),
@@ -361,10 +357,7 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
                   ),
                   children: <TextSpan>[
                     TextSpan(
-                        text: Helpers.loggedInUser?.completedJobsCount != null
-                            ? Helpers.loggedInUser?.completedJobsCount
-                                .toString()
-                            : "",
+                        text: '${jobData?.meta?.completed ?? 0}',
                         style: const TextStyle(fontWeight: FontWeight.bold)),
                   ],
                 ),
@@ -532,39 +525,72 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
           SizedBox(
             height: 20,
           ),
-          (inProgressJobs != null && inProgressJobs.length > 0)
-              ? Padding(
-                  padding: EdgeInsets.fromLTRB(0, 0, 420.0, 0),
-                  child: Container(
-                    width: 250,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          height: 40,
-                          child: TextFormField(
-                              focusNode: focusinProgressSearch,
-                              keyboardType: TextInputType.text,
-                              controller: inProgressSearchCT,
-                              onChanged: _onChangeHandlerForInprogress,
-                              onFieldSubmitted: (val) {
-                                FocusScope.of(context)
-                                    .requestFocus(new FocusNode());
-                              },
-                              style: TextStyles.textDefaultBold,
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText: 'Search',
-                                contentPadding: EdgeInsets.fromLTRB(0, 5, 0, 0),
-                                prefixIcon: Icon(Icons.search),
-                              )),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              (inProgressJobs != null && inProgressJobs.length > 0)
+                  ? Padding(
+                      padding: EdgeInsets.fromLTRB(0, 0, 0.0, 0),
+                      child: Container(
+                        width: 250,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              height: 40,
+                              child: TextFormField(
+                                  focusNode: focusinProgressSearch,
+                                  keyboardType: TextInputType.text,
+                                  controller: inProgressSearchCT,
+                                  onChanged: _onChangeHandlerForInprogress,
+                                  onFieldSubmitted: (val) {
+                                    FocusScope.of(context)
+                                        .requestFocus(new FocusNode());
+                                  },
+                                  style: TextStyles.textDefaultBold,
+                                  decoration: const InputDecoration(
+                                    border: OutlineInputBorder(),
+                                    hintText: 'Search',
+                                    contentPadding:
+                                        EdgeInsets.fromLTRB(0, 5, 0, 0),
+                                    prefixIcon: Icon(Icons.search),
+                                  )),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ))
-              : new Container(),
+                      ))
+                  : new Container(),
+              SizedBox(
+                width:
+                    MediaQuery.of(context).size.width * 0.1, // <-- match_parent
+                height: MediaQuery.of(context).size.width *
+                    0.05, // <-- match-parent
+                child: ElevatedButton(
+                    child: Padding(
+                        padding: const EdgeInsets.all(0.0),
+                        child: Text(
+                          'Filter',
+                          style: TextStyle(fontSize: 15, color: Colors.black54),
+                        )),
+                    style: ButtonStyle(
+                        foregroundColor:
+                            MaterialStateProperty.all<Color>(Colors.white),
+                        backgroundColor:
+                            MaterialStateProperty.all<Color>(Colors.white),
+                        shape:
+                            MaterialStateProperty.all<RoundedRectangleBorder>(
+                                RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4.0),
+                                    side: BorderSide(color: Colors.black54)))),
+                    onPressed: () {
+                      _bsbController.expand();
+                    }),
+              ),
+            ],
+          ),
           (inProgressJobs != null && inProgressJobs.length > 0)
               ? SizedBox(
                   height: 20,
@@ -588,7 +614,7 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
 
                     shrinkWrap: true,
                     // shrinkWrap: false,
-                    itemCount: 5,
+                    itemCount: inProgressJobs.length,
                     itemBuilder: (BuildContext context, int index) {
                       return GestureDetector(
                         child: JobItem(
@@ -599,8 +625,7 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
                         onTap: () async {
                           Helpers.selectedJobIndex = index;
                           Helpers.showAlert(context);
-                          // Job? job = await Repositories.fetchJobDetails(
-                          //     jobId: Helpers.inProgressJobs[index].id);
+
                           Job? job;
                           Navigator.pop(context);
                           // if (job != null) {
@@ -665,23 +690,476 @@ class _JobListState extends State<JobList> with WidgetsBindingObserver {
         child: Scaffold(
           key: _scaffoldKey,
           //resizeToAvoidBottomInset: false,
-          body: CustomPaint(
-              child: SingleChildScrollView(
-                  physics: AlwaysScrollableScrollPhysics(),
-                  child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 10),
-                      decoration: new BoxDecoration(
-                          color: Colors.white.withOpacity(0.0)),
-                      child: Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            errorMsg != "" ? _renderError() : Container(),
-                            _renderForm(),
+          body: BottomSheetBar(
+            height: 0,
+            color: Colors.white,
+            isDismissable: true,
+            backdropColor: Colors.black.withOpacity(0.6),
+            locked: _isLocked,
+            controller: _bsbController,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(0.0),
+              topRight: Radius.circular(0.0),
+            ),
+            borderRadiusExpanded: const BorderRadius.only(
+              topLeft: Radius.circular(20.0),
+              topRight: Radius.circular(20.0),
+            ),
+            // boxShadows: [
+            //   BoxShadow(
+            //     color: Colors.grey.withOpacity(0.5),
+            //     spreadRadius: 5.0,
+            //     blurRadius: 32.0,
+            //     offset: const Offset(0, 0), // changes position of shadow
+            //   ),
+            // ],
+            expandedBuilder: (scrollController) {
+              final itemList =
+                  List<int>.generate(_listSize, (index) => index + 1);
 
-                            //Expanded(child: _renderBottom()),
-                            //version != "" ? _renderVersion() : Container()
-                          ])))),
+              // Wrapping the returned widget with [Material] for tap effects
+              return Material(
+                  color: Colors.transparent,
+                  child: Container(
+                    height: MediaQuery.of(context).size.height * 0.5,
+                    width: MediaQuery.of(context).size.width * 1,
+                    padding: EdgeInsets.only(left: 80, right: 20, top: 10),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(),
+                            RichText(
+                              text: TextSpan(
+                                style: const TextStyle(
+                                  fontSize: 20.0,
+                                  color: Colors.black,
+                                ),
+                                children: <TextSpan>[
+                                  TextSpan(
+                                    text: 'Filter',
+                                  ),
+                                ],
+                              ),
+                            ),
+                            RichText(
+                              text: TextSpan(
+                                style: const TextStyle(
+                                  fontSize: 20.0,
+                                  color: Colors.blue,
+                                ),
+                                children: <TextSpan>[
+                                  TextSpan(
+                                      text: 'Reset', style: const TextStyle()),
+                                ],
+                              ),
+                            )
+                          ],
+                        ),
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * .08,
+                        ),
+                        Container(
+                          alignment: Alignment.centerLeft,
+                          child: RichText(
+                            text: TextSpan(
+                              style: const TextStyle(
+                                fontSize: 20.0,
+                                color: Colors.black,
+                              ),
+                              children: <TextSpan>[
+                                TextSpan(
+                                    text: 'Service Type',
+                                    style: const TextStyle()),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          height: 20,
+                        ),
+                        LayoutBuilder(builder:
+                            (BuildContext context, BoxConstraints constraints) {
+                          return AnimatedAlign(
+                              alignment: Alignment.centerLeft,
+                              duration: Duration(milliseconds: 300),
+                              child: Container(
+                                  width: constraints.maxWidth,
+                                  child: Wrap(
+                                      direction: Axis.horizontal,
+                                      alignment: WrapAlignment.start,
+                                      spacing: 10,
+                                      runSpacing: 10,
+                                      crossAxisAlignment:
+                                          WrapCrossAlignment.start,
+                                      children: serviceTypes
+                                          .map(
+                                            (e) => GestureDetector(
+                                                onTap: () {
+                                                  if (selectedServiceTypes
+                                                      .contains(e)) {
+                                                    setState(() {
+                                                      selectedServiceTypes
+                                                          .remove(e);
+                                                    });
+                                                  } else {
+                                                    setState(() {
+                                                      selectedServiceTypes
+                                                          .add(e);
+                                                    });
+                                                  }
+                                                },
+                                                child: Container(
+                                                    decoration: BoxDecoration(
+                                                        color:
+                                                            selectedServiceTypes
+                                                                    .contains(e)
+                                                                ? Color(
+                                                                    0xFF323F4B)
+                                                                : Colors.white,
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(20),
+                                                        border: Border.all(
+                                                          color:
+                                                              Color(0xFF323F4B),
+                                                        )),
+                                                    child: Padding(
+                                                        padding:
+                                                            EdgeInsets.fromLTRB(
+                                                                30, 10, 30, 10),
+                                                        child: RichText(
+                                                            text: TextSpan(
+                                                                style:
+                                                                    TextStyle(
+                                                                  color: selectedServiceTypes
+                                                                          .contains(
+                                                                              e)
+                                                                      ? Colors
+                                                                          .white
+                                                                      : Colors
+                                                                          .black,
+                                                                  fontSize: 12,
+                                                                ),
+                                                                children: [
+                                                              TextSpan(
+                                                                  text: '${e}'),
+                                                              WidgetSpan(
+                                                                child: SizedBox(
+                                                                  width: selectedServiceTypes
+                                                                          .contains(
+                                                                              e)
+                                                                      ? 10
+                                                                      : 0,
+                                                                ),
+                                                              ),
+                                                              WidgetSpan(
+                                                                  child: Icon(
+                                                                Icons.check,
+                                                                size: selectedServiceTypes
+                                                                        .contains(
+                                                                            e)
+                                                                    ? 15
+                                                                    : 0,
+                                                                color: Colors
+                                                                    .white,
+                                                              ))
+                                                            ]))))),
+                                          )
+                                          .toList())));
+                        }),
+                        SizedBox(
+                          height: 20,
+                        ),
+                        Divider(),
+                        SizedBox(
+                          height: 20,
+                        ),
+                        Container(
+                          alignment: Alignment.centerLeft,
+                          child: RichText(
+                            text: TextSpan(
+                              style: const TextStyle(
+                                fontSize: 20.0,
+                                color: Colors.black,
+                              ),
+                              children: <TextSpan>[
+                                TextSpan(
+                                    text: 'Payment Status',
+                                    style: const TextStyle()),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          height: 20,
+                        ),
+                        LayoutBuilder(builder:
+                            (BuildContext context, BoxConstraints constraints) {
+                          return AnimatedAlign(
+                              alignment: Alignment.centerLeft,
+                              duration: Duration(milliseconds: 300),
+                              child: Container(
+                                  width: constraints.maxWidth,
+                                  child: Wrap(
+                                      direction: Axis.horizontal,
+                                      alignment: WrapAlignment.start,
+                                      spacing: 10,
+                                      runSpacing: 10,
+                                      crossAxisAlignment:
+                                          WrapCrossAlignment.start,
+                                      children: paymentStatuses
+                                          .map(
+                                            (e) => GestureDetector(
+                                                onTap: () {
+                                                  if (selectedPaymentStatuses
+                                                      .contains(e)) {
+                                                    setState(() {
+                                                      selectedPaymentStatuses
+                                                          .remove(e);
+                                                    });
+                                                  } else {
+                                                    setState(() {
+                                                      selectedPaymentStatuses
+                                                          .add(e);
+                                                    });
+                                                  }
+                                                },
+                                                child: Container(
+                                                    decoration: BoxDecoration(
+                                                        color:
+                                                            selectedPaymentStatuses
+                                                                    .contains(e)
+                                                                ? Color(
+                                                                    0xFF323F4B)
+                                                                : Colors.white,
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(20),
+                                                        border: Border.all(
+                                                          color:
+                                                              Color(0xFF323F4B),
+                                                        )),
+                                                    child: Padding(
+                                                        padding:
+                                                            EdgeInsets.fromLTRB(
+                                                                30, 10, 30, 10),
+                                                        child: RichText(
+                                                            text: TextSpan(
+                                                                style:
+                                                                    TextStyle(
+                                                                  color: selectedPaymentStatuses
+                                                                          .contains(
+                                                                              e)
+                                                                      ? Colors
+                                                                          .white
+                                                                      : Colors
+                                                                          .black,
+                                                                  fontSize: 12,
+                                                                ),
+                                                                children: [
+                                                              TextSpan(
+                                                                  text: '${e}'),
+                                                              WidgetSpan(
+                                                                child: SizedBox(
+                                                                  width: selectedPaymentStatuses
+                                                                          .contains(
+                                                                              e)
+                                                                      ? 10
+                                                                      : 0,
+                                                                ),
+                                                              ),
+                                                              WidgetSpan(
+                                                                  child: Icon(
+                                                                Icons.check,
+                                                                size: selectedPaymentStatuses
+                                                                        .contains(
+                                                                            e)
+                                                                    ? 15
+                                                                    : 0,
+                                                                color: Colors
+                                                                    .white,
+                                                              ))
+                                                            ]))))),
+                                          )
+                                          .toList())));
+                        }),
+                        SizedBox(
+                          height: 20,
+                        ),
+                        Divider(),
+                        SizedBox(
+                          height: 20,
+                        ),
+                        Container(
+                          alignment: Alignment.centerLeft,
+                          child: RichText(
+                            text: TextSpan(
+                              style: const TextStyle(
+                                fontSize: 20.0,
+                                color: Colors.black,
+                              ),
+                              children: <TextSpan>[
+                                TextSpan(
+                                    text: 'Service Status',
+                                    style: const TextStyle()),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          height: 20,
+                        ),
+                        LayoutBuilder(builder:
+                            (BuildContext context, BoxConstraints constraints) {
+                          return AnimatedAlign(
+                              alignment: Alignment.centerLeft,
+                              duration: Duration(milliseconds: 300),
+                              child: Container(
+                                  width: constraints.maxWidth,
+                                  child: Wrap(
+                                      direction: Axis.horizontal,
+                                      alignment: WrapAlignment.start,
+                                      spacing: 10,
+                                      runSpacing: 10,
+                                      crossAxisAlignment:
+                                          WrapCrossAlignment.start,
+                                      children: serviceStatuses
+                                          .map(
+                                            (e) => GestureDetector(
+                                                onTap: () {
+                                                  if (selectedServiceStatuses
+                                                      .contains(e)) {
+                                                    setState(() {
+                                                      selectedServiceStatuses
+                                                          .remove(e);
+                                                    });
+                                                  } else {
+                                                    setState(() {
+                                                      selectedServiceStatuses
+                                                          .add(e);
+                                                    });
+                                                  }
+                                                },
+                                                child: Container(
+                                                    decoration: BoxDecoration(
+                                                        color:
+                                                            selectedServiceStatuses
+                                                                    .contains(e)
+                                                                ? Color(
+                                                                    0xFF323F4B)
+                                                                : Colors.white,
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(20),
+                                                        border: Border.all(
+                                                          color:
+                                                              Color(0xFF323F4B),
+                                                        )),
+                                                    child: Padding(
+                                                        padding:
+                                                            EdgeInsets.fromLTRB(
+                                                                30, 10, 30, 10),
+                                                        child: RichText(
+                                                            text: TextSpan(
+                                                                style:
+                                                                    TextStyle(
+                                                                  color: selectedServiceStatuses
+                                                                          .contains(
+                                                                              e)
+                                                                      ? Colors
+                                                                          .white
+                                                                      : Colors
+                                                                          .black,
+                                                                  fontSize: 12,
+                                                                ),
+                                                                children: [
+                                                              TextSpan(
+                                                                  text: '${e}'),
+                                                              WidgetSpan(
+                                                                child: SizedBox(
+                                                                  width: selectedServiceStatuses
+                                                                          .contains(
+                                                                              e)
+                                                                      ? 10
+                                                                      : 0,
+                                                                ),
+                                                              ),
+                                                              WidgetSpan(
+                                                                  child: Icon(
+                                                                Icons.check,
+                                                                size: selectedServiceStatuses
+                                                                        .contains(
+                                                                            e)
+                                                                    ? 15
+                                                                    : 0,
+                                                                color: Colors
+                                                                    .white,
+                                                              ))
+                                                            ]))))),
+                                          )
+                                          .toList())));
+                        }),
+                        SizedBox(
+                          height: 40,
+                        ),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: double.infinity, // <-- match_parent
+                              height: MediaQuery.of(context).size.width *
+                                  0.05, // <-- match-parent
+                              child: ElevatedButton(
+                                  child: Padding(
+                                      padding: const EdgeInsets.all(0.0),
+                                      child: Text(
+                                        'Submit',
+                                        style: TextStyle(
+                                            fontSize: 15, color: Colors.white),
+                                      )),
+                                  style: ButtonStyle(
+                                      foregroundColor:
+                                          MaterialStateProperty.all<Color>(
+                                              Color(0xFF323F4B)),
+                                      backgroundColor:
+                                          MaterialStateProperty.all<Color>(
+                                              Color(0xFF323F4B)),
+                                      shape: MaterialStateProperty.all<
+                                              RoundedRectangleBorder>(
+                                          RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(4.0),
+                                              side: BorderSide(
+                                                  color: Color(0xFF323F4B))))),
+                                  onPressed: () {
+                                    _bsbController.expand();
+                                  }),
+                            ),
+                          ],
+                        )
+                      ],
+                    ),
+                  ));
+            },
+            body: CustomPaint(
+                child: SingleChildScrollView(
+                    physics: AlwaysScrollableScrollPhysics(),
+                    child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 10),
+                        decoration: new BoxDecoration(
+                            color: Colors.white.withOpacity(0.0)),
+                        child: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              errorMsg != "" ? _renderError() : Container(),
+                              _renderForm(),
+                            ])))),
+          ),
         ));
   }
 }
@@ -703,7 +1181,8 @@ class JobItem extends StatelessWidget {
   ];
 
   Color getColor() {
-    if (job.status == "IN PROGRESS" || job.status == "PENDING REPAIR") {
+    if (job.serviceJobStatus?.toLowerCase() == "request created" ||
+        job.serviceJobStatus == "PENDING REPAIR") {
       return Colors.red;
     } else {
       return Colors.green;
@@ -753,11 +1232,10 @@ class JobItem extends StatelessWidget {
                                     ),
                                     children: <TextSpan>[
                                       TextSpan(
-                                          text: "#38472",
-
-                                          // job != null
-                                          //     ? '# ${job.refNo}'.toString()
-                                          //     : '#38472',
+                                          text: job != null
+                                              ? '# ${job.serviceJobNo}'
+                                                  .toString()
+                                              : '#-',
                                           style: const TextStyle(
                                               fontWeight: FontWeight.bold)),
                                     ],
@@ -790,7 +1268,7 @@ class JobItem extends StatelessWidget {
                                 ),
                                 Container(
                                   width:
-                                      MediaQuery.of(context).size.width * 0.3,
+                                      MediaQuery.of(context).size.width * 0.2,
                                   height:
                                       MediaQuery.of(context).size.height * 0.03,
                                   child: Stack(
@@ -826,10 +1304,10 @@ class JobItem extends StatelessWidget {
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Padding(
-                                    padding: EdgeInsets.fromLTRB(20, 8, 20, 8),
+                                    padding: EdgeInsets.fromLTRB(8, 8, 8, 8),
                                     child: Center(
                                       child: Text(
-                                        'Drop-In',
+                                        '${job != null ? job.serviceType : ""}',
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 12,
@@ -848,10 +1326,10 @@ class JobItem extends StatelessWidget {
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Padding(
-                                    padding: EdgeInsets.fromLTRB(20, 8, 20, 8),
+                                    padding: EdgeInsets.fromLTRB(8, 8, 8, 8),
                                     child: Center(
                                       child: Text(
-                                        'Completed',
+                                        '${job.serviceJobStatus}',
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 12,
@@ -888,60 +1366,62 @@ class JobItem extends StatelessWidget {
                                       ),
                                       children: <TextSpan>[
                                         TextSpan(
-                                            text: job.date != null
-                                                ? job.date
-                                                : '06/02/2019',
+                                            text: job.serviceDate != null
+                                                ? job.serviceDate
+                                                : '-',
                                             style: const TextStyle(
                                                 fontWeight: FontWeight.bold)),
                                       ],
                                     ),
                                   ),
-                                  RichText(
-                                    text: TextSpan(
-                                      // Note: Styles for TextSpans must be explicitly defined.
-                                      // Child text spans will inherit styles from parent
-                                      style: const TextStyle(
-                                        fontSize: 14.0,
-                                        color: Colors.red,
-                                      ),
-                                      children: <TextSpan>[
-                                        TextSpan(
-                                            text: job.time != null
-                                                ? job.time
-                                                : '10:00 AM TO 02:00PM',
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.bold)),
-                                      ],
-                                    ),
-                                  ),
+                                  // RichText(
+                                  //   text: TextSpan(
+                                  //     // Note: Styles for TextSpans must be explicitly defined.
+                                  //     // Child text spans will inherit styles from parent
+                                  //     style: const TextStyle(
+                                  //       fontSize: 14.0,
+                                  //       color: Colors.red,
+                                  //     ),
+                                  //     children: <TextSpan>[
+                                  //       TextSpan(
+                                  //           text: job.serviceTime != null
+                                  //               ? job.serviceTime
+                                  //               : '10:00 AM TO 02:00PM',
+                                  //           style: const TextStyle(
+                                  //               fontWeight: FontWeight.bold)),
+                                  //     ],
+                                  //   ),
+                                  // ),
                                 ],
                               ),
                               SizedBox(
                                 height: 5,
                               ),
-                              RichText(
-                                text: TextSpan(
-                                  // Note: Styles for TextSpans must be explicitly defined.
-                                  // Child text spans will inherit styles from parent
-                                  style: const TextStyle(
-                                    fontSize: 14.0,
-                                    color: Colors.black45,
-                                  ),
-                                  children: <TextSpan>[
-                                    TextSpan(
-                                        text:
-                                            "3517 W. Gray St. Utica, Pennsylvania 57867",
+                              Container(
+                                width: MediaQuery.of(context).size.width * 0.25,
+                                child: RichText(
+                                  text: TextSpan(
+                                    // Note: Styles for TextSpans must be explicitly defined.
+                                    // Child text spans will inherit styles from parent
+                                    style: const TextStyle(
+                                      fontSize: 14.0,
+                                      color: Colors.black45,
+                                    ),
+                                    children: <TextSpan>[
+                                      TextSpan(
+                                          // text:
+                                          //     "3517 W. Gray St. Utica, Pennsylvania 57867",
 
-                                        // job != null
-                                        //     ? job.address
-                                        //         .toString()
-                                        //         .replaceAll("\n", " ")
-                                        //     : '',
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold)),
-                                  ],
+                                          text: job != null
+                                              ? '${job.serviceAddressStreet},${job.serviceAddressCity},${job.serviceAddressPostcode},${job.serviceAddressState}, '
+                                              : '',
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
                                 ),
                               ),
+
                               SizedBox(
                                 height: 10,
                               ),
@@ -988,11 +1468,9 @@ class JobItem extends StatelessWidget {
                               ),
                               children: <TextSpan>[
                                 TextSpan(
-                                    text: 'Esther Howard (+65 9572 0181)',
-
-                                    // job != null
-                                    //     ? '${job.customerName} (${job.customerContactNo})'
-                                    //     : 'Esther Howard (+65 9572 0181)',
+                                    text: job != null
+                                        ? '${job.customerName} (${job.customerTelephone})'
+                                        : '-',
                                     style: const TextStyle(
                                         fontWeight: FontWeight.bold)),
                               ],
@@ -1012,11 +1490,9 @@ class JobItem extends StatelessWidget {
                               ),
                               children: <TextSpan>[
                                 TextSpan(
-                                    text: 'Disney x Mayer 3L Air Fryer',
-
-                                    // job != null
-                                    //     ? job.productDescription
-                                    //     : 'Disney x Mayer 3L Air Fryer',
+                                    text: job != null
+                                        ? job.productDescription
+                                        : '-',
                                     style: const TextStyle(
                                         fontWeight: FontWeight.bold)),
                               ],
@@ -1033,11 +1509,7 @@ class JobItem extends StatelessWidget {
                               ),
                               children: <TextSpan>[
                                 TextSpan(
-                                    text: "MMDO12C",
-
-                                    // job != null
-                                    //     ? job.productCode
-                                    //     : '',
+                                    text: job != null ? job.productCode : '',
                                     style: const TextStyle(
                                         fontWeight: FontWeight.bold)),
                               ],
@@ -1058,15 +1530,15 @@ class JobItem extends StatelessWidget {
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    this.job.address != ""
+                                    this.job.serviceAddressStreet != ""
                                         ? GestureDetector(
                                             onTap: () async {
                                               var address = this
                                                   .job
-                                                  .address
+                                                  .serviceAddressStreet
                                                   ?.replaceAll("\n", "");
                                               launch(
-                                                  "https://www.google.com/maps/search/?api=1&query=$address");
+                                                  "https://www.google.com/maps/search/?api=1&query=${'${job.serviceAddressStreet},${job.serviceAddressCity},${job.serviceAddressPostcode},${job.serviceAddressState},'}");
                                             },
                                             child: Icon(
                                               // <-- Icon
@@ -1096,13 +1568,12 @@ class JobItem extends StatelessWidget {
                     child: Container(
                       alignment: Alignment.centerLeft,
                       child: ReadMoreText(
-                        // job != null
-                        //     ? job.problem
-                        //         .toString()
-                        //         .toLowerCase()
-                        //         .replaceAll("\n", " ")
-                        //     : '-',
-                        "Changed order missed by pro",
+                        job != null
+                            ? job.remarks
+                                .toString()
+                                .toLowerCase()
+                                .replaceAll("\n", " ")
+                            : '-',
                         trimLines: 2,
                         colorClickableText: Colors.black54,
                         trimMode: TrimMode.Line,
@@ -1157,11 +1628,11 @@ class JobItem extends StatelessWidget {
                         Container(
                           width: 500,
                           child: ReadMoreText(
-                            // job.comment != null
-                            //     ? job.comment.toString().toLowerCase()
-                            //     : '-',
-
-                            "Start collecting on Friday morning, not Thursday",
+                            job.problemDescription != null
+                                ? job.problemDescription
+                                    .toString()
+                                    .toLowerCase()
+                                : '-',
                             trimLines: 2,
                             colorClickableText: Colors.black54,
                             trimMode: TrimMode.Line,

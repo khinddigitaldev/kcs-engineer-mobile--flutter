@@ -1,130 +1,169 @@
 import 'dart:io';
 
 //import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_config/flutter_config.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:kcs_engineer/UI/payment_history.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:intl/intl.dart';
+import 'package:kcs_engineer/model/engineer.dart';
 import 'package:kcs_engineer/model/general_code.dart';
 import 'package:kcs_engineer/model/job.dart';
 import 'package:kcs_engineer/model/jobGeneralCodes.dart';
 import 'package:kcs_engineer/model/job_order_seq.dart';
 import 'package:kcs_engineer/model/payment_method.dart';
-import 'package:kcs_engineer/model/payment_status.dart';
 import 'package:kcs_engineer/model/solution.dart';
 import 'package:kcs_engineer/model/payment_history_item.dart';
 import 'package:kcs_engineer/model/sparepart.dart';
-import 'package:kcs_engineer/model/sparepart_history_item.dart';
 import 'package:kcs_engineer/model/user_sparepart.dart';
 import 'package:kcs_engineer/model/user.dart';
 import 'package:kcs_engineer/util/api.dart';
 import 'package:kcs_engineer/util/helpers.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:mime/mime.dart';
+
+import 'package:http_parser/http_parser.dart';
 
 import 'package:kcs_engineer/util/key.dart';
 
 class Repositories {
-  Future<bool> _handleSignIn(String email, String password) async {
+  static Future<dynamic> handleSignIn(String email, String password) async {
     final Map<String, dynamic> map = {
-      'email': email,
+      'identifier': email,
       'password': password,
     };
 
-    final response = await Api.bearerPost('login', params: jsonEncode(map));
+    final response = await Api.bearerPost('auth/login', params: map);
     print("#Resp: ${jsonEncode(response)}");
 
-    if (response["success"] != null) {
-      await storage.write(key: TOKEN, value: response['data']?['token']);
-      return true;
-    } else {
-      return false;
+    if (response["success"]) {
+      var dateTimeFormat = DateFormat("yyyy-MM-ddTHH:mm:ss.SSSSSS'Z'")
+          .parse(response?['data']?['token']?['expires_at']);
+      await storage.write(
+          key: TOKEN, value: response?['data']?['token']?['token']);
+      await storage.write(
+          key: TOKEN_EXPIRY,
+          value: dateTimeFormat.millisecondsSinceEpoch.toString());
+      await storage.write(
+          key: REFRESH_TOKEN,
+          value: response['data']?['refresh_token']?['token']);
+      await storage.write(
+          key: USERID, value: response['data']?['user']?['user_id']);
     }
-  }
-
-  // _registerOnFirebase() async {
-  //   FirebaseMessaging _fcm = FirebaseMessaging.instance;
-
-  //   var userStorage = await storage.read(key: USER);
-  //   User userJson = User.fromJson(jsonDecode(userStorage!));
-  //   var email = userJson.email?.toLowerCase();
-
-  //   if (email != null) {
-  //     _fcm.subscribeToTopic('all');
-  //     _fcm.getToken().then((value) async => {
-  //           value.toString(),
-  //           await handleNewRegistrationToken(
-  //               value.toString(), email.toString()),
-  //         });
-  //   }
-  // }
-
-  handleNewRegistrationToken(String token, String email) async {
-    final Map<String, dynamic> map = {
-      'email': email,
-      'token': token,
-      'device_id': 'deviceID',
-      'platform': Platform.isAndroid ? 'Android' : 'iOS'
-    };
-    var baseUrl = FlutterConfig.get("API_URL");
-
-    var response = await http.post(
-        Uri.parse((baseUrl ?? "https://cm.khind.com.my") +
-            "/provider/fcm/register.php"),
-        body: map,
-        headers: null);
-
-    var g = response.toString();
+    return response;
   }
 
   static Future<bool> handleLogout() async {
-    final response = await Api.bearerPost('logout');
+    final response = await Api.bearerPost('auth/logout');
     print("#Resp: ${jsonEncode(response)}");
 
     if (response["success"] != null) {
       Helpers.isAuthenticated = false;
-      await storage.write(key: TOKEN, value: "");
+      await storage.delete(key: TOKEN);
+      await storage.delete(key: TOKEN_EXPIRY);
+      await storage.delete(key: REFRESH_TOKEN);
+      await storage.delete(key: USERID);
       return true;
     } else {
       return false;
     }
   }
 
-  _fetchJobs() async {
-    User? user;
-    if (Helpers.loggedInUser != null) {
-      user = Helpers.loggedInUser;
+  static Future<String> renewAccessToken() async {
+    final response = await Api.bearerPost('auth/refresh-token');
+    print("#Resp: ${jsonEncode(response)}");
+
+    if (response["success"]) {
+      Helpers.isAuthenticated = false;
+      var dateTimeFormat = DateFormat('MMMM d, yyyy', 'en_US')
+          .parse(response?['data']?['token']?['expires_at']);
+
+      await storage.write(
+          key: TOKEN, value: response?['data']?['token']?['token']);
+      await storage.write(
+          key: TOKEN_EXPIRY,
+          value: dateTimeFormat.millisecondsSinceEpoch.toString());
+
+      return response?['data']?['token']?['token'];
+    } else {
+      Helpers.isAuthenticated = false;
+      await storage.delete(key: TOKEN);
+      await storage.delete(key: TOKEN_EXPIRY);
+      await storage.delete(key: REFRESH_TOKEN);
+      await storage.delete(key: USERID);
+      return "unauthenticated";
+    }
+  }
+
+  static Future<Engineer?> fetchProfile() async {
+    Engineer? user = null;
+    final response = await Api.bearerGet('auth/profile');
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null) {
+      user = Engineer.fromJson(response["data"]);
+    }
+    return user;
+  }
+
+  static Future<String> updateProfilePicuture(String picture) async {
+    String path = 'user/upload-profile-image';
+    String baseUrl = dotenv.env["API_BASE_URL"] ?? "";
+
+    String url = '${baseUrl}/${path}';
+
+    Uri uri = Uri.parse(url);
+
+    File pictureFile = File(picture);
+
+    var request = http.MultipartRequest('POST', uri);
+
+    if (pictureFile != "") {
+      var mimeType = lookupMimeType(picture); // 'image/jpeg'
+
+      request.files.add(
+        await http.MultipartFile.fromBytes(
+            'attachment',
+            Platform.isIOS
+                ? (await rootBundle.load(picture)).buffer.asUint8List()
+                : File(picture).readAsBytesSync(),
+            contentType: new MediaType(mimeType?.split('/')[0] ?? 'application',
+                mimeType?.split('/')[1] ?? "jpg"),
+            filename: picture.split("/").last),
+      );
     }
 
-    final response = await Api.bearerGet('job-orders/with-relationship');
+    var userToken = await storage.read(key: TOKEN);
+    request.headers["Authorization"] = "Bearer ${userToken}";
+
+    http.StreamedResponse response = await request.send();
+    var res = await response.stream.bytesToString();
+    var jsonObj = json.decode(res);
+    if (response.statusCode == 200) {}
+
+    if (jsonObj["success"]) {
+      return "success";
+    } else {
+      return "error";
+    }
+  }
+
+  static Future<JobData?> fetchJobs() async {
+    JobData? data;
+
+    final response = await Api.bearerGet('job/service-jobs');
     print("#Resp: ${jsonEncode(response)}");
     // Navigator.pop(context);
-    if (response["success"] != null) {
-      if (user == null) {
-        user = new User();
-      }
-
-      user!.allJobsCount = response["meta"]?["allJobsCount"];
-      user!.completedJobsCount = response["meta"]?["completedJobsCount"];
-      user!.uncompletedJobsCount = response["meta"]?["uncompletedJobsCount"];
-
-      // var fetchedJobs =
-      //     (response['data'] as List).map((i) => Job.fromJson(i)).toList();
-
-      // setState(() {
-      //   jobs = fetchedJobs;
-      //   Helpers.loggedInUser = user;
-      // });
-    } else {
-      //show ERROR
+    if (response["success"]) {
+      data = await JobData.selectedJobFromJson(response);
     }
+    return data;
   }
 
   static Future<Job?> fetchJobDetails({required int? jobId}) async {
     final response = await Api.bearerGet('job-orders/$jobId');
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null) {
-      Job job = Job.selectedJobFromJson(response);
+      Job? job = null;
       var spareParts =
           (response['data']!['relationships']!['engineer_order_transaction']
                   as List)
@@ -141,12 +180,6 @@ class Repositories {
       num sumSubTotal = response['meta']!['realSubTotal'] ?? 0.0;
       num sumDiscount = response['meta']!['taxTotal'] ?? 0.0;
       num sumTotal = response['meta']!['grandTotal'] ?? 0.0;
-
-      job.jobSpareParts = spareParts;
-      job.generalCodes = generalCodes;
-      job.sumSubTotal = sumSubTotal;
-      job.sumDiscount = sumDiscount;
-      job.sumTotal = sumTotal;
 
       Helpers.editableJobSpareParts = spareParts;
 

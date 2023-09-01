@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_config/flutter_config.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:kcs_engineer/app_config.dart';
@@ -46,6 +47,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   AppConfig appConfig = AppConfig(appName: "MMPL", flavor: "prod");
   Widget app = await initializeApp(appConfig);
+  await dotenv.load(fileName: ".env");
   // var res = await Firebase.initializeApp();
   // await _registerOnFirebase();
   // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
