@@ -23,8 +23,9 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => SplashScreen());
       case 'home':
         return MaterialPageRoute(builder: (_) => MyHomePage());
-      // case 'jobDetails':
-      //   return MaterialPageRoute(builder: (_) => JobDetails());
+      case 'jobDetails':
+        return MaterialPageRoute(
+            builder: (_) => JobDetails(id: arguments as String));
       case 'warehouse':
         return MaterialPageRoute(
             builder: (_) => Warehouse(data: arguments as Job));

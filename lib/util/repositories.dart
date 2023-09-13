@@ -5,12 +5,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_config/flutter_config.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/intl.dart';
+import 'package:kcs_engineer/model/checklistAttachment.dart';
+import 'package:kcs_engineer/model/comment.dart';
 import 'package:kcs_engineer/model/engineer.dart';
 import 'package:kcs_engineer/model/general_code.dart';
 import 'package:kcs_engineer/model/job.dart';
 import 'package:kcs_engineer/model/jobGeneralCodes.dart';
+import 'package:kcs_engineer/model/job_filter_options.dart';
 import 'package:kcs_engineer/model/job_order_seq.dart';
 import 'package:kcs_engineer/model/payment_method.dart';
+import 'package:kcs_engineer/model/problem.dart';
 import 'package:kcs_engineer/model/solution.dart';
 import 'package:kcs_engineer/model/payment_history_item.dart';
 import 'package:kcs_engineer/model/sparepart.dart';
@@ -147,7 +151,31 @@ class Repositories {
     }
   }
 
-  static Future<JobData?> fetchJobs() async {
+  static Future<JobData?> fetchJobs(filters) async {
+    JobData? data;
+
+    final response = await Api.bearerPost('job/service-jobs', params: filters);
+    print("#Resp: ${jsonEncode(response)}");
+    // Navigator.pop(context);
+    if (response["success"]) {
+      data = await JobData.selectedJobFromJson(response);
+    }
+    return data;
+  }
+
+  static Future<JobFilterOptions?> fetchJobStatus() async {
+    JobFilterOptions? data;
+
+    final response = await Api.bearerGet('general/job-list-filter-options');
+    print("#Resp: ${jsonEncode(response)}");
+    // Navigator.pop(context);
+    if (response["success"]) {
+      data = await JobFilterOptions.fromJson(response);
+    }
+    return data;
+  }
+
+  static Future<JobData?> fetchOrderStatuses() async {
     JobData? data;
 
     final response = await Api.bearerGet('job/service-jobs');
@@ -159,7 +187,75 @@ class Repositories {
     return data;
   }
 
-  static Future<Job?> fetchJobDetails({required int? jobId}) async {
+  static Future<List<Comment>> fetchOrderComments(String salesOrderId) async {
+    List<Comment>? data = [];
+
+    final response = await Api.bearerGet('job/comments/' + salesOrderId);
+    print("#Resp: ${jsonEncode(response)}");
+    // Navigator.pop(context);
+    if (response["success"]) {
+      data =
+          (response['data'] as List).map((i) => Comment.fromJson(i)).toList();
+    }
+    return data;
+  }
+
+  static Future<bool> addComment(String salesOrdefId, String content) async {
+    var data = {"content": content, "sales_order_id": salesOrdefId};
+
+    final response =
+        await Api.bearerPost('job/comments/create', params: jsonEncode(data));
+    print("#Resp: ${jsonEncode(response)}");
+    // Navigator.pop(context);
+    if (response["success"]) {
+      return true;
+    }
+    return false;
+  }
+
+  static Future<bool> updateComment(int commentId, String content) async {
+    var data = {"remarks": content, "cust_remarks_id": commentId};
+
+    final response =
+        await Api.bearerPost('job/comments/update', params: jsonEncode(data));
+    print("#Resp: ${jsonEncode(response)}");
+    // Navigator.pop(context);
+    if (response["success"]) {
+      return true;
+    }
+    return false;
+  }
+
+  static Future<bool> deleteComment(int commentId) async {
+    var data = {"cust_remarks_id": commentId};
+
+    final response =
+        await Api.bearerPost('job/comments/delete', params: jsonEncode(data));
+    print("#Resp: ${jsonEncode(response)}");
+    // Navigator.pop(context);
+    if (response["success"]) {
+      return true;
+    }
+    return false;
+  }
+
+  static Future<List<ChecklistAttachment>> fetchChecklistAttachment(
+      String salesOrderId) async {
+    List<ChecklistAttachment>? data = [];
+
+    final response = await Api.bearerGet(
+        'job/checklist/' + salesOrderId + '/question-answers');
+    print("#Resp: ${jsonEncode(response)}");
+    // Navigator.pop(context);
+    if (response["success"]) {
+      data = (response['data'] as List)
+          .map((i) => ChecklistAttachment.fromJson(i))
+          .toList();
+    }
+    return data;
+  }
+
+  static Future<Job?> fetchJobDetails({required String? jobId}) async {
     final response = await Api.bearerGet('job-orders/$jobId');
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null) {
@@ -206,7 +302,7 @@ class Repositories {
 
   //DONE
   static Future<bool> addSparePartsToJob(
-      int jobId, List<SparePart> spareparts) async {
+      String jobId, List<SparePart> spareparts) async {
     List<Map<String, dynamic>> mapList = [];
 
     spareparts.forEach((element) {
@@ -231,7 +327,7 @@ class Repositories {
   }
 
   static Future<bool> addGeneralCodeToJob(
-      int jobId, List<GeneralCode> generalCodes) async {
+      String jobId, List<GeneralCode> generalCodes) async {
     //var userId = await storage.read(key: USERID);
 
     List<Map<String, dynamic>> mapList = [];
@@ -268,7 +364,7 @@ class Repositories {
   }
 
   static Future<bool> updateGeneralCodes(
-      int jobId, List<JobGeneralCode> generalCodes) async {
+      String jobId, List<JobGeneralCode> generalCodes) async {
     //var userId = await storage.read(key: USERID);
 
     List<Map<String, dynamic>> mapList = [];
@@ -296,7 +392,7 @@ class Repositories {
   }
 
   //DONE
-  static Future<bool> updateSerialNo(int jobId, String serialNo) async {
+  static Future<bool> updateSerialNo(String jobId, String serialNo) async {
     final Map<String, dynamic> map = {'serial_no': serialNo};
 
     final response = await Api.bearerPost('job-orders/$jobId/update-serial',
@@ -310,7 +406,7 @@ class Repositories {
   }
 
   //DONE
-  static Future<bool> updateRemarks(int jobId, String remarks) async {
+  static Future<bool> updateRemarks(String jobId, String remarks) async {
     final Map<String, dynamic> map = {'remarks': remarks};
 
     final response = await Api.bearerPost('job-orders/$jobId/update-remarks',
@@ -324,7 +420,7 @@ class Repositories {
   }
 
   //DONE
-  static Future<bool> toggleChargable(int jobId) async {
+  static Future<bool> toggleChargable(String jobId) async {
     final response =
         await Api.bearerPost('job-orders/$jobId/toggle-chargerable');
     print("#Resp: ${jsonEncode(response)}");
@@ -335,7 +431,7 @@ class Repositories {
     }
   }
 
-  static Future<bool> updateSolutionOfJob(int jobId, int solutionId) async {
+  static Future<bool> updateSolutionOfJob(String jobId, int solutionId) async {
     final Map<String, dynamic> map = {
       'solution_id': solutionId == 0 ? null : solutionId
     };
@@ -350,7 +446,7 @@ class Repositories {
   }
 
   //DONE
-  static Future<bool> cancelJob(int jobId) async {
+  static Future<bool> cancelJob(String jobId) async {
     final response = await Api.bearerPost('job-orders/$jobId/job-cancel');
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null) {
@@ -360,19 +456,19 @@ class Repositories {
     }
   }
 
-  static Future<bool> startJob(List<File> images, int jobId) async {
+  static Future<bool> startJob(List<File> images, String jobId) async {
     var url =
         Uri.parse('https://mc.mayer.sg/api/v1/job-orders/$jobId/job-start');
     return await sendMultipartReq(images, url);
   }
 
-  static Future<bool> completeJob(List<File> images, int jobId) async {
+  static Future<bool> completeJob(List<File> images, String jobId) async {
     var url =
         Uri.parse('https://mc.mayer.sg/api/v1/job-orders/$jobId/job-complete');
     return await sendMultipartReq(images, url);
   }
 
-  static Future<bool> uploadKIV(List<File> images, int jobId) async {
+  static Future<bool> uploadKIV(List<File> images, String jobId) async {
     var url = Uri.parse('https://mc.mayer.sg/api/v1/job-orders/$jobId/job-kiv');
     return await sendMultipartReq(images, url);
   }
@@ -413,12 +509,24 @@ class Repositories {
   }
 
   static Future<List<Solution>> fetchSolutions() async {
-    final response = await Api.bearerGet('solutions');
+    final response = await Api.bearerGet('general/solutions');
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null) {
       var solutions =
           (response['data'] as List).map((i) => Solution.fromJson(i)).toList();
       return solutions;
+    } else {
+      return [];
+    }
+  }
+
+  static Future<List<Problem>> fetchProblems() async {
+    final response = await Api.bearerGet('general/problems');
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null) {
+      var problems =
+          (response['data'] as List).map((i) => Problem.fromJson(i)).toList();
+      return problems;
     } else {
       return [];
     }
@@ -467,7 +575,7 @@ class Repositories {
 
   //POST RATING
   static Future<bool> processPayment(
-      int jobId,
+      String jobId,
       File image,
       bool isMailInvoice,
       String mailEmail,
@@ -511,8 +619,8 @@ class Repositories {
   }
 
   //JOBcOPLETE upload SIGNATURE
-  static Future<bool> postRating(
-      int jobId, List<int> categories, int ratingScore, String comment) async {
+  static Future<bool> postRating(String jobId, List<int> categories,
+      int ratingScore, String comment) async {
     final Map<String, dynamic> map = {
       'rating_category_id': categories,
       'rating_score': ratingScore,

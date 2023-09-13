@@ -772,7 +772,7 @@ class _WarehouseState extends State<Warehouse> {
     // });
 
     return await Repositories.addSparePartsToJob(
-        (selectedJob!.id ?? 0), addedSparePartQuantities);
+        (selectedJob!.id ?? "0"), addedSparePartQuantities);
   }
 
   Future<bool> _AddGeneralCodeToJob() async {
@@ -783,7 +783,7 @@ class _WarehouseState extends State<Warehouse> {
     // });
 
     return await Repositories.addGeneralCodeToJob(
-        (selectedJob!.id ?? 0), addedGeneralCodeQuantities);
+        (selectedJob!.id ?? "0"), addedGeneralCodeQuantities);
   }
 
   _fetchSpareParts(bool eraseEarlyRecords) async {

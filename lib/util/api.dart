@@ -35,10 +35,13 @@ class ApiInterceptor implements InterceptorContract {
   Future<RequestData> interceptRequest({required RequestData data}) async {
     try {
       var epoch = await storage.read(key: TOKEN_EXPIRY);
-      num tokenExpiry = num.parse(epoch.toString());
-      var now = DateTime.now().toUtc().millisecondsSinceEpoch;
-      if (tokenExpiry < now) {
-        await renewAccessToken();
+
+      if (epoch != null) {
+        num tokenExpiry = num.parse(epoch.toString());
+        var now = DateTime.now().toUtc().millisecondsSinceEpoch;
+        if (tokenExpiry < now) {
+          await renewAccessToken();
+        }
       }
       data.headers['Content-Type'] = 'application/json';
       data.headers['Accept'] = '*/*';
@@ -89,7 +92,16 @@ class ApiInterceptor implements InterceptorContract {
 
   @override
   Future<ResponseData> interceptResponse({required ResponseData data}) async {
-    //handleunauthenticated;
+    var body = jsonDecode(data.body ?? "");
+
+    if (body["data"] == "unauthenticated") {
+      Helpers.isAuthenticated = false;
+      await storage.delete(key: TOKEN);
+      await storage.delete(key: TOKEN_EXPIRY);
+      await storage.delete(key: REFRESH_TOKEN);
+      await storage.delete(key: USERID);
+    }
+
     return data;
   }
 }
@@ -206,7 +218,7 @@ class Api {
 
       print("bearerPost Url: $url");
       if (params != null) {
-        response = await client.post(url.toUri(), body: params);
+        response = await client.post(url.toUri(), body: json.encode(params));
       } else {
         response = await client.post(url.toUri());
       }

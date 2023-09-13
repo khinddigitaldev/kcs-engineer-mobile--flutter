@@ -4,6 +4,7 @@ import 'package:kcs_engineer/model/jobGeneralCodes.dart';
 import 'package:kcs_engineer/model/user.dart';
 import 'package:kcs_engineer/model/user_sparepart.dart';
 import 'package:kcs_engineer/themes/app_colors.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:kcs_engineer/model/job.dart';
@@ -101,9 +102,13 @@ class Helpers {
         content: new Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
-            Container(
-                margin: EdgeInsets.only(left: 5), child: Text("Loading...")),
+            LoadingAnimationWidget.staggeredDotsWave(
+              color: Colors.black,
+              size: MediaQuery.of(ctx).size.height * 0.03,
+            ),
+            // Container(
+            //     margin: EdgeInsets.only(left: 5), child: Text("Loading...")
+            //     ),
           ],
         ),
       );

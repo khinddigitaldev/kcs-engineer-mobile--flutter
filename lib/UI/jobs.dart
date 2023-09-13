@@ -8,6 +8,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kcs_engineer/model/job.dart';
+import 'package:kcs_engineer/model/job_filter_options.dart';
 import 'package:kcs_engineer/model/job_order_seq.dart';
 import 'package:kcs_engineer/model/user.dart';
 import 'package:kcs_engineer/themes/text_styles.dart';
@@ -54,22 +55,21 @@ class _JobListState extends State<JobList>
   final _bsbController = BottomSheetBarController();
   bool _isLocked = false;
   bool isExpandedFilters = false;
+  bool isFilterPressed = false;
+  JobFilterOptions? fetchedJobFilterOptions;
+  int consecutiveDays = -1;
 
-  var serviceTypes = ["Drop-In", "Home-Visit", "For Pickup"];
+  var serviceTypes = [];
   var paymentStatuses = ["Paid", "Unpaid"];
-  var serviceStatuses = [
-    "Request Created",
-    "Repairing",
-    "Pending Colletion",
-    "Pending Pickup",
-    "Pending Drop-In",
-    "Collected",
-    "Cancelled",
-  ];
+  var serviceStatuses = [];
 
   var selectedServiceTypes = [];
   var selectedPaymentStatuses = [];
   var selectedServiceStatuses = [];
+
+  var prevSelectedServiceTypes = [];
+  var prevSelectedPaymentStatuses = [];
+  var prevSelectedServiceStatuses = [];
 
   JobData? jobData;
 
@@ -89,6 +89,23 @@ class _JobListState extends State<JobList>
   FutureOr<void> afterFirstLayout(BuildContext context) async {
     await _loadVersion();
     await _fetchJobs();
+    await _fetchJobStatuses();
+    _bsbController.addListener(() {
+      if (isFilterPressed) {
+        setState(() {
+          selectedServiceTypes = [];
+          selectedPaymentStatuses = [];
+          selectedServiceStatuses = [];
+          selectedServiceTypes.addAll(prevSelectedServiceTypes);
+          selectedPaymentStatuses.addAll(prevSelectedPaymentStatuses);
+          selectedServiceStatuses.addAll(prevSelectedServiceStatuses);
+        });
+
+        setState(() {
+          isFilterPressed = false;
+        });
+      }
+    });
   }
 
   @override
@@ -113,55 +130,50 @@ class _JobListState extends State<JobList>
   }
 
   _fetchJobs() async {
-    Helpers.showAlert(context);
     if (Helpers.loggedInUser != null) {
       user = Helpers.loggedInUser;
     }
     var fetchedJobData = null;
 
-    fetchedJobData = await Repositories.fetchJobs();
+    var filters = {
+      // "consecutive_days": consecutiveDays,
+      "filter": {
+        ...(selectedServiceTypes.length > 0
+            ? {
+                "service_type": (fetchedJobFilterOptions?.serviceTypes
+                        ?.where((element) =>
+                            selectedServiceTypes.contains(element.serviceType))
+                        .toList())
+                    ?.map((e) => e.id)
+                    .toList()
+              }
+            : {}),
+        ...((selectedPaymentStatuses.length == 0 ||
+                selectedPaymentStatuses.length == 2)
+            ? {}
+            : {"payment_status": selectedPaymentStatuses[0] == "Paid"}),
+        ...(selectedServiceStatuses.length > 0
+            ? {
+                "service_request_status": (fetchedJobFilterOptions
+                    ?.serviceJobStatuses
+                    ?.where((element) => selectedServiceStatuses
+                        .contains(element.serviceJobStatus))
+                    .toList()
+                    .map((e) => e?.id)
+                    .toList())
+              }
+            : {})
+      }
+    };
 
-    // final response = await Api.bearerGet('job-orders/with-relationship');
-    // print("#Resp: ${jsonEncode(response)}");
-    // // Navigator.pop(context);
-    // if (response["success"] != null) {
-    //   if (user == null) {
-    //     user = new User();
-    //   }
+    var filterMap = filters["filter"] as Map<dynamic, dynamic>;
+    if (filterMap.entries.isEmpty) {
+      filters.remove("filter");
+    }
 
-    //   user!.allJobsCount = response["meta"]?["allJobsCount"];
-    //   user!.completedJobsCount = response["meta"]?["completedJobsCount"];
-    //   user!.uncompletedJobsCount = response["meta"]?["uncompletedJobsCount"];
-
-    //   var fetchedJobs = (response['data'] as List)
-    //       .map((i) => Job.jobListfromJson(i))
-    //       .toList();
-
-    //   fetchedJobs.sort((a, b) => int.parse((a.sequence ?? "100"))
-    //       .compareTo(int.parse(b.sequence ?? "100")));
-
-    //   List<Job> completed = [];
-    //   List<Job> inProgress = [];
-
-    //   for (int i = 0; i < fetchedJobs.length; i++) {
-    //     if (fetchedJobs[i].status == "IN PROGRESS" ||
-    //         fetchedJobs[i].status == "PENDING REPAIR") {
-    //       inProgress.add(fetchedJobs[i]);
-    //     } else {
-    //       completed.add(fetchedJobs[i]);
-    //     }
-    //   }
-    //   setState(() {
-    //     inProgressJobs = inProgress;
-    //     completedJobs = completed;
-    //     Helpers.completedJobs = completed;
-    //     Helpers.inProgressJobs = inProgress;
-    //     Helpers.loggedInUser = user;
-    //   });
-    //   await updateJobSequence();
-    // } else {
-    //   //show ERROR
-    // }
+    Helpers.showAlert(context);
+    fetchedJobData = await Repositories.fetchJobs(filters);
+    Navigator.pop(context);
 
     setState(() {
       jobData = fetchedJobData;
@@ -171,6 +183,32 @@ class _JobListState extends State<JobList>
       Helpers.inProgressJobs = completedJobs;
       Helpers.loggedInUser = user;
     });
+  }
+
+  _fetchJobStatuses() async {
+    Helpers.showAlert(context);
+    if (Helpers.loggedInUser != null) {
+      user = Helpers.loggedInUser;
+    }
+    var fetched = null;
+
+    fetched = await Repositories.fetchJobStatus();
+
+    if (fetched != null) {
+      setState(() {
+        fetchedJobFilterOptions = fetched;
+        serviceTypes = (fetched as JobFilterOptions)
+                .serviceTypes
+                ?.map((e) => e.serviceType)
+                .toList() ??
+            [];
+        serviceStatuses = (fetched as JobFilterOptions)
+                .serviceJobStatuses
+                ?.map((e) => e.serviceJobStatus)
+                .toList() ??
+            [];
+      });
+    }
 
     Navigator.pop(context);
   }
@@ -464,10 +502,21 @@ class _JobListState extends State<JobList>
             width: MediaQuery.of(context).size.width * 1,
             child: CalendarView(
               selectedIndex: currentSelectedIndex,
-              dateSelected: (index) {
+              dateSelected: (index) async {
+                if (index == 0) {
+                  setState(() {
+                    consecutiveDays = -1;
+                  });
+                } else {
+                  setState(() {
+                    consecutiveDays = index + 1;
+                  });
+                }
                 setState(() {
                   currentSelectedIndex = index;
                 });
+
+                await _fetchJobs();
               },
             ),
           ),
@@ -586,6 +635,9 @@ class _JobListState extends State<JobList>
                                     borderRadius: BorderRadius.circular(4.0),
                                     side: BorderSide(color: Colors.black54)))),
                     onPressed: () {
+                      setState(() {
+                        isFilterPressed = true;
+                      });
                       _bsbController.expand();
                     }),
               ),
@@ -603,13 +655,13 @@ class _JobListState extends State<JobList>
                       minHeight: MediaQuery.of(context).size.height * .1),
                   child: ReorderableListView.builder(
                     onReorder: ((oldIndex, newIndex) async {
-                      final index =
-                          newIndex > oldIndex ? newIndex - 1 : newIndex;
-                      final job = Helpers.inProgressJobs.removeAt(oldIndex);
-                      Helpers.inProgressJobs.insert(index, job);
-                      Helpers.showAlert(context);
-                      await updateJobSequence();
-                      Navigator.pop(context);
+                      // final index =
+                      //     newIndex > oldIndex ? newIndex - 1 : newIndex;
+                      // final job = Helpers.inProgressJobs.removeAt(oldIndex);
+                      // Helpers.inProgressJobs.insert(index, job);
+                      //  Helpers.showAlert(context);
+                      // await updateJobSequence();
+                      //  Navigator.pop(context);
                     }),
 
                     shrinkWrap: true,
@@ -630,8 +682,9 @@ class _JobListState extends State<JobList>
                           Navigator.pop(context);
                           // if (job != null) {
                           Helpers.selectedJob = job;
+                          Helpers.showAlert(context);
                           Navigator.pushNamed(context, 'jobDetails',
-                                  arguments: Helpers.selectedJob)
+                                  arguments: inProgressJobs[index].id)
                               .then((value) async {
                             await _fetchJobs();
                           });
@@ -651,22 +704,22 @@ class _JobListState extends State<JobList>
     );
   }
 
-  updateJobSequence() async {
-    List<JobOrderSequence> sequences = [];
-    JobOrderSequence seq;
-    for (var i = 0; i < Helpers.inProgressJobs.length; i++) {
-      seq = new JobOrderSequence();
-      seq.jobOrderId = Helpers.inProgressJobs[i].id;
-      seq.sequence = i + 1;
-      sequences.add(seq);
-    }
+  // updateJobSequence() async {
+  //   List<JobOrderSequence> sequences = [];
+  //   JobOrderSequence seq;
+  //   for (var i = 0; i < Helpers.inProgressJobs.length; i++) {
+  //     seq = new JobOrderSequence();
+  //     seq.jobOrderId = Helpers.inProgressJobs[i].id;
+  //     seq.sequence = i + 1;
+  //     sequences.add(seq);
+  //   }
 
-    bool response = await Repositories.updateJobOrderSequence(sequences);
+  //   bool response = await Repositories.updateJobOrderSequence(sequences);
 
-    setState(() {
-      //Sequence erorr failed or not
-    });
-  }
+  //   setState(() {
+  //     //Sequence erorr failed or not
+  //   });
+  // }
 
   _renderError() {
     return Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
@@ -678,6 +731,32 @@ class _JobListState extends State<JobList>
   Future<bool> _onWillPop() async {
     // Navigator.pop(context);
     return true;
+  }
+
+  resetArrays() async {
+    setState(() {
+      selectedPaymentStatuses = [];
+      selectedServiceStatuses = [];
+      selectedServiceTypes = [];
+      prevSelectedPaymentStatuses = [];
+      prevSelectedServiceStatuses = [];
+      prevSelectedServiceTypes = [];
+    });
+
+    await _fetchJobs();
+  }
+
+  submitFilters() async {
+    setState(() {
+      prevSelectedPaymentStatuses = [];
+      prevSelectedServiceStatuses = [];
+      prevSelectedServiceTypes = [];
+
+      prevSelectedPaymentStatuses.addAll(selectedPaymentStatuses);
+      prevSelectedServiceStatuses.addAll(selectedServiceStatuses);
+      prevSelectedServiceTypes.addAll(selectedServiceTypes);
+    });
+    await _fetchJobs();
   }
 
   @override
@@ -721,7 +800,7 @@ class _JobListState extends State<JobList>
               return Material(
                   color: Colors.transparent,
                   child: Container(
-                    height: MediaQuery.of(context).size.height * 0.5,
+                    height: MediaQuery.of(context).size.height * 0.55,
                     width: MediaQuery.of(context).size.width * 1,
                     padding: EdgeInsets.only(left: 80, right: 20, top: 10),
                     child: Column(
@@ -744,18 +823,24 @@ class _JobListState extends State<JobList>
                                 ],
                               ),
                             ),
-                            RichText(
-                              text: TextSpan(
-                                style: const TextStyle(
-                                  fontSize: 20.0,
-                                  color: Colors.blue,
-                                ),
-                                children: <TextSpan>[
-                                  TextSpan(
-                                      text: 'Reset', style: const TextStyle()),
-                                ],
-                              ),
-                            )
+                            GestureDetector(
+                                onTap: () async {
+                                  await resetArrays();
+                                  _bsbController.collapse();
+                                },
+                                child: RichText(
+                                  text: TextSpan(
+                                    style: const TextStyle(
+                                      fontSize: 20.0,
+                                      color: Colors.blue,
+                                    ),
+                                    children: <TextSpan>[
+                                      TextSpan(
+                                          text: 'Reset',
+                                          style: const TextStyle()),
+                                    ],
+                                  ),
+                                ))
                           ],
                         ),
                         SizedBox(
@@ -1135,8 +1220,9 @@ class _JobListState extends State<JobList>
                                                   BorderRadius.circular(4.0),
                                               side: BorderSide(
                                                   color: Color(0xFF323F4B))))),
-                                  onPressed: () {
-                                    _bsbController.expand();
+                                  onPressed: () async {
+                                    await submitFilters();
+                                    _bsbController.collapse();
                                   }),
                             ),
                           ],

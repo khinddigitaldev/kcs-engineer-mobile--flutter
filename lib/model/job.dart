@@ -20,7 +20,7 @@ class JobData {
 }
 
 class Job {
-  int? id;
+  String? id;
   String? serviceJobNo;
   String? serviceType;
   String? serviceJobStatus;
