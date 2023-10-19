@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_config/flutter_config.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/intl.dart';
+import 'package:kcs_engineer/UI/bag.dart';
+import 'package:kcs_engineer/model/bag.dart';
 import 'package:kcs_engineer/model/checklistAttachment.dart';
 import 'package:kcs_engineer/model/comment.dart';
 import 'package:kcs_engineer/model/engineer.dart';
@@ -14,10 +16,14 @@ import 'package:kcs_engineer/model/jobGeneralCodes.dart';
 import 'package:kcs_engineer/model/job_filter_options.dart';
 import 'package:kcs_engineer/model/job_order_seq.dart';
 import 'package:kcs_engineer/model/payment_method.dart';
+import 'package:kcs_engineer/model/pick_list_Items.dart';
+import 'package:kcs_engineer/model/pickup_charges.dart';
 import 'package:kcs_engineer/model/problem.dart';
+import 'package:kcs_engineer/model/reason.dart';
 import 'package:kcs_engineer/model/solution.dart';
 import 'package:kcs_engineer/model/payment_history_item.dart';
 import 'package:kcs_engineer/model/sparepart.dart';
+import 'package:kcs_engineer/model/transportCharge.dart';
 import 'package:kcs_engineer/model/user_sparepart.dart';
 import 'package:kcs_engineer/model/user.dart';
 import 'package:kcs_engineer/util/api.dart';
@@ -61,7 +67,7 @@ class Repositories {
     final response = await Api.bearerPost('auth/logout');
     print("#Resp: ${jsonEncode(response)}");
 
-    if (response["success"] != null) {
+    if (response["success"] != null && response["success"]) {
       Helpers.isAuthenticated = false;
       await storage.delete(key: TOKEN);
       await storage.delete(key: TOKEN_EXPIRY);
@@ -103,7 +109,7 @@ class Repositories {
     Engineer? user = null;
     final response = await Api.bearerGet('auth/profile');
     print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null) {
+    if (response["success"] != null && response["success"]) {
       user = Engineer.fromJson(response["data"]);
     }
     return user;
@@ -157,10 +163,36 @@ class Repositories {
     final response = await Api.bearerPost('job/service-jobs', params: filters);
     print("#Resp: ${jsonEncode(response)}");
     // Navigator.pop(context);
-    if (response["success"]) {
+    if (response["success"] && response['data'] != null) {
       data = await JobData.selectedJobFromJson(response);
     }
     return data;
+  }
+
+  static Future<List<Job>?> fetchJobHistory(String jobId) async {
+    List<Job>? data = [];
+
+    final response = await Api.bearerGet(
+        'job/service-jobs-history-by-warranty?service_request_id=${jobId}');
+    print("#Resp: ${jsonEncode(response)}");
+    // Navigator.pop(context);
+    if (response["success"]) {
+      data = (response['data'] as List).map((i) => Job.fromJson(i)).toList();
+    }
+    return data;
+  }
+
+  static Future<BagMetaData?> fetchUserBag(String serviceRequestId) async {
+    BagMetaData? bag;
+
+    final response = await Api.bearerGet(
+        'general/spareparts-from-bag?service_request_id=${serviceRequestId}&search_only_by_code=0&include_spareparts_from_bag=1');
+    print("#Resp: ${jsonEncode(response)}");
+    // Navigator.pop(context);
+    if (response["success"]) {
+      bag = (BagMetaData.selectedJobFromJson(response['data']));
+    }
+    return bag;
   }
 
   static Future<JobFilterOptions?> fetchJobStatus() async {
@@ -201,10 +233,11 @@ class Repositories {
   }
 
   static Future<bool> addComment(String salesOrdefId, String content) async {
-    var data = {"content": content, "sales_order_id": salesOrdefId};
-
-    final response =
-        await Api.bearerPost('job/comments/create', params: jsonEncode(data));
+    final Map<String, dynamic> map = {
+      'content': content,
+      'sales_order_id': salesOrdefId,
+    };
+    final response = await Api.bearerPost('job/comments/create', params: map);
     print("#Resp: ${jsonEncode(response)}");
     // Navigator.pop(context);
     if (response["success"]) {
@@ -214,10 +247,12 @@ class Repositories {
   }
 
   static Future<bool> updateComment(int commentId, String content) async {
-    var data = {"remarks": content, "cust_remarks_id": commentId};
+    final Map<String, dynamic> map = {
+      'remarks': content,
+      'cust_remarks_id': commentId,
+    };
 
-    final response =
-        await Api.bearerPost('job/comments/update', params: jsonEncode(data));
+    final response = await Api.bearerPost('job/comments/update', params: map);
     print("#Resp: ${jsonEncode(response)}");
     // Navigator.pop(context);
     if (response["success"]) {
@@ -227,10 +262,11 @@ class Repositories {
   }
 
   static Future<bool> deleteComment(int commentId) async {
-    var data = {"cust_remarks_id": commentId};
+    final Map<String, dynamic> map = {
+      'cust_remarks_id': commentId,
+    };
 
-    final response =
-        await Api.bearerPost('job/comments/delete', params: jsonEncode(data));
+    final response = await Api.bearerPost('job/comments/delete', params: map);
     print("#Resp: ${jsonEncode(response)}");
     // Navigator.pop(context);
     if (response["success"]) {
@@ -247,7 +283,7 @@ class Repositories {
         'job/checklist/' + salesOrderId + '/question-answers');
     print("#Resp: ${jsonEncode(response)}");
     // Navigator.pop(context);
-    if (response["success"]) {
+    if (response["success"] && response['data'] != null) {
       data = (response['data'] as List)
           .map((i) => ChecklistAttachment.fromJson(i))
           .toList();
@@ -256,28 +292,10 @@ class Repositories {
   }
 
   static Future<Job?> fetchJobDetails({required String? jobId}) async {
-    final response = await Api.bearerGet('job-orders/$jobId');
-    print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null) {
+    final response = await Api.bearerGet('job/service-job-details/${jobId}');
+    if (response["success"] != null && response["success"]) {
       Job? job = null;
-      var spareParts =
-          (response['data']!['relationships']!['engineer_order_transaction']
-                  as List)
-              .map((i) => JobSparePart.fromJson(i))
-              .toList();
-
-      var generalCodes = (response['data']?["relationships"]
-              ?['general_code_transaction'] as List)
-          .map((i) => JobGeneralCode.fromJson(i))
-          .toList();
-
-      Helpers.editableGeneralCodes = generalCodes;
-
-      num sumSubTotal = response['meta']!['realSubTotal'] ?? 0.0;
-      num sumDiscount = response['meta']!['taxTotal'] ?? 0.0;
-      num sumTotal = response['meta']!['grandTotal'] ?? 0.0;
-
-      Helpers.editableJobSpareParts = spareParts;
+      job = Job.fromJson(response["data"]);
 
       return job;
     } else {
@@ -285,31 +303,14 @@ class Repositories {
     }
   }
 
-  //DONE
-  static Future<bool> updateJobOrderSequence(
-      List<JobOrderSequence> orderSeq) async {
-    final Map<String, dynamic> map = {'job_orders': orderSeq};
-
-    final response = await Api.bearerPost('job-orders/update-sequence',
-        params: jsonEncode(map));
-    print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  //DONE
-  static Future<bool> addSparePartsToJob(
+  static Future<bool> createPickList(
       String jobId, List<SparePart> spareparts) async {
     List<Map<String, dynamic>> mapList = [];
 
     spareparts.forEach((element) {
       Map<String, dynamic> e = {
-        'spareparts_id': element.sparepartsId,
-        'quantity_taken': element.quantity,
-        'discount': element.discount
+        'spareparts_id': element.id,
+        'quantity_taken': element.selectedQuantity,
       };
 
       mapList.add(e);
@@ -317,9 +318,197 @@ class Repositories {
 
     final Map<String, dynamic> map = {'job_id': jobId, 'spareparts': mapList};
 
-    final response = await Api.bearerPost('bag-job', params: jsonEncode(map));
+    final response =
+        await Api.bearerPost('job/create-pick-list', params: jsonEncode(map));
     print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null) {
+    if (response["success"] != null && response["success"]) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  static Future<bool> addSparePartsToJob(
+      String jobId, List<SparePart> spareparts) async {
+    List<Map<String, dynamic>> fromPickList = [];
+    List<Map<String, dynamic>> fromBag = [];
+    List<Map<String, dynamic>> fromWarehouse = [];
+
+    spareparts.forEach((element) {
+      Map<String, dynamic> e = {
+        'spareparts_id': element.id,
+        'quantity_taken': element.selectedQuantity,
+      };
+
+      if (element.from == "bag") {
+        fromPickList.add(e);
+      } else if (element.from == "warehouse") {
+        fromBag.add(e);
+      } else if (element.from == "picklist") {
+        fromWarehouse.add(e);
+      }
+    });
+
+    final Map<String, dynamic> map = {
+      'job_id': jobId,
+      'picklist': fromPickList,
+      'bag': fromBag,
+      'warehouse': fromWarehouse,
+    };
+
+    final response =
+        await Api.bearerPost('job/add-spareparts', params: jsonEncode(map));
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  static Future<List<PickupCharge>> fetchPickListCharges() async {
+    List<PickupCharge>? data = [];
+
+    final response = await Api.bearerGet('general/pickup-charges');
+    print("#Resp: ${jsonEncode(response)}");
+    // Navigator.pop(context);
+    if (response["success"] && response['data'] != null) {
+      data = (response['data'] as List)
+          .map((i) => PickupCharge.fromJson(i))
+          .toList();
+    }
+    return data;
+  }
+
+  static Future<List<TransportCharge>> fetchTransportCharges(
+      productModelId) async {
+    List<TransportCharge>? data = [];
+
+    final response = await Api.bearerGet(
+        'general/transport-charges?product_model_id=' +
+            productModelId.toString());
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] && response['data'] != null) {
+      data = (response['data'] as List)
+          .map((i) => TransportCharge.fromJson(i))
+          .toList();
+    }
+    return data;
+  }
+
+  static Future<bool> deleteMiscItem(String jobId, int miscChargesId) async {
+    final Map<String, dynamic> map = {
+      'service_request_id': jobId,
+      'misc_charges_id': miscChargesId.toString()
+    };
+
+    final response = await Api.bearerPost('job/delete-misc-charges',
+        params: jsonEncode(map));
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  static Future<bool> addMiscItem(String jobId, int miscChargesId) async {
+    final Map<String, dynamic> map = {
+      'service_request_id': jobId,
+      'misc_charges_id': miscChargesId.toString()
+    };
+
+    final response = await Api.bearerPost('job/update-misc-charges',
+        params: jsonEncode(map));
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  static Future<bool> addProblemToJob(
+      String jobId, int problemId, bool isEstimate) async {
+    final Map<String, dynamic> map = {
+      'service_request_id': jobId,
+      ...(isEstimate
+          ? {'estimated_problem_id': problemId.toString()}
+          : {'actual_problem_id': problemId.toString()}),
+    };
+
+    final response = await Api.bearerPost('job/upsert-problem', params: map);
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  static Future<bool> addSolutionToJob(
+      String jobId, int solutionId, bool isEstimate) async {
+    final Map<String, dynamic> map = {
+      'service_request_id': jobId,
+      ...(isEstimate
+          ? {'estimated_solution_id': solutionId.toString()}
+          : {'actual_solution_id': solutionId.toString()}),
+    };
+
+    final response = await Api.bearerPost('job/upsert-solution', params: map);
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  static Future<bool> addPickupCharges(String jobId, int pickupId) async {
+    final Map<String, dynamic> map = {
+      'service_request_id': jobId,
+      'pickup_charges_id': pickupId.toString(),
+    };
+
+    final response =
+        await Api.bearerPost('job/update-pickup-charges', params: map);
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  static Future<PickListItems?> fetchDailyPickList(
+      String jobId, int solutionId, bool isEstimate) async {
+    PickListItems? pickListItems = null;
+    final Map<String, dynamic> map = {
+      'service_request_id': jobId,
+      ...(isEstimate
+          ? {'estimated_solution_id': solutionId.toString()}
+          : {'actual_solution_id': solutionId.toString()}),
+    };
+
+    final response = await Api.bearerPost('job/upsert-solution', params: map);
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      pickListItems = PickListItems.fromJson(response["data"]);
+    }
+
+    return pickListItems;
+  }
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  static Future<bool> updateJobOrderSequence(
+      List<JobOrderSequence> orderSeq) async {
+    final Map<String, dynamic> map = {'job_orders': orderSeq};
+
+    final response = await Api.bearerPost('job-orders/update-sequence',
+        params: jsonEncode(map));
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
       return true;
     } else {
       return false;
@@ -346,7 +535,7 @@ class Repositories {
     final response =
         await Api.bearerPost('job-general/$jobId', params: jsonEncode(map));
     print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null) {
+    if (response["success"] != null && response["success"]) {
       return true;
     } else {
       return false;
@@ -384,7 +573,7 @@ class Repositories {
     final response =
         await Api.bearerPost('job-general/$jobId', params: jsonEncode(map));
     print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null) {
+    if (response["success"] != null && response["success"]) {
       return true;
     } else {
       return false;
@@ -393,12 +582,15 @@ class Repositories {
 
   //DONE
   static Future<bool> updateSerialNo(String jobId, String serialNo) async {
-    final Map<String, dynamic> map = {'serial_no': serialNo};
+    final Map<String, dynamic> map = {
+      'serial_no': serialNo,
+      'service_request_id': jobId
+    };
 
-    final response = await Api.bearerPost('job-orders/$jobId/update-serial',
-        params: jsonEncode(map));
+    final response =
+        await Api.bearerPost('job/update-job-description', params: map);
     print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null) {
+    if (response["success"] != null && response["success"]) {
       return true;
     } else {
       return false;
@@ -407,49 +599,74 @@ class Repositories {
 
   //DONE
   static Future<bool> updateRemarks(String jobId, String remarks) async {
-    final Map<String, dynamic> map = {'remarks': remarks};
+    final Map<String, dynamic> map = {
+      'remarks': remarks,
+      'service_request_id': jobId
+    };
 
-    final response = await Api.bearerPost('job-orders/$jobId/update-remarks',
-        params: jsonEncode(map));
+    final response =
+        await Api.bearerPost('job/update-job-description', params: map);
     print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null) {
+    if (response["success"] != null && response["success"]) {
       return true;
     } else {
       return false;
     }
   }
 
-  //DONE
+  static Future<bool> updateAdminRemarks(String jobId, String remarks) async {
+    final Map<String, dynamic> map = {
+      'admin_remarks': remarks,
+      'service_request_id': jobId
+    };
+
+    final response =
+        await Api.bearerPost('job/update-job-description', params: map);
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  // static Future<bool> updateSolutionOfJob(String jobId, int solutionId) async {
+  //   final Map<String, dynamic> map = {
+  //     'solution_id': solutionId == 0 ? null : solutionId
+  //   };
+  //   final response = await Api.bearerPost('job-orders/$jobId/update-solution',
+  //       params: jsonEncode(map));
+  //   print("#Resp: ${jsonEncode(response)}");
+  //   if (response["success"] != null && response["success"]) {
+  //     return true;
+  //   } else {
+  //     return false;
+  //   }
+  // }
+
+  static Future<bool> cancelJob(
+    List<File> images,
+    String jobId,
+    int reasonId,
+  ) async {
+    String baseUrl = dotenv.env["API_BASE_URL"] ?? "";
+    var url = Uri.parse((baseUrl) + '/job/cancel-job');
+    return await sendMultipartReq(images, url, true, reasonId, jobId);
+  }
+
+  static Future<bool> uploadKIV(
+      List<File> images, String jobId, int reasonId) async {
+    String baseUrl = dotenv.env["API_BASE_URL"] ?? "";
+
+    var url = Uri.parse((baseUrl) + 'job/kiv-job');
+    return await sendMultipartReq(images, url, true, reasonId, jobId);
+  }
+
   static Future<bool> toggleChargable(String jobId) async {
     final response =
         await Api.bearerPost('job-orders/$jobId/toggle-chargerable');
     print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  static Future<bool> updateSolutionOfJob(String jobId, int solutionId) async {
-    final Map<String, dynamic> map = {
-      'solution_id': solutionId == 0 ? null : solutionId
-    };
-    final response = await Api.bearerPost('job-orders/$jobId/update-solution',
-        params: jsonEncode(map));
-    print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  //DONE
-  static Future<bool> cancelJob(String jobId) async {
-    final response = await Api.bearerPost('job-orders/$jobId/job-cancel');
-    print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null) {
+    if (response["success"] != null && response["success"]) {
       return true;
     } else {
       return false;
@@ -459,21 +676,17 @@ class Repositories {
   static Future<bool> startJob(List<File> images, String jobId) async {
     var url =
         Uri.parse('https://mc.mayer.sg/api/v1/job-orders/$jobId/job-start');
-    return await sendMultipartReq(images, url);
+    return await sendMultipartReq(images, url, false, 0, "");
   }
 
   static Future<bool> completeJob(List<File> images, String jobId) async {
     var url =
         Uri.parse('https://mc.mayer.sg/api/v1/job-orders/$jobId/job-complete');
-    return await sendMultipartReq(images, url);
+    return await sendMultipartReq(images, url, false, 0, "");
   }
 
-  static Future<bool> uploadKIV(List<File> images, String jobId) async {
-    var url = Uri.parse('https://mc.mayer.sg/api/v1/job-orders/$jobId/job-kiv');
-    return await sendMultipartReq(images, url);
-  }
-
-  static Future<bool> sendMultipartReq(List<File> images, Uri url) async {
+  static Future<bool> sendMultipartReq(List<File> images, Uri url,
+      bool isKivOrIsCancel, int? reasonId, String serviceRequestId) async {
     var token = await storage.read(key: TOKEN);
 
     var headers = {
@@ -488,7 +701,7 @@ class Repositories {
     for (var file in images) {
       List<int> fileBytes = await file.readAsBytes();
       http.MultipartFile multipartFile = http.MultipartFile.fromBytes(
-        'image[]',
+        'images[]',
         fileBytes,
         filename: file.path.split('/').last,
       );
@@ -496,6 +709,11 @@ class Repositories {
     }
 
     request.files.addAll(multipartFiles);
+
+    if (isKivOrIsCancel) {
+      request.fields["service_request_id"] = serviceRequestId;
+      request.fields["cancellation_reason_id"] = reasonId.toString();
+    }
 
     request.headers.addAll(headers);
 
@@ -508,10 +726,12 @@ class Repositories {
     }
   }
 
-  static Future<List<Solution>> fetchSolutions() async {
-    final response = await Api.bearerGet('general/solutions');
+  static Future<List<Solution>> fetchSolutions(
+      String productModelId, String serviceTypeId) async {
+    final response = await Api.bearerGet(
+        'general/solutions?product_model_id=${productModelId}&service_type_id=${serviceTypeId}');
     print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null) {
+    if (response["success"] != null && response["success"]) {
       var solutions =
           (response['data'] as List).map((i) => Solution.fromJson(i)).toList();
       return solutions;
@@ -520,10 +740,36 @@ class Repositories {
     }
   }
 
+  static Future<List<Reason>> fetchKIVReasons() async {
+    final response = await Api.bearerGet(
+        'general/service-request-cancellation-reason?service_request_status_id=17');
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      var reason =
+          (response['data'] as List).map((i) => Reason.fromJson(i)).toList();
+      return reason;
+    } else {
+      return [];
+    }
+  }
+
+  static Future<List<Reason>> fetchCancellationReasons() async {
+    final response = await Api.bearerGet(
+        'general/service-request-cancellation-reason?service_request_status_id=16');
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      var reason =
+          (response['data'] as List).map((i) => Reason.fromJson(i)).toList();
+      return reason;
+    } else {
+      return [];
+    }
+  }
+
   static Future<List<Problem>> fetchProblems() async {
     final response = await Api.bearerGet('general/problems');
     print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null) {
+    if (response["success"] != null && response["success"]) {
       var problems =
           (response['data'] as List).map((i) => Problem.fromJson(i)).toList();
       return problems;
@@ -539,7 +785,7 @@ class Repositories {
         (endDate != "" ? '?$endDate' : "");
     final response = await Api.bearerGet(url);
     print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null) {
+    if (response["success"] != null && response["success"]) {
       var paymentHistories = PaymentHistoryItem.fromJson(response);
       return paymentHistories;
     } else {
@@ -550,7 +796,7 @@ class Repositories {
   static Future<List<String>> fetchPaymentMethodLabels() async {
     final response = await Api.bearerGet('payment-methods');
     List<String> pmLabels = [];
-    if (response["success"] != null) {
+    if (response["success"] != null && response["success"]) {
       var paymentMethods = (response['data'] as List)
           .map((i) => (PaymentMethod.fromJson(i).description ?? "ERROR"))
           .toList();
@@ -563,7 +809,7 @@ class Repositories {
   static Future<List<PaymentMethod>> fetchPaymentMethods() async {
     final response = await Api.bearerGet('payment-methods');
     List<String> pmLabels = [];
-    if (response["success"] != null) {
+    if (response["success"] != null && response["success"]) {
       var paymentMethods = (response['data'] as List)
           .map((i) => (PaymentMethod.fromJson(i)))
           .toList();
@@ -630,7 +876,7 @@ class Repositories {
     final response = await Api.bearerPost('job-orders/$jobId/submit-rating',
         params: jsonEncode(map));
     print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null) {
+    if (response["success"] != null && response["success"]) {
       return true;
     } else {
       return false;

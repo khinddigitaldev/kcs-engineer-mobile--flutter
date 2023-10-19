@@ -63,6 +63,7 @@ class Helpers {
 
       Alert(
               context: ctx,
+              content: child != null ? child : new Container(),
               type: customImage == null
                   ? (type == 'success' ? AlertType.success : AlertType.error)
                   : null,

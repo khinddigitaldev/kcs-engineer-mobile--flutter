@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_config/flutter_config.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_downloader/flutter_downloader.dart';
+// import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:kcs_engineer/app_config.dart';
 import 'package:kcs_engineer/model/user.dart';
@@ -67,7 +67,7 @@ void main() async {
   // AwesomeNotifications().actionStream.listen((event) {
   //   print(event.payload!);
   // });
-  await FlutterDownloader.initialize();
+  // await FlutterDownloader.initialize();
   await FlutterConfig.loadEnvVariables();
 
   SystemChrome.setPreferredOrientations(

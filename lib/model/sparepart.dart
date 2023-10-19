@@ -1,49 +1,93 @@
-import 'package:intl/intl.dart';
-import 'package:jiffy/jiffy.dart';
-
 class SparePart {
-  String? type;
-  String? sparepartsId;
-  String? sparepartsCode;
+  int? id;
+  String? code;
   String? description;
-  String? stock;
-  num quantity = 0;
-  double discount = 0.0;
-  String? price;
-  String? remarks;
-  int? maxpage;
+  String? priceAmount;
+  String? priceCurrency;
+  String? priceFormatted;
+  String? from;
+  int? quantity;
+  int? selectedQuantity;
+  bool? isSparePart;
+  String? headingTitle;
+  bool? isBomSpecific;
+  String? collectedAt;
 
   SparePart(
-      {this.type,
-      this.sparepartsId,
-      this.sparepartsCode,
+      {this.id,
+      this.code,
       this.description,
-      this.stock,
-      this.quantity = 0,
-      this.discount = 0.0,
-      this.price,
-      this.remarks,
-      this.maxpage});
+      this.priceAmount,
+      this.priceCurrency,
+      this.priceFormatted,
+      this.from,
+      this.quantity,
+      this.selectedQuantity,
+      this.isSparePart = true,
+      this.isBomSpecific = false,
+      this.collectedAt,
+      this.headingTitle = ""});
 
   SparePart.fromJson(Map<String, dynamic> json) {
-    this.type = json["type"];
-    this.sparepartsId = json["spareparts_id"];
-    this.sparepartsCode = json["attributes"]?["spareparts_code"];
-    this.description = json["attributes"]?["description"];
-    this.stock = json["attributes"]?["quantity"];
-    this.price = json["attributes"]?["price"];
-    this.remarks = json["attributes"]?["remarks"];
+    this.id = json["id"];
+    this.code = json["code"];
+    this.description = json["description"];
+    this.from = "";
+    this.priceAmount =
+        (json["price"] != null ? (json["price"]?["amount"]) : null);
+    this.priceCurrency =
+        (json["price"] != null ? (json["price"]?["currency"]) : null);
+    this.priceFormatted =
+        (json["price"] != null ? (json["price"]?["formatted"]) : null);
+
+    this.quantity = json["quantity_taken"] != null
+        ? json["quantity_taken"]
+        : json["quantity"];
+    this.selectedQuantity = 0;
+    this.isSparePart = true;
+    this.isBomSpecific = false;
+    this.headingTitle = "";
+    this.collectedAt = json["collected_at"];
   }
 
-  Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data["type"] = this.type;
-    data["spareparts_id"] = this.sparepartsId;
-    data["spareparts_code"] = this.sparepartsCode;
-    data["description"] = this.description;
-    data["quantity"] = this.stock;
-    data["price"] = this.price;
-    data["remarks"] = this.remarks;
+  SparePart.fromJsonStatusSpecific(Map<String, dynamic> json, String from) {
+    this.id = json["spareparts_id"];
+    this.code = json["spareparts_code"];
+    this.description = json["description"];
+    this.from = "";
+    this.priceAmount =
+        (json["price"] != null ? (json["price"]?["amount"]) : null);
+    this.priceCurrency =
+        (json["price"] != null ? (json["price"]?["currency"]) : null);
+    this.priceFormatted =
+        (json["price"] != null ? (json["price"]?["formatted"]) : null);
+
+    this.quantity = json["quantity"];
+    this.selectedQuantity = 0;
+    this.isSparePart = true;
+    this.isBomSpecific = false;
+    this.headingTitle = "";
+
+    this.from = from == "bag"
+        ? "bag"
+        : from == "warehouse"
+            ? "warehouse"
+            : "picklist";
+  }
+
+  static SparePart cloneInstance(SparePart value) {
+    SparePart data = new SparePart();
+    data.id = value.id;
+    data.code = value.code;
+    data.description = value.description;
+    data.priceAmount = value.priceAmount;
+    data.priceCurrency = value.priceCurrency;
+    data.priceFormatted = value.priceFormatted;
+    data.quantity = value.quantity;
+    data.selectedQuantity = value.selectedQuantity;
+    data.isSparePart = value.isSparePart;
+    data.isBomSpecific = value.isBomSpecific;
+    data.headingTitle = value.headingTitle;
 
     return data;
   }

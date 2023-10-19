@@ -218,7 +218,7 @@ class Api {
 
       print("bearerPost Url: $url");
       if (params != null) {
-        response = await client.post(url.toUri(), body: json.encode(params));
+        response =  await client.post(url.toUri(), body: json.encode(params));
       } else {
         response = await client.post(url.toUri());
       }

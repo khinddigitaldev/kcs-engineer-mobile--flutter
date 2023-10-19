@@ -28,7 +28,7 @@ class AppRouter {
             builder: (_) => JobDetails(id: arguments as String));
       case 'warehouse':
         return MaterialPageRoute(
-            builder: (_) => Warehouse(data: arguments as Job));
+            builder: (_) => Warehouse(jobId: arguments as String));
       case 'signIn':
         return MaterialPageRoute(builder: (_) => SignIn());
       // case 'payment':

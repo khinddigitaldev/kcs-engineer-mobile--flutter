@@ -2,6 +2,7 @@ class Solution {
   int? solutionId;
   String? solutionCode;
   String? solution;
+  String? solutionGroupCode;
 
   Solution({
     this.solutionId,

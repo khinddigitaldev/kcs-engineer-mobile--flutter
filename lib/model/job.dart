@@ -1,3 +1,9 @@
+import 'package:kcs_engineer/model/miscellaneousItem.dart';
+import 'package:kcs_engineer/model/pickup_charges.dart';
+import 'package:kcs_engineer/model/secondaryEngineer.dart';
+import 'package:kcs_engineer/model/sparepart.dart';
+import 'package:kcs_engineer/model/transportCharge.dart';
+
 class JobData {
   List<Job>? jobs;
   JobMetaData? meta;
@@ -20,9 +26,10 @@ class JobData {
 }
 
 class Job {
-  String? id;
+  String? serviceRequestid;
   String? serviceJobNo;
   String? serviceType;
+  int? serviceTypeId;
   String? serviceJobStatus;
   String? serviceDate;
   String? serviceTime;
@@ -34,38 +41,74 @@ class Job {
   String? serviceAddressCity;
   String? serviceAddressPostcode;
   String? serviceAddressState;
-  String? problemCode;
-  String? problemDescription;
+  String? reportedProblemCode;
+  String? reportedProblemDescription;
+  String? actualProblemCode;
+  String? actualProblemDescription;
+  String? estimatedSolutionCode;
+  String? estimatedSolutionDescription;
+  String? actualSolutionCode;
+  String? actualSolutionDescription;
   String? remarks;
   String? adminRemarks;
   String? productCode;
+  int? productId;
   String? productDescription;
+  String? serialNo;
+  TransportCharge? transportCharge;
+  PickupCharge? pickupCharge;
 
-  Job({
-    this.id,
-    this.serviceJobNo,
-    this.serviceType,
-    this.serviceJobStatus,
-    this.serviceDate,
-    this.serviceTime,
-    this.customerName,
-    this.customerTelephone,
-    this.customerEmail,
-    this.customerAddressName,
-    this.serviceAddressStreet,
-    this.serviceAddressCity,
-    this.serviceAddressPostcode,
-    this.serviceAddressState,
-    this.problemCode,
-    this.problemDescription,
-    this.remarks,
-    this.adminRemarks,
-    this.productCode,
-    this.productDescription,
-  });
+  List<SecondaryEngineer>? secondaryEngineers;
+  List<SparePart>? picklist;
+  List<SparePart>? currentJobSparepartsfromBag;
+  List<SparePart>? currentJobSparepartsfromWarehouse;
+  List<SparePart>? currentJobSparepartsfromPickList;
+  List<SparePart>? aggregatedSpareparts;
+
+  List<MiscellaneousItem>? miscCharges;
+
+  Job(
+      {this.serviceRequestid,
+      this.serviceJobNo,
+      this.serviceType,
+      this.serviceJobStatus,
+      this.serviceDate,
+      this.serviceTime,
+      this.customerName,
+      this.customerTelephone,
+      this.customerEmail,
+      this.customerAddressName,
+      this.serviceAddressStreet,
+      this.serviceAddressCity,
+      this.serviceAddressPostcode,
+      this.serviceAddressState,
+      this.reportedProblemCode,
+      this.reportedProblemDescription,
+      this.actualProblemCode,
+      this.actualProblemDescription,
+      this.estimatedSolutionCode,
+      this.estimatedSolutionDescription,
+      this.actualSolutionCode,
+      this.actualSolutionDescription,
+      this.remarks,
+      this.adminRemarks,
+      this.productCode,
+      this.productDescription,
+      this.serialNo,
+      this.productId,
+      this.serviceTypeId,
+      this.picklist,
+      this.currentJobSparepartsfromBag,
+      this.currentJobSparepartsfromWarehouse,
+      this.currentJobSparepartsfromPickList,
+      this.aggregatedSpareparts,
+      this.miscCharges,
+      this.transportCharge,
+      this.pickupCharge,
+      this.secondaryEngineers});
 
   Job.fromJson(Map<String, dynamic> json) {
-    this.id = json["service_request_id"];
+    this.serviceRequestid = json["service_request_id"];
     this.serviceJobNo = json["service_job_no"];
     this.serviceType = json["service_type"];
     this.serviceJobStatus = json["service_job_status"];
@@ -73,22 +116,110 @@ class Job {
     this.customerName = json["customer"]?["name"];
     this.customerTelephone = json["customer"]?["telephone"];
     this.customerEmail = json["customer"]?["email"];
-    this.customerAddressName = json["customer"]?["address_name"];
+    // this.customerAddressName = json["customer"]?["address_name"];
     this.serviceAddressStreet = json["service_address"]?["street"];
     this.serviceAddressCity = json["service_address"]?["city"];
     this.serviceAddressPostcode = json["service_address"]?["postcode"];
     this.serviceAddressState = json["service_address"]?["state"];
-    this.problemCode = json["problem"]?["code"];
-    this.problemDescription = json["problem"]?["description"];
+    this.reportedProblemCode = json["problem"]?["reported"]?["code"];
+    this.reportedProblemDescription =
+        json["problem"]?["reported"]?["description"];
+    this.actualProblemCode = json["problem"]?["actual"]?["code"];
+    this.actualProblemDescription = json["problem"]?["actual"]?["description"];
+    this.estimatedSolutionCode = json["solution"]?["estimated"]?["code"];
+    this.estimatedSolutionDescription =
+        json["solution"]?["estimated"]?["solution"];
+    this.actualSolutionCode = json["solution"]?["actual"]?["code"];
+    this.actualSolutionDescription = json["solution"]?["actual"]?["solution"];
     this.remarks = json["remarks"]?["remarks"];
     this.adminRemarks = json["remarks"]?["admin_remarks"];
     this.productCode = json["product"]?["code"];
     this.productDescription = json["product"]?["description"];
+    this.serialNo = json["warranty_info"]?["serial_no"];
+    this.productId = json["product"]?["id"];
+    this.serviceTypeId = json["service_type_id"];
+
+    this.secondaryEngineers = json["secondary_engineers"] != null
+        ? (json["secondary_engineers"] as List)
+            .map((e) => SecondaryEngineer.fromJson(e))
+            .toList()
+        : [];
+
+    this.picklist = json["bag_pick_list"]?['spareparts'] != null
+        ? ((json["bag_pick_list"]?['spareparts'] as List)
+                .map((e) => SparePart.fromJson(e))
+                .toList())
+            .where((element) => element.collectedAt == null)
+            .toList()
+        : [];
+
+    this.miscCharges = json["misc_charges"] != null
+        ? (json["misc_charges"] as List)
+            .map((e) => MiscellaneousItem.fromJson(e))
+            .toList()
+        : [];
+
+    this.pickupCharge = json['pickup_charge'] != null
+        ? PickupCharge.fromJson(json['pickup_charge'])
+        : null;
+
+    this.transportCharge = json['transport_charge'] != null
+        ? TransportCharge.fromJson(json['transport_charge'])
+        : null;
+
+    this.currentJobSparepartsfromBag =
+        json["current_spareparts_in_job"]?['from_bag'] != null
+            ? (json["current_spareparts_in_job"]?['from_bag'] as List)
+                .map((e) => SparePart.fromJsonStatusSpecific(e, "bag"))
+                .toList()
+            : [];
+    this.currentJobSparepartsfromWarehouse =
+        json["current_spareparts_in_job"]?['from_warehouse'] != null
+            ? (json["current_spareparts_in_job"]?['from_warehouse'] as List)
+                .map((e) => SparePart.fromJsonStatusSpecific(e, "warehouse"))
+                .toList()
+            : [];
+    this.currentJobSparepartsfromPickList =
+        json["current_spareparts_in_job"]?['from_picklist'] != null
+            ? (json["current_spareparts_in_job"]?['from_picklist'] as List)
+                .map((e) => SparePart.fromJsonStatusSpecific(e, 'picklist'))
+                .toList()
+            : [];
+
+    this.aggregatedSpareparts = [];
+
+    this.aggregatedSpareparts?.addAll(currentJobSparepartsfromBag ?? []);
+
+    currentJobSparepartsfromWarehouse?.forEach((element) {
+      var index =
+          this.aggregatedSpareparts?.indexWhere((e) => e.id == element.id);
+      if (index != -1) {
+        this.aggregatedSpareparts?[index ?? 0].quantity =
+            (this.aggregatedSpareparts?[index ?? 0].quantity ?? 0) +
+                (element.quantity ?? 0);
+      } else {
+        this.aggregatedSpareparts?.add(element);
+      }
+    });
+
+    currentJobSparepartsfromPickList?.forEach((element) {
+      var index =
+          this.aggregatedSpareparts?.indexWhere((e) => e.id == element.id);
+      if (index != -1) {
+        this.aggregatedSpareparts?[index ?? 0].quantity =
+            (this.aggregatedSpareparts?[index ?? 0].quantity ?? 0) +
+                (element.quantity ?? 0);
+      } else {
+        this.aggregatedSpareparts?.add(element);
+      }
+    });
+
+    var list = [];
   }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
-    data["id"] = this.id;
+    data["id"] = this.serviceRequestid;
 
     return data;
   }

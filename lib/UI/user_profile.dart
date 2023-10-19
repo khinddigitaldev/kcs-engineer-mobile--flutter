@@ -360,7 +360,7 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                               children: <TextSpan>[
                                 TextSpan(
                                   text: engineer != null
-                                      ? engineer?.engineerId
+                                      ? engineer?.employeeCode
                                       : '',
                                 ),
                               ]),
