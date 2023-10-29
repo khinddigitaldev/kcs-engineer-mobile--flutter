@@ -91,4 +91,14 @@ class SparePart {
 
     return data;
   }
+
+  static List<SparePart> cloneArray(List<SparePart> value) {
+    List<SparePart> data = [];
+
+    value.forEach((element) {
+      data.add(cloneInstance(element));
+    });
+
+    return data;
+  }
 }

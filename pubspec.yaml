@@ -137,6 +137,9 @@ flutter:
     - family: HistoryIcons
       fonts:
         - asset: assets/fonts/HistoryIcons.ttf
+    - family: KcsIcons
+      fonts:
+        - asset: assets/fonts/KcsIcons.ttf
     - family: Roboto
       fonts:
         - asset: assets/fonts/Roboto.ttf

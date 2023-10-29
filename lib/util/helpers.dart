@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hexcolor/hexcolor.dart';
 import 'package:kcs_engineer/model/jobGeneralCodes.dart';
+import 'package:kcs_engineer/model/miscellaneousItem.dart';
+import 'package:kcs_engineer/model/sparepart.dart';
 import 'package:kcs_engineer/model/user.dart';
-import 'package:kcs_engineer/model/user_sparepart.dart';
+import 'package:kcs_engineer/model/job_sparepart.dart';
 import 'package:kcs_engineer/themes/app_colors.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
@@ -129,9 +131,11 @@ class Helpers {
   static Job? selectedJob;
   static bool isAuthenticated = false;
   static List<JobGeneralCode> editableGeneralCodes = [];
-  static List<JobSparePart> editableJobSpareParts = [];
+  static List<SparePart> editableJobSpareParts = [];
   static List<Job> inProgressJobs = [];
   static List<Job> completedJobs = [];
+
+  static List<MiscellaneousItem> editableMiscItems = [];
 
   static Widget fadeAlertAnimation(
     BuildContext context,

@@ -15,6 +15,7 @@ import 'package:kcs_engineer/model/job.dart';
 import 'package:kcs_engineer/model/jobGeneralCodes.dart';
 import 'package:kcs_engineer/model/job_filter_options.dart';
 import 'package:kcs_engineer/model/job_order_seq.dart';
+import 'package:kcs_engineer/model/miscellaneousItem.dart';
 import 'package:kcs_engineer/model/payment_method.dart';
 import 'package:kcs_engineer/model/pick_list_Items.dart';
 import 'package:kcs_engineer/model/pickup_charges.dart';
@@ -24,7 +25,7 @@ import 'package:kcs_engineer/model/solution.dart';
 import 'package:kcs_engineer/model/payment_history_item.dart';
 import 'package:kcs_engineer/model/sparepart.dart';
 import 'package:kcs_engineer/model/transportCharge.dart';
-import 'package:kcs_engineer/model/user_sparepart.dart';
+import 'package:kcs_engineer/model/job_sparepart.dart';
 import 'package:kcs_engineer/model/user.dart';
 import 'package:kcs_engineer/util/api.dart';
 import 'package:kcs_engineer/util/helpers.dart';
@@ -337,27 +338,26 @@ class Repositories {
     spareparts.forEach((element) {
       Map<String, dynamic> e = {
         'spareparts_id': element.id,
-        'quantity_taken': element.selectedQuantity,
+        'quantity_taken': element.quantity,
       };
 
       if (element.from == "bag") {
-        fromPickList.add(e);
-      } else if (element.from == "warehouse") {
         fromBag.add(e);
-      } else if (element.from == "picklist") {
+      } else if (element.from == "warehouse") {
         fromWarehouse.add(e);
+      } else if (element.from == "picklist") {
+        fromPickList.add(e);
       }
     });
 
     final Map<String, dynamic> map = {
-      'job_id': jobId,
+      'service_request_id': jobId,
       'picklist': fromPickList,
       'bag': fromBag,
       'warehouse': fromWarehouse,
     };
 
-    final response =
-        await Api.bearerPost('job/add-spareparts', params: jsonEncode(map));
+    final response = await Api.bearerPost('job/add-spareparts', params: map);
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null && response["success"]) {
       return true;
@@ -382,28 +382,37 @@ class Repositories {
 
   static Future<List<TransportCharge>> fetchTransportCharges(
       productModelId) async {
-    List<TransportCharge>? data = [];
+    List<TransportCharge> data = [];
 
-    final response = await Api.bearerGet(
-        'general/transport-charges?product_model_id=' +
-            productModelId.toString());
-    print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] && response['data'] != null) {
-      data = (response['data'] as List)
-          .map((i) => TransportCharge.fromJson(i))
-          .toList();
+    try {
+      final response = await Api.bearerGet(
+          'general/transport-charges?product_model_id=' +
+              productModelId.toString());
+      print("#Resp: ${jsonEncode(response)}");
+      if (response["success"] && response['data'] != null) {
+        data = (response['data'] as List)
+            .map((i) => TransportCharge.fromJson(i))
+            .toList();
+        var xx = data;
+
+        return data;
+      } else {
+        return data;
+      }
+    } catch (e) {
+      print(e);
+      return data;
     }
-    return data;
   }
 
   static Future<bool> deleteMiscItem(String jobId, int miscChargesId) async {
     final Map<String, dynamic> map = {
       'service_request_id': jobId,
-      'misc_charges_id': miscChargesId.toString()
+      'misc_charges_id': miscChargesId
     };
 
-    final response = await Api.bearerPost('job/delete-misc-charges',
-        params: jsonEncode(map));
+    final response =
+        await Api.bearerPost('job/delete-misc-charges', params: map);
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null && response["success"]) {
       return true;
@@ -412,15 +421,44 @@ class Repositories {
     }
   }
 
-  static Future<bool> addMiscItem(String jobId, int miscChargesId) async {
+  static Future<bool> addMiscItem(String jobId, String remarks,
+      double miscCharges, int quantity, int? miscChargesId) async {
+    final List<Map<String, dynamic>> miscChargesArr = [
+      {
+        'remarks': remarks,
+        'misc_charges': miscCharges,
+        ...(miscChargesId == null ? {} : {'misc_charges_id': miscChargesId}),
+        'quantity': quantity,
+      }
+    ];
+
     final Map<String, dynamic> map = {
       'service_request_id': jobId,
-      'misc_charges_id': miscChargesId.toString()
+      'misc_charges_arr': miscChargesArr,
     };
 
-    final response = await Api.bearerPost('job/update-misc-charges',
-        params: jsonEncode(map));
+    final response =
+        await Api.bearerPost('job/update-misc-charges', params: map);
     print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  static Future<bool> updateMiscItems(
+      String jobId, List<MiscellaneousItem> miscItems) async {
+    var listOfMaps =
+        await MiscellaneousItem().ListOfbjectsToListofMaps(miscItems);
+
+    final Map<String, dynamic> map = {
+      'service_request_id': jobId,
+      'misc_charges_arr': listOfMaps,
+    };
+
+    final response =
+        await Api.bearerPost('job/update-misc-charges', params: map);
     if (response["success"] != null && response["success"]) {
       return true;
     } else {
@@ -429,12 +467,18 @@ class Repositories {
   }
 
   static Future<bool> addProblemToJob(
-      String jobId, int problemId, bool isEstimate) async {
+      String jobId, int? problemId, bool isEstimate) async {
     final Map<String, dynamic> map = {
       'service_request_id': jobId,
       ...(isEstimate
-          ? {'estimated_problem_id': problemId.toString()}
-          : {'actual_problem_id': problemId.toString()}),
+          ? {
+              'estimated_problem_id':
+                  problemId != null ? problemId.toString() : null
+            }
+          : {
+              'actual_problem_id':
+                  problemId != null ? problemId.toString() : null
+            }),
     };
 
     final response = await Api.bearerPost('job/upsert-problem', params: map);
@@ -447,12 +491,18 @@ class Repositories {
   }
 
   static Future<bool> addSolutionToJob(
-      String jobId, int solutionId, bool isEstimate) async {
+      String jobId, int? solutionId, bool isEstimate) async {
     final Map<String, dynamic> map = {
       'service_request_id': jobId,
       ...(isEstimate
-          ? {'estimated_solution_id': solutionId.toString()}
-          : {'actual_solution_id': solutionId.toString()}),
+          ? {
+              'estimated_solution_id':
+                  solutionId != null ? solutionId.toString() : null
+            }
+          : {
+              'actual_solution_id':
+                  solutionId != null ? solutionId.toString() : null
+            }),
     };
 
     final response = await Api.bearerPost('job/upsert-solution', params: map);
@@ -464,10 +514,30 @@ class Repositories {
     }
   }
 
-  static Future<bool> addPickupCharges(String jobId, int pickupId) async {
+  static Future<bool> addTransportChargesToJob(
+      String jobId, int productModelId, int? transportchargesGroupId) async {
     final Map<String, dynamic> map = {
       'service_request_id': jobId,
-      'pickup_charges_id': pickupId.toString(),
+      'transport_charges_group_id': transportchargesGroupId != null
+          ? transportchargesGroupId.toString()
+          : null,
+      'product_model_id': productModelId.toString()
+    };
+
+    final response =
+        await Api.bearerPost('job/update-transport-charges', params: map);
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  static Future<bool> addPickupCharges(String jobId, int? pickupId) async {
+    final Map<String, dynamic> map = {
+      'service_request_id': jobId,
+      'pickup_charges_id': pickupId != null ? pickupId.toString() : null,
     };
 
     final response =
@@ -480,23 +550,173 @@ class Repositories {
     }
   }
 
-  static Future<PickListItems?> fetchDailyPickList(
-      String jobId, int solutionId, bool isEstimate) async {
+  static Future<PickListItems?> fetchDailyPickList() async {
     PickListItems? pickListItems = null;
-    final Map<String, dynamic> map = {
-      'service_request_id': jobId,
-      ...(isEstimate
-          ? {'estimated_solution_id': solutionId.toString()}
-          : {'actual_solution_id': solutionId.toString()}),
-    };
 
-    final response = await Api.bearerPost('job/upsert-solution', params: map);
+    var map = {"get_only_today": false};
+    final response =
+        await Api.bearerPost('job/get-pick-list-for-day', params: map);
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null && response["success"]) {
       pickListItems = PickListItems.fromJson(response["data"]);
     }
 
     return pickListItems;
+  }
+
+  static Future<bool> startJob(
+      List<File> images, String jobId, Job selectedJob) async {
+    String baseUrl = dotenv.env["API_BASE_URL"] ?? "";
+    var url = Uri.parse('${baseUrl}/job/start-job');
+    return await sendMultipartReq(images, url, false, 0, jobId, selectedJob);
+  }
+
+  static Future<bool> completeJob(
+      List<File> images, String jobId, Job selectedJob) async {
+    String baseUrl = dotenv.env["API_BASE_URL"] ?? "";
+    var url = Uri.parse('${baseUrl}/job/complete-job');
+    return await sendMultipartReq(images, url, false, 0, jobId, selectedJob);
+  }
+
+  static Future<bool> cancelJob(
+    List<File> images,
+    String jobId,
+    int reasonId,
+  ) async {
+    String baseUrl = dotenv.env["API_BASE_URL"] ?? "";
+    var url = Uri.parse('${baseUrl}/job/cancel-job');
+    return await sendMultipartReq(images, url, true, reasonId, jobId, null);
+  }
+
+  static Future<bool> uploadKIV(
+      List<File> images, String jobId, int reasonId) async {
+    String baseUrl = dotenv.env["API_BASE_URL"] ?? "";
+    var url = Uri.parse('${baseUrl}/job/kiv-job');
+    return await sendMultipartReq(images, url, true, reasonId, jobId, null);
+  }
+
+  static Future<bool> closeJob(List<File> images, String jobId) async {
+    String baseUrl = dotenv.env["API_BASE_URL"] ?? "";
+    var url = Uri.parse('${baseUrl}/job/job-close');
+    return await sendMultipartReq(images, url, false, 0, jobId, null);
+  }
+
+  static Future<bool> rejectJob(String jobId, int? reasonId) async {
+    final Map<String, dynamic> map = {
+      'service_request_id': jobId,
+      'cancellation_reason_id': reasonId,
+    };
+
+    final response = await Api.bearerPost('job/reject-job', params: map);
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  static Future<bool> sendMultipartReq(
+      List<File> images,
+      Uri url,
+      bool isKivOrIsCancelOrIsReject,
+      int? reasonId,
+      String serviceRequestId,
+      Job? selectedJob) async {
+    var token = await storage.read(key: TOKEN);
+
+    var headers = {
+      'Accept': 'application/vnd.api+json',
+      'Content-Type': 'application/vnd.api+json',
+      'Authorization': 'Bearer $token'
+    };
+
+    var request = http.MultipartRequest('POST', url);
+    List<http.MultipartFile> multipartFiles = [];
+
+    for (var file in images) {
+      List<int> fileBytes = await file.readAsBytes();
+      http.MultipartFile multipartFile = http.MultipartFile.fromBytes(
+        'images[]',
+        fileBytes,
+        filename: file.path.split('/').last,
+      );
+      multipartFiles.add(multipartFile);
+    }
+
+    request.files.addAll(multipartFiles);
+
+    if (isKivOrIsCancelOrIsReject) {
+      request.fields["service_request_id"] = serviceRequestId;
+      request.fields["cancellation_reason_id"] = reasonId.toString();
+    } else {
+      request.fields["service_request_id"] = serviceRequestId;
+
+      request.fields["is_chargeable[spareparts]"] =
+          (selectedJob?.chargeableSparepartIds?.length ?? 0) > 0 ? "1" : "0";
+      request.fields["is_chargeable[solution]"] =
+          (selectedJob?.isChargeableSolution ?? false) ? "1" : "0";
+      request.fields["is_chargeable[transport]"] =
+          (selectedJob?.isChargeableTransport ?? false) ? "1" : "0";
+      request.fields["is_chargeable[pickup]"] =
+          (selectedJob?.isChargeablePickup ?? false) ? "1" : "0";
+      request.fields["is_chargeable[misc]"] =
+          (selectedJob?.isChargeableMisc ?? false) ? "1" : "0";
+
+      if ((selectedJob?.chargeableSparepartIds?.length ?? 0) > 0)
+        selectedJob?.chargeableSparepartIds?.forEach((element) {
+          request.fields["list_of_spareparts_not_chargeable[]"] = element;
+        });
+    }
+
+    request.headers.addAll(headers);
+
+    http.StreamedResponse response = await request.send();
+
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  static Future<List<Reason>> fetchKIVReasons() async {
+    final response = await Api.bearerGet(
+        'general/service-request-cancellation-reason?service_request_status_id=17');
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      var reason =
+          (response['data'] as List).map((i) => Reason.fromJson(i)).toList();
+      return reason;
+    } else {
+      return [];
+    }
+  }
+
+  static Future<List<Reason>> fetchCancellationReasons() async {
+    final response = await Api.bearerGet(
+        'general/service-request-cancellation-reason?service_request_status_id=16');
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      var reason =
+          (response['data'] as List).map((i) => Reason.fromJson(i)).toList();
+      return reason;
+    } else {
+      return [];
+    }
+  }
+
+  static Future<List<Reason>> fetchRejectReasons() async {
+    final response = await Api.bearerGet(
+        'general/service-request-cancellation-reason?service_request_status_id=23');
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      var reason =
+          (response['data'] as List).map((i) => Reason.fromJson(i)).toList();
+      return reason;
+    } else {
+      return [];
+    }
   }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -644,82 +864,11 @@ class Repositories {
   //   }
   // }
 
-  static Future<bool> cancelJob(
-    List<File> images,
-    String jobId,
-    int reasonId,
-  ) async {
-    String baseUrl = dotenv.env["API_BASE_URL"] ?? "";
-    var url = Uri.parse((baseUrl) + '/job/cancel-job');
-    return await sendMultipartReq(images, url, true, reasonId, jobId);
-  }
-
-  static Future<bool> uploadKIV(
-      List<File> images, String jobId, int reasonId) async {
-    String baseUrl = dotenv.env["API_BASE_URL"] ?? "";
-
-    var url = Uri.parse((baseUrl) + 'job/kiv-job');
-    return await sendMultipartReq(images, url, true, reasonId, jobId);
-  }
-
   static Future<bool> toggleChargable(String jobId) async {
     final response =
         await Api.bearerPost('job-orders/$jobId/toggle-chargerable');
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null && response["success"]) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  static Future<bool> startJob(List<File> images, String jobId) async {
-    var url =
-        Uri.parse('https://mc.mayer.sg/api/v1/job-orders/$jobId/job-start');
-    return await sendMultipartReq(images, url, false, 0, "");
-  }
-
-  static Future<bool> completeJob(List<File> images, String jobId) async {
-    var url =
-        Uri.parse('https://mc.mayer.sg/api/v1/job-orders/$jobId/job-complete');
-    return await sendMultipartReq(images, url, false, 0, "");
-  }
-
-  static Future<bool> sendMultipartReq(List<File> images, Uri url,
-      bool isKivOrIsCancel, int? reasonId, String serviceRequestId) async {
-    var token = await storage.read(key: TOKEN);
-
-    var headers = {
-      'Accept': 'application/vnd.api+json',
-      'Content-Type': 'application/vnd.api+json',
-      'Authorization': 'Bearer $token'
-    };
-
-    var request = http.MultipartRequest('POST', url);
-    List<http.MultipartFile> multipartFiles = [];
-
-    for (var file in images) {
-      List<int> fileBytes = await file.readAsBytes();
-      http.MultipartFile multipartFile = http.MultipartFile.fromBytes(
-        'images[]',
-        fileBytes,
-        filename: file.path.split('/').last,
-      );
-      multipartFiles.add(multipartFile);
-    }
-
-    request.files.addAll(multipartFiles);
-
-    if (isKivOrIsCancel) {
-      request.fields["service_request_id"] = serviceRequestId;
-      request.fields["cancellation_reason_id"] = reasonId.toString();
-    }
-
-    request.headers.addAll(headers);
-
-    http.StreamedResponse response = await request.send();
-
-    if (response.statusCode == 200) {
       return true;
     } else {
       return false;
@@ -735,32 +884,6 @@ class Repositories {
       var solutions =
           (response['data'] as List).map((i) => Solution.fromJson(i)).toList();
       return solutions;
-    } else {
-      return [];
-    }
-  }
-
-  static Future<List<Reason>> fetchKIVReasons() async {
-    final response = await Api.bearerGet(
-        'general/service-request-cancellation-reason?service_request_status_id=17');
-    print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null && response["success"]) {
-      var reason =
-          (response['data'] as List).map((i) => Reason.fromJson(i)).toList();
-      return reason;
-    } else {
-      return [];
-    }
-  }
-
-  static Future<List<Reason>> fetchCancellationReasons() async {
-    final response = await Api.bearerGet(
-        'general/service-request-cancellation-reason?service_request_status_id=16');
-    print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null && response["success"]) {
-      var reason =
-          (response['data'] as List).map((i) => Reason.fromJson(i)).toList();
-      return reason;
     } else {
       return [];
     }

@@ -118,11 +118,11 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
   // }
 
   Future<dynamic> fetchProfileData() async {
-    //Helpers.showAlert(context);
+    Helpers.showAlert(context);
 
     Engineer? fetchedUser = await Repositories.fetchProfile();
 
-    // Navigator.pop(context);
+    Navigator.pop(context);
     setState(() {
       engineer = fetchedUser;
     });

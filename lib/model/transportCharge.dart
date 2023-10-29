@@ -17,9 +17,11 @@ class TransportCharge {
   TransportCharge.fromJson(Map<String, dynamic> json) {
     this.id = json["transport_charges_group_id"];
     this.code = json["transport_charges_code"];
+    this.description = json["transport_charges_group_description"] != null
+        ? json["transport_charges_group_description"]
+        : json["description"];
     this.amount = json["transport_charges"]?["amount"];
     this.currency = json["transport_charges"]?["currency"];
     this.priceFormatted = json["transport_charges"]?["formatted"];
-    this.description = json['transport_charges_group_description'];
   }
 }

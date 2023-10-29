@@ -215,10 +215,11 @@ class Api {
           url = '$url${listParams.join()}';
         }
       }
-
+      var ll = json.encode(params);
+      var req = client;
       print("bearerPost Url: $url");
       if (params != null) {
-        response =  await client.post(url.toUri(), body: json.encode(params));
+        response = await client.post(url.toUri(), body: json.encode(params));
       } else {
         response = await client.post(url.toUri());
       }

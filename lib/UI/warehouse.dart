@@ -84,15 +84,19 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
   FutureOr<void> afterFirstLayout(BuildContext context) async {
     await fetchJobDetails();
     _loadVersion();
-    _fetchSpareParts(true, false);
+    await _fetchSpareParts(true, false);
     // _fetchGeneralCodes(true);
   }
 
   fetchJobDetails() async {
+    Helpers.showAlert(context);
     var job = await Repositories.fetchJobDetails(jobId: jobId);
-    setState(() {
-      selectedJob = job;
-    });
+    Navigator.pop(context);
+    if (mounted) {
+      setState(() {
+        selectedJob = job;
+      });
+    }
   }
 
   @override
@@ -899,14 +903,13 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
   }
 
   _fetchSpareParts(bool eraseEarlyRecords, bool searchByCode) async {
-    Helpers.showAlert(context);
     List<SparePart> currentHistory = [];
 
     if (!eraseEarlyRecords) {
       currentHistory.addAll(sparePartList);
     }
     var url = 'general/spareparts?per_page=20' +
-        '&include_spareparts_from_bag=1&page=$sparePartsCurrentPage' +
+        '&page=$sparePartsCurrentPage' +
         (warehouseSearchCT.text != ""
             ? '&q=' + warehouseSearchCT.text.toString()
             : "") +
@@ -917,6 +920,9 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
             : (warehouseSearchCT.text != ""
                 ? '&q=' + warehouseSearchCT.text.toString()
                 : ""));
+
+    Helpers.showAlert(context);
+
     final response = await Api.bearerGet('general/spareparts?per_page=20' +
         '&page=$sparePartsCurrentPage' +
         (warehouseSearchCT.text != ""
@@ -929,6 +935,7 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
             : (warehouseSearchCT.text != ""
                 ? '&q=' + warehouseSearchCT.text.toString()
                 : "")));
+    Navigator.pop(context);
 
     print("#Resp: ${jsonEncode(response)}");
 
@@ -947,7 +954,6 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
           response['data']?['spareparts']?['meta']?['last_page'];
       sparePartList = currentHistory;
     });
-    Navigator.pop(context);
   }
 
   _fetchGeneralCodes(bool eraseEarlyRecords) async {

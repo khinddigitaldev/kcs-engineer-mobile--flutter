@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
-
 import 'package:after_layout/after_layout.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:expandable_bottom_sheet/expandable_bottom_sheet.dart';
@@ -11,13 +10,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_switch/flutter_switch.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:kcs_engineer/UI/bag.dart';
 import 'package:kcs_engineer/model/bag.dart';
 import 'package:kcs_engineer/model/checklistAttachment.dart';
 import 'package:kcs_engineer/model/comment.dart';
-import 'package:kcs_engineer/model/general_code.dart';
 import 'package:kcs_engineer/model/job.dart';
-import 'package:kcs_engineer/model/jobGeneralCodes.dart';
 import 'package:kcs_engineer/model/miscellaneousItem.dart';
 import 'package:kcs_engineer/model/pickup_charges.dart';
 import 'package:kcs_engineer/model/problem.dart';
@@ -25,11 +21,7 @@ import 'package:kcs_engineer/model/reason.dart';
 import 'package:kcs_engineer/model/solution.dart';
 import 'package:kcs_engineer/model/sparepart.dart';
 import 'package:kcs_engineer/model/transportCharge.dart';
-import 'package:kcs_engineer/model/user.dart';
-import 'package:kcs_engineer/model/user_sparepart.dart';
-import 'package:kcs_engineer/themes/app_colors.dart';
-import 'package:kcs_engineer/themes/text_styles.dart';
-import 'package:kcs_engineer/util/api.dart';
+import 'package:kcs_engineer/model/job_sparepart.dart';
 import 'package:kcs_engineer/util/components/add_items_bag.dart';
 import 'package:kcs_engineer/util/full_screen_image.dart';
 import 'package:kcs_engineer/util/helpers.dart';
@@ -66,7 +58,11 @@ class _JobDetailsState extends State<JobDetails>
   bool showPassword = false;
   String errorMsg = "";
   String version = "";
-  bool isChargeable = false;
+  bool isChargeableTransportCharges = false;
+  bool isChargeablePickupCharges = false;
+  bool isChargeableSolutionCharges = false;
+  bool isChargeableMiscellaneousCharges = false;
+
   Job? selectedJob;
   late FocusNode serialNoFocusNode;
   late FocusNode remarksFocusNode;
@@ -95,9 +91,12 @@ class _JobDetailsState extends State<JobDetails>
   ExpansionStatus _expansionStatus = ExpansionStatus.contracted;
   GlobalKey<ExpandableBottomSheetState> key = new GlobalKey();
   bool isExpanded = false;
+  bool isExpandedTotal = false;
 
   bool isPartsEditable = false;
   bool isGeneralCodeEditable = false;
+  bool isMiscItemsEditable = false;
+  bool isPickListPartsEditable = false;
 
   List<FocusNode> commentFocusNodes = [];
   List<TextEditingController> commentTextEditingControllers = [];
@@ -105,10 +104,16 @@ class _JobDetailsState extends State<JobDetails>
   Job? selectedJobDetails;
 
   List<Reason>? cancellationReasons = [];
+  List<Reason>? rejectReasons = [];
+
   List<Reason>? KIVReasons = [];
   int? selectedKIVReason = null;
   int? selectedCancellationReason = null;
+  int? selectedRejectReason = null;
+
   bool isErrorCancellationReason = false;
+  bool isErrorRejectReason = false;
+
   bool isErrorKIVReason = false;
   bool isPreviousJobsSelected = false;
   List<Job> jobHistory = [];
@@ -122,6 +127,8 @@ class _JobDetailsState extends State<JobDetails>
 
   bool isTransportationChargesAvailable = true;
 
+  List<String> priority = ["bag", "warehouse", "picklist"];
+
   @override
   FutureOr<void> afterFirstLayout(BuildContext context) async {
     jobId = widget.id ?? "";
@@ -130,6 +137,8 @@ class _JobDetailsState extends State<JobDetails>
     await fetchTransportCharges();
     await fetchPickUpCharges();
     await fetchCancellationReasons();
+    await fetchRejecReasons();
+
     if (solutionLabels.length == 0 && selectedJob != null) {
       fetchSolutionsByProduct();
     }
@@ -160,9 +169,18 @@ class _JobDetailsState extends State<JobDetails>
     });
   }
 
+  fetchRejecReasons() async {
+    isLoading = true;
+    var reasons = await Repositories.fetchRejectReasons();
+    isLoading = false;
+    setState(() {
+      rejectReasons = reasons;
+    });
+  }
+
   fetchKIVReasons() async {
     isLoading = true;
-    var reasons = await Repositories.fetchCancellationReasons();
+    var reasons = await Repositories.fetchKIVReasons();
     isLoading = false;
 
     setState(() {
@@ -173,7 +191,7 @@ class _JobDetailsState extends State<JobDetails>
   fetchTransportCharges() async {
     isLoading = true;
     var transportCharges =
-        await Repositories.fetchTransportCharges(selectedJob?.productId);
+        await Repositories.fetchTransportCharges(selectedJob?.productModelId);
     isLoading = false;
     setState(() {
       allTransportCharges = transportCharges;
@@ -218,6 +236,100 @@ class _JobDetailsState extends State<JobDetails>
     setState(() {
       checklistAttachments = res;
     });
+  }
+
+  removeItemsBasedOnPriority(List<SparePart>? updatedArray) async {
+    List<SparePart> itemsToRemove = [];
+    List<SparePart> finalArr = [];
+    List<SparePart>? sparePartExisting = [];
+    int? quantityToRemove;
+
+    selectedJob?.aggregatedSpareparts?.forEach((element) {
+      if (!((updatedArray?.map((e) => e.id == element.id).toList().length ??
+              0) >
+          0)) {
+        var obj = SparePart.cloneInstance(element);
+        // obj.quantity = 0 - (obj.quantity ?? 0);
+        quantityToRemove = obj.quantity;
+
+        priority.forEach((priority) {
+          if (priority == "bag") {
+            sparePartExisting = selectedJob?.currentJobSparepartsfromBag
+                ?.where((currentSparePart) => currentSparePart.id == obj.id)
+                .toList();
+          } else if (priority == "warehouse") {
+            sparePartExisting = selectedJob?.currentJobSparepartsfromWarehouse
+                ?.where((currentSparePart) => currentSparePart.id == obj.id)
+                .toList();
+          } else if (priority == "picklist") {
+            sparePartExisting = selectedJob?.currentJobSparepartsfromPickList
+                ?.where((currentSparePart) => currentSparePart.id == obj.id)
+                .toList();
+          }
+
+          if ((sparePartExisting?.length ?? 0) != 0) {
+            SparePart newClone = SparePart.cloneInstance(obj);
+            newClone.quantity = 0 - (quantityToRemove ?? 0);
+            newClone.from = priority;
+            quantityToRemove =
+                (quantityToRemove ?? 0) - (sparePartExisting?[0].quantity ?? 0);
+            finalArr.add(newClone);
+          }
+
+          if (quantityToRemove == 0) {
+            return;
+          }
+        });
+      } else {
+        var obj = updatedArray?.firstWhere((e) => element.id == e.id);
+
+        if (obj != null && obj.quantity != element.quantity) {
+          quantityToRemove = (element.quantity ?? 0) - (obj.quantity ?? 0);
+
+          priority.forEach((priority) {
+            switch (priority) {
+              case "bag":
+                sparePartExisting = selectedJob?.currentJobSparepartsfromBag
+                    ?.where((currentSparePart) => currentSparePart.id == obj.id)
+                    .toList();
+                break;
+              case "warehouse":
+                sparePartExisting = selectedJob
+                    ?.currentJobSparepartsfromWarehouse
+                    ?.where((currentSparePart) => currentSparePart.id == obj.id)
+                    .toList();
+                break;
+              case "picklist":
+                sparePartExisting = selectedJob
+                    ?.currentJobSparepartsfromPickList
+                    ?.where((currentSparePart) => currentSparePart.id == obj.id)
+                    .toList();
+                break;
+            }
+
+            if ((sparePartExisting?.length ?? 0) != 0) {
+              int currentQuantity = sparePartExisting?[0].quantity ?? 0;
+              SparePart newClone = SparePart.cloneInstance(obj);
+              newClone.quantity = 0 - (quantityToRemove ?? 0);
+              newClone.from = priority;
+
+              quantityToRemove =
+                  (quantityToRemove ?? 0) + (newClone.quantity ?? 0);
+              finalArr.add(newClone);
+            }
+
+            if (quantityToRemove == 0) {
+              return;
+            }
+          });
+        }
+      }
+    });
+
+    var res = await Repositories.addSparePartsToJob(jobId, finalArr);
+
+    Navigator.pop(context);
+    await refreshJobDetails();
   }
 
   fetchComments() async {
@@ -287,13 +399,17 @@ class _JobDetailsState extends State<JobDetails>
     });
   }
 
-  // _loadToken() async {
-  //   final accessToken = await storage.read(key: TOKEN);
+  void updateChargeable() async {
+    var res = await Repositories.fetchProblems();
 
-  //   setState(() {
-  //     token = accessToken;
-  //   });
-  // }
+    problems.forEach((element) {
+      problemLabels.add(element.problem ?? "");
+    });
+
+    setState(() {
+      problemLabels = problemLabels;
+    });
+  }
 
   void _handleSignIn() async {}
 
@@ -511,37 +627,39 @@ class _JobDetailsState extends State<JobDetails>
                     ),
                     Container(
                       width: MediaQuery.of(context).size.width * 0.25,
-                      child: selectedJob != null ? Row(
-                        children: [
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              const Icon(
-                                // <-- Icon
-                                Icons.mail_outline,
-                                color: Colors.black54,
-                                size: 25.0,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(
-                            width: 5,
-                          ),
-                          RichText(
-                            text: TextSpan(
-                                style: TextStyle(
-                                  fontSize: 12.0,
-                                  color: Colors.black54,
+                      child: selectedJob != null
+                          ? Row(
+                              children: [
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    const Icon(
+                                      // <-- Icon
+                                      Icons.mail_outline,
+                                      color: Colors.black54,
+                                      size: 25.0,
+                                    ),
+                                  ],
                                 ),
-                                children: <TextSpan>[
-                                  TextSpan(
-                                    text: selectedJob?.customerEmail,
-                                  ),
-                                ]),
-                          ),
-                        ],
-                      ) : new Container(),
+                                const SizedBox(
+                                  width: 5,
+                                ),
+                                RichText(
+                                  text: TextSpan(
+                                      style: TextStyle(
+                                        fontSize: 12.0,
+                                        color: Colors.black54,
+                                      ),
+                                      children: <TextSpan>[
+                                        TextSpan(
+                                          text: selectedJob?.customerEmail,
+                                        ),
+                                      ]),
+                                ),
+                              ],
+                            )
+                          : new Container(),
                     ),
                     Container(
                       width: MediaQuery.of(context).size.width * 0.25,
@@ -770,23 +888,8 @@ class _JobDetailsState extends State<JobDetails>
               }
 
               if (isPartsEditable) {
-                bool isError = false;
-                // selectedJob!.jobSpareParts?.forEach((element) {
-                //   if (element.quantity == "" || element.discount == "") {
-                //     isError = true;
-                //   }
-                // });
-                if (isError) {
-                  showActionEmptyAlert();
-                } else {
-                  var res = await this.updateSpareParts();
-                  if (!res) {
-                    await _renderErrorUpdateValues();
-                  }
-                  setState(() {
-                    isPartsEditable = false;
-                  });
-                }
+                var abc = Helpers.editableMiscItems;
+                print("LALALAL");
               }
 
               if (isGeneralCodeEditable) {
@@ -1490,10 +1593,7 @@ class _JobDetailsState extends State<JobDetails>
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           SizedBox(
-                              width: true
-                                  ? MediaQuery.of(context).size.width * 0.18
-                                  : MediaQuery.of(context).size.width *
-                                      0.22, // <-- match_parent
+                              width: MediaQuery.of(context).size.width * 0.18,
                               height: MediaQuery.of(context).size.width *
                                   0.05, // <-- match-parent
                               child:
@@ -1627,8 +1727,8 @@ class _JobDetailsState extends State<JobDetails>
                                               onPressed: () async {
                                             if (selectedCancellationReason !=
                                                 null) {
-                                              await pickImage(
-                                                      false, false, true)
+                                              await pickImage(false, false,
+                                                      true, false, false, false)
                                                   .then((value) =>
                                                       Navigator.pop(context));
                                             } else {
@@ -1637,7 +1737,9 @@ class _JobDetailsState extends State<JobDetails>
                                                   type: "error",
                                                   title:
                                                       "A Reason should be selected",
-                                                  onPressed: () async {});
+                                                  onPressed: () async {
+                                                Navigator.pop(context);
+                                              });
                                             }
 
                                             // var result =
@@ -1668,129 +1770,117 @@ class _JobDetailsState extends State<JobDetails>
                                         }
                                       })
                               // : selectedJob?.serviceJobStatus == "IN PROGRESS"
+                              //     ?
+                              // : (selectedJob?.serviceJobStatus == "COMPLETED" && !(selectedJob?.jobOrderHasPayment ?? true))
                               //     ? ElevatedButton(
                               //         child: Padding(
                               //             padding: const EdgeInsets.all(0.0),
                               //             child: Row(
                               //               children: [
-                              //                 const Icon(
-                              //                   // <-- Icon
-                              //                   Icons.check,
-                              //                   color: Colors.white,
-                              //                   size: 18.0,
-                              //                 ),
-                              //                 const SizedBox(
-                              //                   width: 10,
-                              //                 ),
                               //                 const Text(
-                              //                   'Complete Job',
+                              //                   'Complete Payment',
                               //                   style: TextStyle(
                               //                       fontSize: 15,
                               //                       color: Colors.white),
                               //                 )
                               //               ],
                               //             )),
-                              //         style: ButtonStyle(
-                              //             foregroundColor:
-                              //                 MaterialStateProperty.all<Color>(Colors.green),
-                              //             backgroundColor: MaterialStateProperty.all<Color>(Colors.green),
-                              //             shape: MaterialStateProperty.all<RoundedRectangleBorder>(RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.0), side: const BorderSide(color: Colors.green)))),
+                              //         style: ButtonStyle(foregroundColor: MaterialStateProperty.all<Color>(Colors.green), backgroundColor: MaterialStateProperty.all<Color>(Colors.green), shape: MaterialStateProperty.all<RoundedRectangleBorder>(RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.0), side: const BorderSide(color: Colors.green)))),
                               //         onPressed: () async {
                               //           var res =
                               //               validateIfEditedValuesAreSaved();
 
                               //           if (res) {
-                              //             if ((selectedJob!.isChargeable ??
-                              //                     false) &&
-                              //                 selectedJob!.sumTotal != 0) {
-                              //               Helpers.showAlert(context,
-                              //                   title:
-                              //                       "Confirm to Complete Job?",
-                              //                   desc:
-                              //                       "Confirm后无法返回此页面进行更改，请仔细检查所有细节是否正确。",
-                              //                   hasAction: true,
-                              //                   okTitle: "Confirm",
-                              //                   maxWidth: 600.0,
-                              //                   customImage: Image(
-                              //                       image: AssetImage(
-                              //                           'assets/images/info.png'),
-                              //                       width: 50,
-                              //                       height: 50),
-                              //                   hasCancel: true,
-                              //                   onPressed: () async {
-                              //
-                              //                 setState(() {
-                              //                   images = [];
-                              //                   continuePressed = false;
-                              //                   nextImagePressed = false;
-                              //                 });
-                              //                 await pickImage(false, true);
-                              //               });
-                              //             } else {
-                              //               Helpers.showAlert(context,
-                              //                   title:
-                              //                       "Confirm to Complete Job?",
-                              //                   desc:
-                              //                       "Confirm后无法返回此页面进行更改，请仔细检查所有细节是否正确。\n\n 你确定这是免收费的吗？",
-                              //                   hasAction: true,
-                              //                   okTitle: "Confirm",
-                              //                   maxWidth: 600.0,
-                              //                   customImage: Image(
-                              //                       image: AssetImage(
-                              //                           'assets/images/info.png'),
-                              //                       width: 50,
-                              //                       height: 50),
-                              //                   hasCancel: true,
-                              //                   onPressed: () async {
-                              //
-                              //                 setState(() {
-                              //                   images = [];
-                              //                   continuePressed = false;
-                              //                   nextImagePressed = false;
-                              //                 });
-                              //                 await pickImage(false, true);
-                              //               });
-                              //             }
+                              //             Navigator.pushNamed(
+                              //                     context, 'signature',
+                              //                     arguments: selectedJob)
+                              //                 .then((val) async {
+                              //               if ((val as bool)) {
+                              //                 await refreshJobDetails();
+                              //               }
+                              //             });
                               //           }
                               //         })
-                              //     : (selectedJob?.serviceJobStatus == "COMPLETED" && !(selectedJob?.jobOrderHasPayment ?? true))
-                              //         ? ElevatedButton(
-                              //             child: Padding(
-                              //                 padding: const EdgeInsets.all(0.0),
-                              //                 child: Row(
-                              //                   children: [
-                              //                     const Text(
-                              //                       'Complete Payment',
-                              //                       style: TextStyle(
-                              //                           fontSize: 15,
-                              //                           color: Colors.white),
-                              //                     )
-                              //                   ],
-                              //                 )),
-                              //             style: ButtonStyle(foregroundColor: MaterialStateProperty.all<Color>(Colors.green), backgroundColor: MaterialStateProperty.all<Color>(Colors.green), shape: MaterialStateProperty.all<RoundedRectangleBorder>(RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.0), side: const BorderSide(color: Colors.green)))),
-                              //             onPressed: () async {
-                              //               var res =
-                              //                   validateIfEditedValuesAreSaved();
-
-                              //               if (res) {
-                              //                 Navigator.pushNamed(
-                              //                         context, 'signature',
-                              //                         arguments: selectedJob)
-                              //                     .then((val) async {
-                              //                   if ((val as bool)) {
-                              //                     await refreshJobDetails();
-                              //                   }
-                              //                 });
-                              //               }
-                              //             })
-                              //         : new Container(),
+                              //     : new Container(),
                               ),
+                          SizedBox(height: 10),
+                          SizedBox(
+                              width: MediaQuery.of(context).size.width *
+                                  0.18, // <-- match_parent
+                              height: MediaQuery.of(context).size.width *
+                                  0.05, // <-- match-parent
+                              child: true
+                                  ? ElevatedButton(
+                                      child: Padding(
+                                          padding: const EdgeInsets.all(0.0),
+                                          child: Row(
+                                            children: [
+                                              const Icon(
+                                                // <-- Icon
+                                                Icons.check,
+                                                color: Colors.white,
+                                                size: 18.0,
+                                              ),
+                                              const SizedBox(
+                                                width: 10,
+                                              ),
+                                              const Text(
+                                                'Complete Job',
+                                                style: TextStyle(
+                                                    fontSize: 15,
+                                                    color: Colors.white),
+                                              )
+                                            ],
+                                          )),
+                                      style: ButtonStyle(
+                                          foregroundColor:
+                                              MaterialStateProperty.all<Color>(
+                                                  Colors.green),
+                                          backgroundColor:
+                                              MaterialStateProperty.all<Color>(
+                                                  Colors.green),
+                                          shape: MaterialStateProperty.all<
+                                                  RoundedRectangleBorder>(
+                                              RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(4.0),
+                                                  side: const BorderSide(color: Colors.green)))),
+                                      onPressed: () async {
+                                        var res =
+                                            validateIfEditedValuesAreSaved();
+
+                                        if (res) {
+                                          Helpers.showAlert(context,
+                                              title: "Confirm to Complete Job?",
+                                              desc:
+                                                  "Are you sure you want to complete this job ?",
+                                              hasAction: true,
+                                              okTitle: "Confirm",
+                                              maxWidth: 600.0,
+                                              customImage: Image(
+                                                  image: AssetImage(
+                                                      'assets/images/info.png'),
+                                                  width: 50,
+                                                  height: 50),
+                                              hasCancel: true,
+                                              onPressed: () async {
+                                            setState(() {
+                                              images = [];
+                                              continuePressed = false;
+                                              nextImagePressed = false;
+                                            });
+                                            await pickImage(false, true, false,
+                                                false, false, false);
+                                          });
+                                        }
+                                      })
+                                  : new Container()),
                           const SizedBox(
                             height: 10,
                           ),
                           SizedBox(
                             width: MediaQuery.of(context).size.width *
-                                0.15, // <-- match_parent
+                                0.18, // <-- match_parent
                             height: MediaQuery.of(context).size.width *
                                 0.05, // <-- match-parent
                             child: true
@@ -1808,7 +1898,7 @@ class _JobDetailsState extends State<JobDetails>
                                             width: 10,
                                           ),
                                           const Text(
-                                            'KIV',
+                                            'KIV Job',
                                             style: const TextStyle(
                                                 fontSize: 15,
                                                 color: Colors.white),
@@ -1858,10 +1948,9 @@ class _JobDetailsState extends State<JobDetails>
                                                   );
                                                 }).toList(),
                                                 onChanged: (element) async {
-                                                  if (isErrorCancellationReason) {
+                                                  if (isErrorKIVReason) {
                                                     setState(() {
-                                                      isErrorCancellationReason =
-                                                          false;
+                                                      isErrorKIVReason = false;
                                                     });
                                                   }
 
@@ -1915,7 +2004,8 @@ class _JobDetailsState extends State<JobDetails>
                                             hasCancel: true,
                                             onPressed: () async {
                                           if (selectedKIVReason != null) {
-                                            await pickImage(true, false, false)
+                                            await pickImage(true, false, false,
+                                                    false, false, false)
                                                 .then((value) =>
                                                     Navigator.pop(context));
                                           } else {
@@ -1924,7 +2014,9 @@ class _JobDetailsState extends State<JobDetails>
                                                 type: "error",
                                                 title:
                                                     "A Reason should be selected",
-                                                onPressed: () async {});
+                                                onPressed: () async {
+                                              Navigator.pop(context);
+                                            });
                                           }
 
                                           // var result =
@@ -1960,6 +2052,363 @@ class _JobDetailsState extends State<JobDetails>
                                     })
                                 : new Container(),
                           ),
+                          SizedBox(height: 10),
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width *
+                                0.18, // <-- match_parent
+                            height: MediaQuery.of(context).size.width *
+                                0.05, // <-- match-parent
+                            child: true
+                                ? ElevatedButton(
+                                    child: Padding(
+                                        padding: const EdgeInsets.all(0.0),
+                                        child: Row(children: [
+                                          const Icon(
+                                            // <-- Icon
+                                            Icons.cancel,
+                                            color: Colors.white,
+                                            size: 18.0,
+                                          ),
+                                          const SizedBox(
+                                            width: 10,
+                                          ),
+                                          const Text(
+                                            'Reject Job',
+                                            style: const TextStyle(
+                                                fontSize: 15,
+                                                color: Colors.white),
+                                          )
+                                        ])),
+                                    style: ButtonStyle(
+                                        foregroundColor:
+                                            MaterialStateProperty.all<Color>(
+                                                Colors.red),
+                                        backgroundColor:
+                                            MaterialStateProperty.all<Color>(
+                                                Colors.red),
+                                        shape: MaterialStateProperty.all<
+                                                RoundedRectangleBorder>(
+                                            RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(4.0),
+                                                side: const BorderSide(
+                                                    color: Colors.red)))),
+                                    onPressed: () async {
+                                      var res =
+                                          validateIfEditedValuesAreSaved();
+
+                                      if (res) {
+                                        Helpers.showAlert(context,
+                                            title:
+                                                "Are you sure you want to reject this job ?",
+                                            child: Column(children: [
+                                              SizedBox(
+                                                height: MediaQuery.of(context)
+                                                        .size
+                                                        .height *
+                                                    .03,
+                                              ),
+                                              Container(
+                                                  child:
+                                                      DropdownButtonFormField<
+                                                          String>(
+                                                isExpanded: true,
+                                                items: rejectReasons
+                                                    ?.map((Reason value) {
+                                                  return DropdownMenuItem<
+                                                      String>(
+                                                    value: value.reason,
+                                                    child: Text(
+                                                        value.reason ?? ""),
+                                                  );
+                                                }).toList(),
+                                                onChanged: (element) async {
+                                                  if (isErrorRejectReason) {
+                                                    setState(() {
+                                                      isErrorRejectReason =
+                                                          false;
+                                                    });
+                                                  }
+
+                                                  var index = rejectReasons
+                                                      ?.map((e) => e.reason)
+                                                      .toList()
+                                                      .indexOf(
+                                                          element.toString());
+
+                                                  setState(() {
+                                                    selectedRejectReason =
+                                                        rejectReasons?[
+                                                                index ?? 0]
+                                                            .id;
+                                                  });
+                                                  // var res = Repositories
+                                                  //     .cancelJob(selectedJob?.serviceRequestid , );
+                                                  // await refreshJobDetails();
+                                                },
+                                                decoration: InputDecoration(
+                                                    contentPadding:
+                                                        EdgeInsets.symmetric(
+                                                            vertical: 7,
+                                                            horizontal: 3),
+                                                    border: OutlineInputBorder(
+                                                      borderRadius:
+                                                          const BorderRadius
+                                                              .all(
+                                                        const Radius.circular(
+                                                            5.0),
+                                                      ),
+                                                    ),
+                                                    filled: true,
+                                                    hintStyle: TextStyle(
+                                                        color:
+                                                            Colors.grey[800]),
+                                                    hintText:
+                                                        "Please Select a Reason",
+                                                    fillColor: Colors.white),
+                                                //value: dropDownValue,
+                                              )),
+                                              SizedBox(height: 5),
+                                            ]),
+                                            hasAction: true,
+                                            okTitle: "Yes",
+                                            noTitle: "No",
+                                            customImage: Image(
+                                                image: AssetImage(
+                                                    'assets/images/info.png'),
+                                                width: 50,
+                                                height: 50),
+                                            hasCancel: true,
+                                            onPressed: () async {
+                                          if (selectedRejectReason != null) {
+                                            await Repositories.rejectJob(
+                                                    selectedJob
+                                                            ?.serviceRequestid ??
+                                                        "",
+                                                    selectedRejectReason)
+                                                .then((value) =>
+                                                    Navigator.pop(context));
+                                          } else {
+                                            Helpers.showAlert(context,
+                                                hasAction: true,
+                                                type: "error",
+                                                title:
+                                                    "A Reason should be selected",
+                                                onPressed: () async {
+                                              Navigator.pop(context);
+                                            });
+                                          }
+
+                                          // var result =
+                                          //     await Repositories.cancelJob(
+                                          //         selectedJob!
+                                          //                 .serviceRequestid ??
+                                          //             "0");
+                                          //
+
+                                          //result
+                                          // true  ? Helpers.showAlert(context,
+                                          //       hasAction: true,
+                                          //       title:
+                                          //           "Job has been successfully cancelled ",
+                                          //       onPressed: () async {
+                                          //       await refreshJobDetails();
+                                          //
+                                          //     })
+                                          //   : Helpers.showAlert(context,
+                                          //       hasAction: true,
+                                          //       title:
+                                          //           "Could not cancel the job",
+                                          //       onPressed: () async {
+                                          //       await refreshJobDetails();
+                                          //
+                                          //     });
+                                        });
+                                      }
+
+                                      // if (res) {
+                                      //   await pickImage(true, false, false);
+                                      // }
+                                    })
+                                : new Container(),
+                          ),
+                          // SizedBox(height: 10),
+                          // SizedBox(
+                          //   width: MediaQuery.of(context).size.width *
+                          //       0.18, // <-- match_parent
+                          //   height: MediaQuery.of(context).size.width *
+                          //       0.05, // <-- match-parent
+                          //   child: true
+                          //       ? ElevatedButton(
+                          //           child: Padding(
+                          //               padding: const EdgeInsets.all(0.0),
+                          //               child: Row(children: [
+                          //                 const Icon(
+                          //                   // <-- Icon
+                          //                   Icons.cancel,
+                          //                   color: Colors.white,
+                          //                   size: 18.0,
+                          //                 ),
+                          //                 const SizedBox(
+                          //                   width: 10,
+                          //                 ),
+                          //                 const Text(
+                          //                   'Close Job',
+                          //                   style: const TextStyle(
+                          //                       fontSize: 15,
+                          //                       color: Colors.white),
+                          //                 )
+                          //               ])),
+                          //           style: ButtonStyle(
+                          //               foregroundColor:
+                          //                   MaterialStateProperty.all<Color>(
+                          //                       Colors.amber),
+                          //               backgroundColor:
+                          //                   MaterialStateProperty.all<Color>(
+                          //                       Colors.amber),
+                          //               shape: MaterialStateProperty.all<
+                          //                       RoundedRectangleBorder>(
+                          //                   RoundedRectangleBorder(
+                          //                       borderRadius:
+                          //                           BorderRadius.circular(4.0),
+                          //                       side: const BorderSide(
+                          //                           color: Colors.amber)))),
+                          //           onPressed: () async {
+                          //             var res =
+                          //                 validateIfEditedValuesAreSaved();
+
+                          //             if (res) {
+                          //               Helpers.showAlert(context,
+                          //                   title:
+                          //                       "Are you sure you want to reject this job ?",
+                          //                   child: Column(children: [
+                          //                     SizedBox(
+                          //                       height: MediaQuery.of(context)
+                          //                               .size
+                          //                               .height *
+                          //                           .03,
+                          //                     ),
+                          //                     Container(
+                          //                         child:
+                          //                             DropdownButtonFormField<
+                          //                                 String>(
+                          //                       isExpanded: true,
+                          //                       items: rejectReasons
+                          //                           ?.map((Reason value) {
+                          //                         return DropdownMenuItem<
+                          //                             String>(
+                          //                           value: value.reason,
+                          //                           child: Text(
+                          //                               value.reason ?? ""),
+                          //                         );
+                          //                       }).toList(),
+                          //                       onChanged: (element) async {
+                          //                         if (isErrorRejectReason) {
+                          //                           setState(() {
+                          //                             isErrorRejectReason =
+                          //                                 false;
+                          //                           });
+                          //                         }
+
+                          //                         var index = rejectReasons
+                          //                             ?.map((e) => e.reason)
+                          //                             .toList()
+                          //                             .indexOf(
+                          //                                 element.toString());
+
+                          //                         setState(() {
+                          //                           selectedRejectReason =
+                          //                               rejectReasons?[
+                          //                                       index ?? 0]
+                          //                                   .id;
+                          //                         });
+                          //                         // var res = Repositories
+                          //                         //     .cancelJob(selectedJob?.serviceRequestid , );
+                          //                         // await refreshJobDetails();
+                          //                       },
+                          //                       decoration: InputDecoration(
+                          //                           contentPadding:
+                          //                               EdgeInsets.symmetric(
+                          //                                   vertical: 7,
+                          //                                   horizontal: 3),
+                          //                           border: OutlineInputBorder(
+                          //                             borderRadius:
+                          //                                 const BorderRadius
+                          //                                     .all(
+                          //                               const Radius.circular(
+                          //                                   5.0),
+                          //                             ),
+                          //                           ),
+                          //                           filled: true,
+                          //                           hintStyle: TextStyle(
+                          //                               color:
+                          //                                   Colors.grey[800]),
+                          //                           hintText:
+                          //                               "Please Select a Reason",
+                          //                           fillColor: Colors.white),
+                          //                       //value: dropDownValue,
+                          //                     )),
+                          //                     SizedBox(height: 5),
+                          //                   ]),
+                          //                   hasAction: true,
+                          //                   okTitle: "Yes",
+                          //                   noTitle: "No",
+                          //                   customImage: Image(
+                          //                       image: AssetImage(
+                          //                           'assets/images/info.png'),
+                          //                       width: 50,
+                          //                       height: 50),
+                          //                   hasCancel: true,
+                          //                   onPressed: () async {
+                          //                 if (selectedRejectReason != null) {
+                          //                   await pickImage(true, false, false,
+                          //                           false, false, false)
+                          //                       .then((value) =>
+                          //                           Navigator.pop(context));
+                          //                 } else {
+                          //                   Helpers.showAlert(context,
+                          //                       hasAction: true,
+                          //                       type: "error",
+                          //                       title:
+                          //                           "A Reason should be selected",
+                          //                       onPressed: () async {
+                          //                     Navigator.pop(context);
+                          //                   });
+                          //                 }
+
+                          //                 // var result =
+                          //                 //     await Repositories.cancelJob(
+                          //                 //         selectedJob!
+                          //                 //                 .serviceRequestid ??
+                          //                 //             "0");
+                          //                 //
+
+                          //                 //result
+                          //                 // true  ? Helpers.showAlert(context,
+                          //                 //       hasAction: true,
+                          //                 //       title:
+                          //                 //           "Job has been successfully cancelled ",
+                          //                 //       onPressed: () async {
+                          //                 //       await refreshJobDetails();
+                          //                 //
+                          //                 //     })
+                          //                 //   : Helpers.showAlert(context,
+                          //                 //       hasAction: true,
+                          //                 //       title:
+                          //                 //           "Could not cancel the job",
+                          //                 //       onPressed: () async {
+                          //                 //       await refreshJobDetails();
+                          //                 //
+                          //                 //     });
+                          //               });
+                          //             }
+
+                          //             // if (res) {
+                          //             //   await pickImage(true, false, false);
+                          //             // }
+                          //           })
+                          //       : new Container(),
+                          // ),
                         ],
                       ),
                     ),
@@ -2116,6 +2565,10 @@ class _JobDetailsState extends State<JobDetails>
                     const SizedBox(height: 20),
                     Divider(),
                     const SizedBox(height: 20),
+                    _renderCost(),
+                    const SizedBox(height: 20),
+                    Divider(),
+                    const SizedBox(height: 20),
                     _renderPickList(),
                     const SizedBox(height: 20),
                     Divider(),
@@ -2153,6 +2606,7 @@ class _JobDetailsState extends State<JobDetails>
                     Divider(),
                     const SizedBox(height: 20),
                     _renderStartButton(),
+                    const SizedBox(height: 20),
                   ]))
               : (jobHistory != null && jobHistory.length > 0)
                   ? ConstrainedBox(
@@ -2274,17 +2728,18 @@ class _JobDetailsState extends State<JobDetails>
                 continuePressed = false;
                 nextImagePressed = false;
               });
-              await pickImage(false, false, false);
+              await pickImage(false, false, false, false, true, false);
             }
           }),
     );
   }
 
-  Future<void> pickImage(bool isKIV, bool isComplete, bool isCancel) async {
+  Future<void> pickImage(bool isKIV, bool isComplete, bool isCancel,
+      bool isClose, bool isStart, bool isReject) async {
     images = [];
 
     await showMultipleImagesPromptDialog(
-        context, true, isKIV, isComplete, isCancel);
+        context, true, isKIV, isComplete, isCancel, isStart, isReject, isClose);
   }
 
   _renderSolutions() {
@@ -2293,30 +2748,68 @@ class _JobDetailsState extends State<JobDetails>
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          RichText(
-            text: const TextSpan(
-                // Note: Styles for TextSpans must be explicitly defined.
-                // Child text spans will inherit styles from parent
-                style: TextStyle(
-                  fontSize: 20.0,
-                  color: Colors.black,
-                ),
-                children: <TextSpan>[
-                  TextSpan(
-                    text: 'Select Solution',
+          Row(children: [
+            RichText(
+              text: const TextSpan(
+                  // Note: Styles for TextSpans must be explicitly defined.
+                  // Child text spans will inherit styles from parent
+                  style: TextStyle(
+                    fontSize: 20.0,
+                    color: Colors.black,
                   ),
-                ]),
-          ),
+                  children: <TextSpan>[
+                    TextSpan(
+                      text: 'Select Solution',
+                    ),
+                  ]),
+            ),
+            SizedBox(
+              width: 20,
+            ),
+            FlutterSwitch(
+              activeColor: Colors.green,
+              inactiveColor: Colors.red,
+              activeTextColor: Colors.white,
+              inactiveTextColor: Colors.white,
+              activeText: "Chargeable",
+              inactiveText: "Not Chargeable",
+              value: isChargeableSolutionCharges,
+              valueFontSize: 14.0,
+              width: 150,
+              borderRadius: 30.0,
+              showOnOff: true,
+              onToggle: (val) async {
+                if (selectedJob?.serviceJobStatus != "COMPLETED") {
+                  // var result =
+                  //     await Repositories.toggleChargable(selectedJob!.id ?? 0);
+                  var result = null;
+                  setState(() {
+                    //  selectedJob?.isChargeable = isChargeable;
+                  });
+
+                  if (result) {
+                    setState(() {
+                      isPartsEditable = false;
+                      isGeneralCodeEditable = false;
+                      this.isChargeableSolutionCharges = val;
+                    });
+                  } else {
+                    //TODO throw error
+                  }
+
+                  await refreshJobDetails();
+                }
+              },
+            )
+          ]),
           Column(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(height: 30),
-              selectedJob?.estimatedSolutionCode != null &&
-                      selectedJob?.actualSolutionCode != null &&
-                      selectedJob?.estimatedSolutionCode != "" &&
-                      selectedJob?.actualSolutionCode != ""
+              (selectedJob?.estimatedSolutionCode != null ||
+                      selectedJob?.actualSolutionCode != null)
                   ? DropdownButtonFormField<String>(
                       isExpanded: true,
                       items: solutionLabels.map((String value) {
@@ -2389,171 +2882,174 @@ class _JobDetailsState extends State<JobDetails>
                       //value: dropDownValue,
                     ),
               SizedBox(height: 20),
-              true
+              selectedJob?.estimatedSolutionDescription != null ||
+                      selectedJob?.actualSolutionDescription != null
                   ? Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.all(0.0),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                selectedJob?.estimatedSolutionCode != null &&
-                                        selectedJob?.actualSolutionCode != null
-                                    ? RichText(
-                                        text: const TextSpan(
-                                          style: TextStyle(
-                                            fontSize: 12.0,
-                                            color: Colors.black54,
-                                          ),
-                                          children: <TextSpan>[
-                                            const TextSpan(
-                                              text: 'SOLUTION CODE',
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                    : new Container(),
-                                true
-                                    ? SizedBox(
-                                        height: 5,
-                                      )
-                                    : new Container(),
-                                selectedJob?.estimatedSolutionCode != null &&
-                                        selectedJob?.actualSolutionCode != null
-                                    ? RichText(
-                                        text: TextSpan(
-                                          style: TextStyle(
-                                            fontSize: 14.0,
-                                            color: Colors.black,
-                                          ),
-                                          children: <TextSpan>[
-                                            TextSpan(
-                                              text: selectedJob
-                                                          ?.actualSolutionCode !=
-                                                      null
-                                                  ? selectedJob
-                                                      ?.actualSolutionCode
-                                                  : selectedJob
-                                                      ?.estimatedSolutionCode,
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                    : new Container(),
-                              ],
-                            ),
+                        Container(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              RichText(
+                                text: const TextSpan(
+                                  style: TextStyle(
+                                    fontSize: 12.0,
+                                    color: Colors.black54,
+                                  ),
+                                  children: <TextSpan>[
+                                    const TextSpan(
+                                      text: 'SOLUTION CODE',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(
+                                height: 5,
+                              ),
+                              RichText(
+                                text: TextSpan(
+                                  style: TextStyle(
+                                    fontSize: 14.0,
+                                    color: Colors.black,
+                                  ),
+                                  children: <TextSpan>[
+                                    TextSpan(
+                                      text: selectedJob?.actualSolutionCode !=
+                                              null
+                                          ? selectedJob?.actualSolutionCode
+                                          : selectedJob?.estimatedSolutionCode,
+                                    ),
+                                  ],
+                                ),
+                              )
+                            ],
                           ),
                         ),
-                        Flexible(
-                          fit: FlexFit.tight,
-                          child: Padding(
-                            padding: const EdgeInsets.all(0.0),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                selectedJob?.estimatedSolutionDescription !=
-                                            null &&
-                                        selectedJob
-                                                ?.actualSolutionDescription !=
-                                            null
-                                    ? RichText(
-                                        text: const TextSpan(
-                                          style: TextStyle(
-                                            fontSize: 12.0,
-                                            color: Colors.black54,
-                                          ),
-                                          children: <TextSpan>[
-                                            const TextSpan(
-                                              text: 'SOLUTION',
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                    : new Container(),
-                                selectedJob?.estimatedSolutionDescription !=
-                                            null &&
-                                        selectedJob
-                                                ?.actualSolutionDescription !=
-                                            null
-                                    ? SizedBox(
-                                        height: 5,
-                                      )
-                                    : new Container(),
-                                selectedJob?.estimatedSolutionDescription !=
-                                            null &&
-                                        selectedJob
-                                                ?.actualSolutionDescription !=
-                                            null
-                                    ? RichText(
-                                        text: TextSpan(
-                                          style: TextStyle(
-                                            fontSize: 14.0,
-                                            color: Colors.black,
-                                          ),
-                                          children: <TextSpan>[
-                                            TextSpan(
-                                              text: selectedJob
-                                                          ?.actualSolutionDescription !=
-                                                      null
-                                                  ? selectedJob
-                                                      ?.actualSolutionDescription
-                                                  : selectedJob
-                                                      ?.estimatedSolutionDescription,
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                    : new Container(),
-                              ],
-                            ),
+                        Container(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              RichText(
+                                text: const TextSpan(
+                                  style: TextStyle(
+                                    fontSize: 12.0,
+                                    color: Colors.black54,
+                                  ),
+                                  children: <TextSpan>[
+                                    const TextSpan(
+                                      text: 'SOLUTION',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(
+                                height: 5,
+                              ),
+                              RichText(
+                                text: TextSpan(
+                                  style: TextStyle(
+                                    fontSize: 14.0,
+                                    color: Colors.black,
+                                  ),
+                                  children: <TextSpan>[
+                                    TextSpan(
+                                      text: selectedJob
+                                                  ?.actualSolutionDescription !=
+                                              null
+                                          ? selectedJob
+                                              ?.actualSolutionDescription
+                                          : selectedJob
+                                              ?.estimatedSolutionDescription,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              RichText(
+                                text: const TextSpan(
+                                  style: TextStyle(
+                                    fontSize: 12.0,
+                                    color: Colors.black54,
+                                  ),
+                                  children: <TextSpan>[
+                                    const TextSpan(
+                                      text: 'COST',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(
+                                height: 5,
+                              ),
+                              RichText(
+                                text: TextSpan(
+                                  style: TextStyle(
+                                    fontSize: 14.0,
+                                    color: Colors.black,
+                                  ),
+                                  children: <TextSpan>[
+                                    TextSpan(
+                                      text: selectedJob?.actualSolutionCode !=
+                                              null
+                                          ? selectedJob
+                                              ?.actualSolutionIndoorCharges
+                                          : selectedJob
+                                              ?.estimatedSolutionIndoorCharges,
+                                    ),
+                                  ],
+                                ),
+                              )
+                            ],
                           ),
                         ),
                         SizedBox(
-                          width: 50,
-                        ),
-                        true
-                            ? SizedBox(
-                                width: 70,
-                                height: 40.0,
-                                child: ElevatedButton(
-                                    child: const Padding(
-                                        padding: EdgeInsets.all(0.0),
-                                        child: Text(
-                                          'Clear',
-                                          style: TextStyle(
-                                              fontSize: 15,
-                                              color: Colors.white),
-                                        )),
-                                    style: ButtonStyle(
-                                        foregroundColor:
-                                            MaterialStateProperty.all<Color>(
-                                                Color(0xFF242A38)),
-                                        backgroundColor:
-                                            MaterialStateProperty.all<Color>(
-                                                Color(0xFF242A38)),
-                                        shape: MaterialStateProperty.all<
-                                                RoundedRectangleBorder>(
-                                            RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(4.0),
-                                                side: const BorderSide(
-                                                    color:
-                                                        Color(0xFF242A38))))),
-                                    onPressed: () async {
-                                      // await Repositories
-                                      //     .updateSolutionOfJob(
-                                      //         selectedJob!.id ?? "0", 0);
+                          width: 70,
+                          height: 40.0,
+                          child: ElevatedButton(
+                              child: const Padding(
+                                  padding: EdgeInsets.all(0.0),
+                                  child: Text(
+                                    'Clear',
+                                    style: TextStyle(
+                                        fontSize: 15, color: Colors.white),
+                                  )),
+                              style: ButtonStyle(
+                                  foregroundColor:
+                                      MaterialStateProperty.all<Color>(
+                                          Color(0xFF242A38)),
+                                  backgroundColor:
+                                      MaterialStateProperty.all<Color>(
+                                          Color(0xFF242A38)),
+                                  shape: MaterialStateProperty.all<
+                                          RoundedRectangleBorder>(
+                                      RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(4.0),
+                                          side: const BorderSide(
+                                              color: Color(0xFF242A38))))),
+                              onPressed: () async {
+                                await Repositories.addSolutionToJob(
+                                    selectedJob!.serviceRequestid ?? "0",
+                                    null,
+                                    selectedJob?.actualSolutionCode != null);
 
-                                      await refreshJobDetails();
-                                    }),
-                              )
-                            : new Container(),
+                                await refreshJobDetails();
+                              }),
+                        )
                       ],
                     )
                   : new Container(),
@@ -2588,10 +3084,8 @@ class _JobDetailsState extends State<JobDetails>
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 30),
-            selectedJob?.reportedProblemCode != null &&
-                    selectedJob?.reportedProblemDescription != null &&
-                    selectedJob?.actualProblemCode != "" &&
-                    selectedJob?.actualProblemDescription != ""
+            selectedJob?.reportedProblemCode != null ||
+                    selectedJob?.reportedProblemDescription != null
                 ? DropdownButtonFormField<String>(
                     isExpanded: true,
                     items: problemLabels.map((String value) {
@@ -2664,163 +3158,126 @@ class _JobDetailsState extends State<JobDetails>
                     //value: dropDownValue,
                   ),
             SizedBox(height: 20),
-            true
+            selectedJob?.reportedProblemCode != null ||
+                    selectedJob?.actualProblemCode != null
                 ? Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.all(0.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              selectedJob?.reportedProblemCode != null &&
-                                      selectedJob?.actualProblemCode != null
-                                  ? RichText(
-                                      text: const TextSpan(
-                                        style: TextStyle(
-                                          fontSize: 12.0,
-                                          color: Colors.black54,
-                                        ),
-                                        children: <TextSpan>[
-                                          const TextSpan(
-                                            text: 'PROBLEM CODE',
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  : new Container(),
-                              selectedJob?.reportedProblemCode != null &&
-                                      selectedJob?.actualProblemCode != null
-                                  ? SizedBox(
-                                      height: 5,
-                                    )
-                                  : new Container(),
-                              selectedJob?.reportedProblemCode != null &&
-                                      selectedJob?.actualProblemCode != null
-                                  ? RichText(
-                                      text: TextSpan(
-                                        style: TextStyle(
-                                          fontSize: 14.0,
-                                          color: Colors.black,
-                                        ),
-                                        children: <TextSpan>[
-                                          TextSpan(
-                                            text: selectedJob
-                                                        ?.actualProblemCode !=
-                                                    null
-                                                ? selectedJob?.actualProblemCode
-                                                : selectedJob
-                                                    ?.reportedProblemCode,
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  : new Container(),
-                            ],
-                          ),
+                      Container(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            RichText(
+                              text: const TextSpan(
+                                style: TextStyle(
+                                  fontSize: 12.0,
+                                  color: Colors.black54,
+                                ),
+                                children: <TextSpan>[
+                                  const TextSpan(
+                                    text: 'PROBLEM CODE',
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(
+                              height: 5,
+                            ),
+                            RichText(
+                              text: TextSpan(
+                                style: TextStyle(
+                                  fontSize: 14.0,
+                                  color: Colors.black,
+                                ),
+                                children: <TextSpan>[
+                                  TextSpan(
+                                    text: selectedJob?.actualProblemCode != null
+                                        ? selectedJob?.actualProblemCode
+                                        : selectedJob?.reportedProblemCode,
+                                  ),
+                                ],
+                              ),
+                            )
+                          ],
                         ),
                       ),
-                      Flexible(
-                        fit: FlexFit.tight,
-                        child: Padding(
-                          padding: const EdgeInsets.all(0.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              selectedJob?.reportedProblemDescription != null &&
-                                      selectedJob?.actualProblemDescription !=
-                                          null
-                                  ? RichText(
-                                      text: const TextSpan(
-                                        style: TextStyle(
-                                          fontSize: 12.0,
-                                          color: Colors.black54,
-                                        ),
-                                        children: <TextSpan>[
-                                          const TextSpan(
-                                            text: 'PROBLEM',
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  : new Container(),
-                              selectedJob?.reportedProblemDescription != null &&
-                                      selectedJob?.actualProblemDescription !=
-                                          null
-                                  ? SizedBox(
-                                      height: 5,
-                                    )
-                                  : new Container(),
-                              selectedJob?.reportedProblemDescription != null &&
-                                      selectedJob?.actualProblemDescription !=
-                                          null
-                                  ? RichText(
-                                      text: TextSpan(
-                                        style: TextStyle(
-                                          fontSize: 14.0,
-                                          color: Colors.black,
-                                        ),
-                                        children: <TextSpan>[
-                                          TextSpan(
-                                            text: selectedJob
-                                                        ?.actualProblemDescription !=
-                                                    null
-                                                ? selectedJob
-                                                    ?.actualProblemDescription
-                                                : selectedJob
-                                                    ?.reportedProblemDescription,
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  : new Container(),
-                            ],
-                          ),
+                      Container(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            RichText(
+                              text: const TextSpan(
+                                style: TextStyle(
+                                  fontSize: 12.0,
+                                  color: Colors.black54,
+                                ),
+                                children: <TextSpan>[
+                                  const TextSpan(
+                                    text: 'PROBLEM CODE',
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(
+                              height: 5,
+                            ),
+                            RichText(
+                              text: TextSpan(
+                                style: TextStyle(
+                                  fontSize: 14.0,
+                                  color: Colors.black,
+                                ),
+                                children: <TextSpan>[
+                                  TextSpan(
+                                    text: selectedJob?.actualProblemCode != null
+                                        ? selectedJob?.actualProblemCode
+                                        : selectedJob?.reportedProblemCode,
+                                  ),
+                                ],
+                              ),
+                            )
+                          ],
                         ),
                       ),
                       SizedBox(
-                        width: 50,
-                      ),
-                      true
-                          ? SizedBox(
-                              width: 70,
-                              height: 40.0,
-                              child: ElevatedButton(
-                                  child: const Padding(
-                                      padding: EdgeInsets.all(0.0),
-                                      child: Text(
-                                        'Clear',
-                                        style: TextStyle(
-                                            fontSize: 15, color: Colors.white),
-                                      )),
-                                  style: ButtonStyle(
-                                      foregroundColor:
-                                          MaterialStateProperty.all<Color>(
-                                              Color(0xFF242A38)),
-                                      backgroundColor:
-                                          MaterialStateProperty.all<Color>(
-                                              Color(0xFF242A38)),
-                                      shape: MaterialStateProperty.all<
-                                              RoundedRectangleBorder>(
-                                          RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(4.0),
-                                              side: const BorderSide(
-                                                  color: Color(0xFF242A38))))),
-                                  onPressed: () async {
-                                    // await Repositories
-                                    //     .updateSolutionOfJob(
-                                    //         selectedJob!.id ?? "0", 0);
+                        width: 70,
+                        height: 40.0,
+                        child: ElevatedButton(
+                            child: const Padding(
+                                padding: EdgeInsets.all(0.0),
+                                child: Text(
+                                  'Clear',
+                                  style: TextStyle(
+                                      fontSize: 15, color: Colors.white),
+                                )),
+                            style: ButtonStyle(
+                                foregroundColor:
+                                    MaterialStateProperty.all<Color>(
+                                        Color(0xFF242A38)),
+                                backgroundColor:
+                                    MaterialStateProperty.all<Color>(
+                                        Color(0xFF242A38)),
+                                shape: MaterialStateProperty.all<
+                                        RoundedRectangleBorder>(
+                                    RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(4.0),
+                                        side: const BorderSide(
+                                            color: Color(0xFF242A38))))),
+                            onPressed: () async {
+                              await Repositories.addProblemToJob(
+                                  selectedJob!.serviceRequestid ?? "0",
+                                  null,
+                                  true);
 
-                                    await refreshJobDetails();
-                                  }),
-                            )
-                          : new Container(),
+                              await refreshJobDetails();
+                            }),
+                      )
                     ],
                   )
                 : new Container(),
@@ -2883,7 +3340,7 @@ class _JobDetailsState extends State<JobDetails>
             ? Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  (!isPartsEditable &&
+                  (!isPickListPartsEditable &&
                           selectedJob?.serviceJobStatus != "COMPLETED")
                       ? ElevatedButton(
                           child: const Padding(
@@ -2906,11 +3363,11 @@ class _JobDetailsState extends State<JobDetails>
                                           color: Color(0xFF242A38))))),
                           onPressed: () => {
                                 setState(() {
-                                  isPartsEditable = true;
+                                  isPickListPartsEditable = true;
                                 })
                               })
                       : new Container(),
-                  isPartsEditable
+                  isPickListPartsEditable
                       ? ElevatedButton(
                           child: const Padding(
                               padding: EdgeInsets.all(0.0),
@@ -2931,33 +3388,16 @@ class _JobDetailsState extends State<JobDetails>
                                       side: const BorderSide(
                                           color: Color(0xFF242A38))))),
                           onPressed: () async {
-                            bool isError = false;
-                            // selectedJob!.jobSpareParts?.forEach((element) {
-                            //   if (element.quantity == "" ||
-                            //       element.discount == "") {
-                            //     isError = true;
-                            //   }
-                            // });
-                            if (isError) {
-                              showActionEmptyAlert();
-                            } else {
-                              var res = await this.updateSpareParts();
-                              await this.refreshJobDetails();
-                              if (!res) {
-                                await _renderErrorUpdateValues();
-                              }
-                              setState(() {
-                                isPartsEditable = false;
-                              });
-                            }
+                            var abc = Helpers.editableMiscItems;
+                            print("LALALAL");
                           })
                       : new Container(),
-                  isPartsEditable
+                  isPickListPartsEditable
                       ? SizedBox(
                           width: 30,
                         )
                       : new Container(),
-                  isPartsEditable
+                  isPickListPartsEditable
                       ? ElevatedButton(
                           child: const Padding(
                               padding: EdgeInsets.all(0.0),
@@ -2980,7 +3420,7 @@ class _JobDetailsState extends State<JobDetails>
                           onPressed: () async {
                             await refreshJobDetails();
                             setState(() {
-                              isPartsEditable = false;
+                              isPickListPartsEditable = false;
                             });
                           })
                       : new Container(),
@@ -3013,7 +3453,7 @@ class _JobDetailsState extends State<JobDetails>
                               part: (selectedJob!.picklist!.elementAt(index)),
                               index: index,
                               jobId: (selectedJob!.serviceRequestid ?? ""),
-                              editable: isPartsEditable ? true : false,
+                              editable: isPickListPartsEditable ? true : false,
                               partList: (selectedJob!.picklist ?? []),
                               onDeletePressed: () async {
                                 await refreshJobDetails();
@@ -3043,7 +3483,7 @@ class _JobDetailsState extends State<JobDetails>
                                           width: 5,
                                         ),
                                         Text(
-                                          'Add More Parts',
+                                          'Add More Parts from Warehouse',
                                           style: TextStyle(
                                               fontSize: 15,
                                               color: Colors.white),
@@ -3063,19 +3503,14 @@ class _JobDetailsState extends State<JobDetails>
                                               BorderRadius.circular(4.0),
                                           side: const BorderSide(
                                               color: Color(0xFF242A38))))),
-                              onPressed: ()  {
-                                    showDialog(
-                                    context: context,
-                                    builder: (BuildContext context) {
-                                      return AddItemsFromBagDialog(
-                                          bag: userBag,
-                                          existingJobSpareParts: [],
-                                          jobId:
-                                              (selectedJob?.serviceRequestid ??
-                                                  ""));
-                                    },
-                                  );
-                                  })
+                              onPressed: () {
+                                Navigator.pushNamed(context, 'warehouse',
+                                        arguments:
+                                            selectedJob?.serviceRequestid)
+                                    .then((value) async {
+                                  await refreshJobDetails();
+                                });
+                              })
                           : new Container(),
                     ),
                   ],
@@ -3180,6 +3615,50 @@ class _JobDetailsState extends State<JobDetails>
     );
   }
 
+  _renderCost() {
+    return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(children: [
+          Row(
+            children: [
+              RichText(
+                text: const TextSpan(
+                  style: TextStyle(
+                    fontSize: 18.0,
+                    color: Colors.black,
+                  ),
+                  children: <TextSpan>[
+                    const TextSpan(
+                      text: 'Total Charges',
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 40),
+          ConstrainedBox(
+            constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * .12,
+                minHeight: MediaQuery.of(context).size.height * .09),
+            child: ListView(
+              children: [
+                _buildChargeItem("Sparepart charges", "RM50.00", false),
+                _buildChargeItem("Solution charges", "RM30.00", false),
+                _buildChargeItem("Miscellaneous charges", "RM10.00", false),
+                _buildChargeItem("Transport charges", "RM20.00", false),
+                _buildChargeItem("Pickup charges", "RM15.00", false),
+                // Divider(), // Add a divider line
+                SizedBox(
+                  height: 5,
+                ),
+                _buildChargeItem("Total", "RM125.00", true),
+              ],
+            ),
+          )
+        ]));
+  }
+
   _renderPartsList() {
     return Column(
       children: [
@@ -3197,42 +3676,6 @@ class _JobDetailsState extends State<JobDetails>
                   ),
                 ],
               ),
-            ),
-            const SizedBox(width: 20),
-            FlutterSwitch(
-              activeColor: Colors.green,
-              inactiveColor: Colors.red,
-              activeTextColor: Colors.white,
-              inactiveTextColor: Colors.white,
-              activeText: "Chargeable",
-              inactiveText: "Not Chargeable",
-              value: isChargeable,
-              valueFontSize: 14.0,
-              width: 170,
-              borderRadius: 30.0,
-              showOnOff: true,
-              onToggle: (val) async {
-                if (selectedJob?.serviceJobStatus != "COMPLETED") {
-                  // var result =
-                  //     await Repositories.toggleChargable(selectedJob!.id ?? 0);
-                  var result = null;
-                  setState(() {
-                    //  selectedJob?.isChargeable = isChargeable;
-                  });
-
-                  if (result) {
-                    setState(() {
-                      isPartsEditable = false;
-                      isGeneralCodeEditable = false;
-                      this.isChargeable = val;
-                    });
-                  } else {
-                    //TODO throw error
-                  }
-
-                  await refreshJobDetails();
-                }
-              },
             ),
           ],
         ),
@@ -3316,11 +3759,15 @@ class _JobDetailsState extends State<JobDetails>
                                       borderRadius: BorderRadius.circular(4.0),
                                       side: const BorderSide(
                                           color: Color(0xFF242A38))))),
-                          onPressed: () => {
-                                setState(() {
-                                  isPartsEditable = true;
-                                })
-                              })
+                          onPressed: () {
+                            setState(() {
+                              Helpers.editableJobSpareParts = [];
+                              var arr = SparePart.cloneArray(
+                                  selectedJob?.aggregatedSpareparts ?? []);
+                              Helpers.editableJobSpareParts.addAll(arr);
+                              isPartsEditable = true;
+                            });
+                          })
                       : new Container(),
                   isPartsEditable
                       ? ElevatedButton(
@@ -3343,25 +3790,11 @@ class _JobDetailsState extends State<JobDetails>
                                       side: const BorderSide(
                                           color: Color(0xFF242A38))))),
                           onPressed: () async {
-                            bool isError = false;
-                            // selectedJob!.jobSpareParts?.forEach((element) {
-                            //   if (element.quantity == "" ||
-                            //       element.discount == "") {
-                            //     isError = true;
-                            //   }
-                            // });
-                            if (isError) {
-                              showActionEmptyAlert();
-                            } else {
-                              var res = await this.updateSpareParts();
-                              await this.refreshJobDetails();
-                              if (!res) {
-                                await _renderErrorUpdateValues();
-                              }
-                              setState(() {
-                                isPartsEditable = false;
-                              });
-                            }
+                            var arr = Helpers?.editableJobSpareParts;
+                            var brr = selectedJob?.aggregatedSpareparts;
+                            await removeItemsBasedOnPriority(
+                                Helpers.editableJobSpareParts);
+                            await refreshJobDetails();
                           })
                       : new Container(),
                   isPartsEditable
@@ -3422,14 +3855,28 @@ class _JobDetailsState extends State<JobDetails>
                         itemBuilder: (BuildContext context, int index) {
                           return AddPartItem(
                               width: MediaQuery.of(context).size.width * 0.5,
+                              key: ValueKey(index),
                               part: (selectedJob!.aggregatedSpareparts!
                                   .elementAt(index)),
+                              isChargeable: selectedJob?.chargeableSparepartIds
+                                      ?.contains(selectedJob
+                                          ?.aggregatedSpareparts?[index].id
+                                          .toString()) ??
+                                  false,
                               index: index,
                               jobId: (selectedJob!.serviceRequestid ?? ""),
-                              editable: isPartsEditable ? true : false,
+                              editable: isPartsEditable,
                               partList:
                                   (selectedJob!.aggregatedSpareparts ?? []),
-                              onDeletePressed: () async {
+                              onDeletePressed: (id) async {
+                                var arr = Helpers?.editableJobSpareParts;
+                                setState(() {
+                                  Helpers.editableJobSpareParts.removeWhere(
+                                      (element) => element.id == id);
+                                });
+
+                                await removeItemsBasedOnPriority(
+                                    Helpers.editableJobSpareParts);
                                 await refreshJobDetails();
                               },
                               job: selectedJob ?? new Job());
@@ -3439,142 +3886,60 @@ class _JobDetailsState extends State<JobDetails>
                     const SizedBox(
                       height: 30,
                     ),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        Container(
-                          alignment: Alignment.centerLeft,
-                          child: new Container(),
-                        ),
-                        Container(
-                          alignment: Alignment.centerLeft,
-                          child: new Container(),
-                        ),
-                        // Container(
-                        //     alignment: Alignment.centerLeft,
-                        //     child: Padding(
-                        //         child: Row(
-                        //           mainAxisAlignment:
-                        //               MainAxisAlignment.spaceBetween,
-                        //           children: [
-                        // Column(
-                        //   crossAxisAlignment:
-                        //       CrossAxisAlignment.start,
-                        //   children: [
-                        //     RichText(
-                        //       text: const TextSpan(
-                        //           // Note: Styles for TextSpans must be explicitly defined.
-                        //           // Child text spans will inherit styles from parent
-                        //           style: TextStyle(
-                        //             fontSize: 17.0,
-                        //             color: Colors.black,
-                        //           ),
-                        //           children: <TextSpan>[
-                        //             TextSpan(
-                        //               text: 'SUBTOTAL',
-                        //             ),
-                        //           ]),
-                        //     ),
-                        //     const SizedBox(
-                        //       height: 10,
-                        //     ),
-                        //     RichText(
-                        //       text: const TextSpan(
-                        //           // Note: Styles for TextSpans must be explicitly defined.
-                        //           // Child text spans will inherit styles from parent
-                        //           style: TextStyle(
-                        //             fontSize: 17.0,
-                        //             color: Colors.black,
-                        //           ),
-                        //           children: <TextSpan>[
-                        //             TextSpan(
-                        //               text: 'TAX',
-                        //             ),
-                        //           ]),
-                        //     ),
-                        //     const SizedBox(
-                        //       height: 10,
-                        //     ),
-                        //     RichText(
-                        //       text: const TextSpan(
-                        //           // Note: Styles for TextSpans must be explicitly defined.
-                        //           // Child text spans will inherit styles from parent
-                        //           style: TextStyle(
-                        //               fontSize: 17.0,
-                        //               color: Colors.black,
-                        //               fontWeight: FontWeight.bold),
-                        //           children: <TextSpan>[
-                        //             const TextSpan(
-                        //               text: 'TOTAL',
-                        //             ),
-                        //           ]),
-                        //     ),
-                        //   ],
-                        // ),
-                        // Padding(
-                        //   padding: const EdgeInsets.fromLTRB(
-                        //       80.0, 0, 0, 0),
-                        //   child: Column(
-                        //     crossAxisAlignment:
-                        //         CrossAxisAlignment.end,
-                        //     children: [
-                        //       RichText(
-                        //         text: TextSpan(
-                        //             // Note: Styles for TextSpans must be explicitly defined.
-                        //             // Child text spans will inherit styles from parent
-                        //             style: TextStyle(
-                        //               fontSize: 17.0,
-                        //               color: Colors.black,
-                        //             ),
-                        //             children: <TextSpan>[
-                        //               TextSpan(
-                        //                 text: '\$50',
-                        //               ),
-                        //             ]),
-                        //       ),
-                        //       const SizedBox(
-                        //         height: 10,
-                        //       ),
-                        //       RichText(
-                        //         text: TextSpan(
-                        //             // Note: Styles for TextSpans must be explicitly defined.
-                        //             // Child text spans will inherit styles from parent
-                        //             style: TextStyle(
-                        //               fontSize: 14.0,
-                        //               color: Colors.black,
-                        //             ),
-                        //             children: <TextSpan>[
-                        //               TextSpan(
-                        //                 text: '\$50',
-                        //               ),
-                        //             ]),
-                        //       ),
-                        //       const SizedBox(
-                        //         height: 10,
-                        //       ),
-                        //       RichText(
-                        //         text: TextSpan(
-                        //             // Note: Styles for TextSpans must be explicitly defined.
-                        //             // Child text spans will inherit styles from parent
-                        //             style: TextStyle(
-                        //               fontSize: 17.0,
-                        //               color: Colors.black,
-                        //             ),
-                        //             children: <TextSpan>[
-                        //               TextSpan(
-                        //                 text: '\$100',
-                        //               ),
-                        //             ]),
-                        //       ),
-                        //     ],
-                        //   ),
-                        // )
-                        //                   ],
-                        //                 ),
-                        //                 padding: EdgeInsets.fromLTRB(280, 0, 0, 0))),
-                      ],
-                    )
+                    Container(
+                      alignment: Alignment.centerLeft,
+                      child: selectedJob?.serviceJobStatus != "COMPLETED"
+                          ? ElevatedButton(
+                              child: Padding(
+                                  padding: EdgeInsets.all(0.0),
+                                  child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.add_circle,
+                                          size: 18,
+                                          color: Colors.white,
+                                        ),
+                                        SizedBox(
+                                          width: 5,
+                                        ),
+                                        Text(
+                                          'Add More Parts from Bag',
+                                          style: TextStyle(
+                                              fontSize: 15,
+                                              color: Colors.white),
+                                        )
+                                      ])),
+                              style: ButtonStyle(
+                                  foregroundColor:
+                                      MaterialStateProperty.all<Color>(
+                                          Color(0xFF242A38)),
+                                  backgroundColor:
+                                      MaterialStateProperty.all<Color>(
+                                          Color(0xFF242A38)),
+                                  shape: MaterialStateProperty.all<
+                                          RoundedRectangleBorder>(
+                                      RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(4.0),
+                                          side: const BorderSide(
+                                              color: Color(0xFF242A38))))),
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return AddItemsFromBagDialog(
+                                        bag: userBag,
+                                        existingJobSpareParts: [],
+                                        jobId: (selectedJob?.serviceRequestid ??
+                                            ""));
+                                  },
+                                ).then((value) async {
+                                  await refreshJobDetails();
+                                });
+                              })
+                          : new Container(),
+                    ),
                   ],
                 )
               : Column(
@@ -3703,9 +4068,9 @@ class _JobDetailsState extends State<JobDetails>
               inactiveTextColor: Colors.white,
               activeText: "Chargeable",
               inactiveText: "Not Chargeable",
-              value: isChargeable,
+              value: isChargeableMiscellaneousCharges,
               valueFontSize: 14.0,
-              width: 170,
+              width: 150,
               borderRadius: 30.0,
               showOnOff: true,
               onToggle: (val) async {
@@ -3721,7 +4086,7 @@ class _JobDetailsState extends State<JobDetails>
                     setState(() {
                       isPartsEditable = false;
                       isGeneralCodeEditable = false;
-                      this.isChargeable = val;
+                      this.isChargeableMiscellaneousCharges = val;
                     });
                   } else {
                     //TODO throw error
@@ -3741,7 +4106,7 @@ class _JobDetailsState extends State<JobDetails>
             ? Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  (!isPartsEditable &&
+                  (!isMiscItemsEditable &&
                           selectedJob?.serviceJobStatus != "COMPLETED")
                       ? ElevatedButton(
                           child: const Padding(
@@ -3764,11 +4129,11 @@ class _JobDetailsState extends State<JobDetails>
                                           color: Color(0xFF242A38))))),
                           onPressed: () => {
                                 setState(() {
-                                  isPartsEditable = true;
+                                  isMiscItemsEditable = true;
                                 })
                               })
                       : new Container(),
-                  isPartsEditable
+                  isMiscItemsEditable
                       ? ElevatedButton(
                           child: const Padding(
                               padding: EdgeInsets.all(0.0),
@@ -3790,32 +4155,35 @@ class _JobDetailsState extends State<JobDetails>
                                           color: Color(0xFF242A38))))),
                           onPressed: () async {
                             bool isError = false;
-                            // selectedJob!.jobSpareParts?.forEach((element) {
-                            //   if (element.quantity == "" ||
-                            //       element.discount == "") {
-                            //     isError = true;
+                            var abc = Helpers.editableMiscItems;
+                            var abcdd = await Repositories.updateMiscItems(
+                                selectedJob?.serviceRequestid ?? "",
+                                Helpers.editableMiscItems);
+                            setState(() {
+                              isPartsEditable = false;
+                            });
+                            await refreshJobDetails();
+                            print("LALALAL");
+                            // if (isError) {
+                            //   showActionEmptyAlert();
+                            // } else {
+                            //   var res = await this.updateSpareParts();
+                            //   await this.refreshJobDetails();
+                            //   if (!res) {
+                            //     await _renderErrorUpdateValues();
                             //   }
-                            // });
-                            if (isError) {
-                              showActionEmptyAlert();
-                            } else {
-                              var res = await this.updateSpareParts();
-                              await this.refreshJobDetails();
-                              if (!res) {
-                                await _renderErrorUpdateValues();
-                              }
-                              setState(() {
-                                isPartsEditable = false;
-                              });
-                            }
+                            //   setState(() {
+                            //     isPartsEditable = false;
+                            //   });
+                            // }
                           })
                       : new Container(),
-                  isPartsEditable
+                  isMiscItemsEditable
                       ? SizedBox(
                           width: 30,
                         )
                       : new Container(),
-                  isPartsEditable
+                  isMiscItemsEditable
                       ? ElevatedButton(
                           child: const Padding(
                               padding: EdgeInsets.all(0.0),
@@ -3838,7 +4206,7 @@ class _JobDetailsState extends State<JobDetails>
                           onPressed: () async {
                             await refreshJobDetails();
                             setState(() {
-                              isPartsEditable = false;
+                              isMiscItemsEditable = false;
                             });
                           })
                       : new Container(),
@@ -3872,7 +4240,7 @@ class _JobDetailsState extends State<JobDetails>
                                   (selectedJob!.miscCharges!.elementAt(index)),
                               index: index,
                               jobId: (selectedJob!.serviceRequestid ?? ""),
-                              editable: isPartsEditable ? true : false,
+                              editable: isMiscItemsEditable ? true : false,
                               partList:
                                   (selectedJob!.aggregatedSpareparts ?? []),
                               onDeletePressed: (miscChargeId) async {
@@ -4033,7 +4401,20 @@ class _JobDetailsState extends State<JobDetails>
                     showDialog(
                       context: context,
                       builder: (BuildContext context) {
-                        return AddMiscItemsPopup();
+                        return AddMiscItemsPopup(newItemAdded: (String remarks,
+                            int quantity, String charges) async {
+                          var res = await Repositories.addMiscItem(
+                                  selectedJob?.serviceRequestid ?? "",
+                                  remarks,
+                                  double.parse(charges),
+                                  quantity,
+                                  null)
+                              .then((value) {
+                            Navigator.pop(context);
+                          });
+                          //show error if error
+                          await refreshJobDetails();
+                        });
                       },
                     );
                   })
@@ -4044,330 +4425,412 @@ class _JobDetailsState extends State<JobDetails>
   }
 
   _renderTransportCharges() {
-    return Column(children: [
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+    return Column(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Column(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                RichText(
-                  text: const TextSpan(
-                      // Note: Styles for TextSpans must be explicitly defined.
-                      // Child text spans will inherit styles from parent
-                      style: TextStyle(
-                        fontSize: 20.0,
-                        color: Colors.black,
-                      ),
-                      children: <TextSpan>[
-                        TextSpan(
-                          text: 'Transport Charges',
-                        ),
-                      ]),
-                ),
-                allTransportCharges == null
-                    ? Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                            Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  SizedBox(
-                                    height: 30,
-                                  ),
-                                  Container(
-                                    alignment: Alignment.center,
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(5.0),
-                                      child: LoadingAnimationWidget
-                                          .staggeredDotsWave(
-                                        color: Color(0xFF000000),
-                                        size:
-                                            MediaQuery.of(context).size.height *
-                                                0.03,
-                                      ),
-                                    ),
-                                  )
-                                ])
-                          ])
-                    : Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.all(0.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SizedBox(height: 25),
-                              SizedBox(height: 10),
-                              (isNewTransportCharge ||
-                                      selectedJob?.transportCharge != null)
-                                  ? DropdownButtonFormField<String>(
-                                      isExpanded: true,
-                                      items: solutionLabels.map((String value) {
-                                        return DropdownMenuItem<String>(
-                                          value: value,
-                                          child: Text(value),
-                                        );
-                                      }).toList(),
-                                      onChanged: (element) async {
-                                        var index = solutionLabels
-                                            .indexOf(element.toString());
-                                        var res =
-                                            await Repositories.addSolutionToJob(
-                                                selectedJob!.serviceRequestid ??
-                                                    "0",
-                                                solutions[index].solutionId ??
-                                                    0,
-                                                selectedJob?.serviceJobStatus
-                                                        ?.toLowerCase() !=
-                                                    "in-progress");
-                                        await refreshJobDetails();
-                                      },
-                                      decoration: InputDecoration(
-                                          contentPadding: EdgeInsets.symmetric(
-                                              vertical: 7, horizontal: 3),
-                                          border: OutlineInputBorder(
-                                            borderRadius:
-                                                const BorderRadius.all(
-                                              const Radius.circular(5.0),
-                                            ),
-                                          ),
-                                          filled: true,
-                                          hintStyle: TextStyle(
-                                              color: Colors.grey[800]),
-                                          hintText: "Please Select a Solution",
-                                          fillColor: Colors.white),
-                                      //value: dropDownValue,
-                                    )
-                                  : Container(
-                                      alignment: Alignment.centerLeft,
-                                      child: selectedJob?.serviceJobStatus !=
-                                              "COMPLETED"
-                                          ? ElevatedButton(
-                                              child: Padding(
-                                                  padding: EdgeInsets.all(0.0),
-                                                  child: Row(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        Icon(
-                                                          Icons.add_circle,
-                                                          size: 18,
-                                                          color: Colors.white,
-                                                        ),
-                                                        SizedBox(
-                                                          width: 5,
-                                                        ),
-                                                        Text(
-                                                          'Add More Parts',
-                                                          style: TextStyle(
-                                                              fontSize: 15,
-                                                              color:
-                                                                  Colors.white),
-                                                        )
-                                                      ])),
-                                              style: ButtonStyle(
-                                                  foregroundColor:
-                                                      MaterialStateProperty.all<Color>(
-                                                          Color(0xFF242A38)),
-                                                  backgroundColor:
-                                                      MaterialStateProperty.all<Color>(
-                                                          Color(0xFF242A38)),
-                                                  shape: MaterialStateProperty.all<
-                                                          RoundedRectangleBorder>(
-                                                      RoundedRectangleBorder(
-                                                          borderRadius: BorderRadius.circular(4.0),
-                                                          side: const BorderSide(color: Color(0xFF242A38))))),
-                                              onPressed: () => {
-                                                    Navigator.pushNamed(context,
-                                                            'warehouse',
-                                                            arguments: Helpers
-                                                                .selectedJob)
-                                                        .then((val) async {
-                                                      await refreshJobDetails();
-                                                    })
-                                                  })
-                                          : new Container(),
-                                    ),
-                              SizedBox(height: 20),
-                              (isNewTransportCharge ||
-                                      selectedJob?.transportCharge != null)
-                                  ? Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        Expanded(
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(0.0),
-                                            child: Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.spaceAround,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                true
-                                                    ? RichText(
-                                                        text: const TextSpan(
-                                                          style: TextStyle(
-                                                            fontSize: 12.0,
-                                                            color:
-                                                                Colors.black54,
-                                                          ),
-                                                          children: <TextSpan>[
-                                                            const TextSpan(
-                                                              text:
-                                                                  'SOLUTION CODE',
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      )
-                                                    : new Container(),
-                                                true
-                                                    ? SizedBox(
-                                                        height: 5,
-                                                      )
-                                                    : new Container(),
-                                                true
-                                                    ? RichText(
-                                                        text: TextSpan(
-                                                          style: TextStyle(
-                                                            fontSize: 14.0,
-                                                            color: Colors.black,
-                                                          ),
-                                                          children: <TextSpan>[
-                                                            TextSpan(
-                                                              text: "555",
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      )
-                                                    : new Container(),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                        Flexible(
-                                          fit: FlexFit.tight,
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(0.0),
-                                            child: Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.spaceAround,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                true
-                                                    ? RichText(
-                                                        text: const TextSpan(
-                                                          style: TextStyle(
-                                                            fontSize: 12.0,
-                                                            color:
-                                                                Colors.black54,
-                                                          ),
-                                                          children: <TextSpan>[
-                                                            const TextSpan(
-                                                              text: 'SOLUTION',
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      )
-                                                    : new Container(),
-                                                true
-                                                    ? SizedBox(
-                                                        height: 5,
-                                                      )
-                                                    : new Container(),
-                                                true
-                                                    ? RichText(
-                                                        text: TextSpan(
-                                                          style: TextStyle(
-                                                            fontSize: 14.0,
-                                                            color: Colors.black,
-                                                          ),
-                                                          children: <TextSpan>[
-                                                            TextSpan(
-                                                              text: "solu",
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      )
-                                                    : new Container(),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                        SizedBox(
-                                          width: 50,
-                                        ),
-                                        true
-                                            ? SizedBox(
-                                                width: 70,
-                                                height: 40.0,
-                                                child: ElevatedButton(
-                                                    child: const Padding(
-                                                        padding:
-                                                            EdgeInsets.all(0.0),
-                                                        child: Text(
-                                                          'Clear',
-                                                          style: TextStyle(
-                                                              fontSize: 15,
-                                                              color:
-                                                                  Colors.white),
-                                                        )),
-                                                    style: ButtonStyle(
-                                                        foregroundColor: MaterialStateProperty.all<Color>(
-                                                            Color(0xFF242A38)),
-                                                        backgroundColor: MaterialStateProperty.all<Color>(
-                                                            Color(0xFF242A38)),
-                                                        shape: MaterialStateProperty.all<
-                                                                RoundedRectangleBorder>(
-                                                            RoundedRectangleBorder(
-                                                                borderRadius:
-                                                                    BorderRadius.circular(
-                                                                        4.0),
-                                                                side: const BorderSide(
-                                                                    color:
-                                                                        Color(0xFF242A38))))),
-                                                    onPressed: () async {
-                                                      // await Repositories
-                                                      //     .updateSolutionOfJob(
-                                                      //         selectedJob!.id ?? "0", 0);
+          Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+            RichText(
+              text: const TextSpan(
+                  // Note: Styles for TextSpans must be explicitly defined.
+                  // Child text spans will inherit styles from parent
+                  style: TextStyle(
+                    fontSize: 20.0,
+                    color: Colors.black,
+                  ),
+                  children: <TextSpan>[
+                    TextSpan(
+                      text: 'Transport Charges',
+                    ),
+                  ]),
+            ),
+            SizedBox(
+              width: 20,
+            ),
+            FlutterSwitch(
+              activeColor: Colors.green,
+              inactiveColor: Colors.red,
+              activeTextColor: Colors.white,
+              inactiveTextColor: Colors.white,
+              activeText: "Chargeable",
+              inactiveText: "Not Chargeable",
+              value: isChargeableTransportCharges,
+              valueFontSize: 14.0,
+              width: 150,
+              borderRadius: 30.0,
+              showOnOff: true,
+              onToggle: (val) async {
+                if (selectedJob?.serviceJobStatus != "COMPLETED") {
+                  // var result =
+                  //     await Repositories.toggleChargable(selectedJob!.id ?? 0);
+                  var result = null;
+                  setState(() {
+                    //  selectedJob?.isChargeable = isChargeable;
+                  });
 
-                                                      await refreshJobDetails();
-                                                    }),
-                                              )
-                                            : new Container(),
-                                      ],
+                  if (result) {
+                    setState(() {
+                      isPartsEditable = false;
+                      isGeneralCodeEditable = false;
+                      this.isChargeableTransportCharges = val;
+                    });
+                  } else {
+                    //TODO throw error
+                  }
+
+                  await refreshJobDetails();
+                }
+              },
+            ),
+          ]),
+          allTransportCharges == null
+              ? Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                      Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              height: 30,
+                            ),
+                            Container(
+                              alignment: Alignment.center,
+                              child: Padding(
+                                padding: const EdgeInsets.all(5.0),
+                                child: LoadingAnimationWidget.staggeredDotsWave(
+                                  color: Color(0xFF000000),
+                                  size:
+                                      MediaQuery.of(context).size.height * 0.03,
+                                ),
+                              ),
+                            )
+                          ])
+                    ])
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(height: 25),
+                    SizedBox(height: 10),
+                    (isNewTransportCharge ||
+                            selectedJob?.transportCharge != null)
+                        ? DropdownButtonFormField<String>(
+                            isExpanded: true,
+                            value: selectedJob?.transportCharge?.description,
+                            items: allTransportCharges
+                                ?.map((TransportCharge value) {
+                              return DropdownMenuItem<String>(
+                                value: value.description,
+                                child: Text(value.description ?? ""),
+                              );
+                            }).toList(),
+                            onChanged: (element) async {
+                              var index = allTransportCharges
+                                  ?.map((e) => e.code)
+                                  .toList()
+                                  .indexOf(element.toString());
+                              var res =
+                                  await Repositories.addTransportChargesToJob(
+                                selectedJob!.serviceRequestid ?? "0",
+                                selectedJob?.productModelId ?? 0,
+                                allPickupCharges?[index ?? 0].id ?? 0,
+                              );
+                              await refreshJobDetails();
+                            },
+                            decoration: InputDecoration(
+                                contentPadding: EdgeInsets.symmetric(
+                                    vertical: 7, horizontal: 3),
+                                border: OutlineInputBorder(
+                                  borderRadius: const BorderRadius.all(
+                                    const Radius.circular(5.0),
+                                  ),
+                                ),
+                                filled: true,
+                                hintStyle: TextStyle(color: Colors.grey[800]),
+                                hintText: "Please Select a Solution",
+                                fillColor: Colors.white),
+                            //value: dropDownValue,
+                          )
+                        : DropdownButtonFormField<String>(
+                            isExpanded: true,
+                            items: allTransportCharges
+                                ?.map((TransportCharge value) {
+                              return DropdownMenuItem<String>(
+                                child: Text(value.description ?? ""),
+                                value: value.description ?? "",
+                              );
+                            }).toList(),
+                            onChanged: (element) async {
+                              var index = allTransportCharges
+                                  ?.map((e) => e.description)
+                                  .toList()
+                                  .indexOf(element.toString());
+                              var res =
+                                  await Repositories.addTransportChargesToJob(
+                                selectedJob!.serviceRequestid ?? "0",
+                                selectedJob?.productModelId ?? 0,
+                                allTransportCharges?[index ?? 0].id ?? 0,
+                              );
+                              await refreshJobDetails();
+                            },
+                            decoration: InputDecoration(
+                                contentPadding: EdgeInsets.symmetric(
+                                    vertical: 7, horizontal: 3),
+                                border: OutlineInputBorder(
+                                  borderRadius: const BorderRadius.all(
+                                    const Radius.circular(5.0),
+                                  ),
+                                ),
+                                filled: true,
+                                hintStyle: TextStyle(color: Colors.grey[800]),
+                                hintText: "Please Select a Solution",
+                                fillColor: Colors.white),
+                            //value: dropDownValue,
+                          ),
+                    SizedBox(height: 20),
+                    (isNewTransportCharge ||
+                            selectedJob?.transportCharge != null)
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    selectedJob?.transportCharge != null
+                                        ? RichText(
+                                            text: const TextSpan(
+                                              style: TextStyle(
+                                                fontSize: 12.0,
+                                                color: Colors.black54,
+                                              ),
+                                              children: <TextSpan>[
+                                                const TextSpan(
+                                                  text: 'TRANSPORT CHARGE CODE',
+                                                ),
+                                              ],
+                                            ),
+                                          )
+                                        : new Container(),
+                                    selectedJob?.transportCharge != null
+                                        ? SizedBox(
+                                            height: 5,
+                                          )
+                                        : new Container(),
+                                    selectedJob?.transportCharge != null
+                                        ? RichText(
+                                            text: TextSpan(
+                                              style: TextStyle(
+                                                fontSize: 14.0,
+                                                color: Colors.black,
+                                              ),
+                                              children: <TextSpan>[
+                                                TextSpan(
+                                                  text: selectedJob
+                                                      ?.transportCharge?.code,
+                                                ),
+                                              ],
+                                            ),
+                                          )
+                                        : new Container(),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    selectedJob?.transportCharge != null
+                                        ? RichText(
+                                            text: const TextSpan(
+                                              style: TextStyle(
+                                                fontSize: 12.0,
+                                                color: Colors.black54,
+                                              ),
+                                              children: <TextSpan>[
+                                                const TextSpan(
+                                                  text: 'TRANSPORT CHARGE',
+                                                ),
+                                              ],
+                                            ),
+                                          )
+                                        : new Container(),
+                                    selectedJob?.transportCharge != null
+                                        ? SizedBox(
+                                            height: 5,
+                                          )
+                                        : new Container(),
+                                    selectedJob?.transportCharge != null
+                                        ? RichText(
+                                            text: TextSpan(
+                                              style: TextStyle(
+                                                fontSize: 14.0,
+                                                color: Colors.black,
+                                              ),
+                                              children: <TextSpan>[
+                                                TextSpan(
+                                                  text: selectedJob
+                                                      ?.transportCharge
+                                                      ?.description,
+                                                ),
+                                              ],
+                                            ),
+                                          )
+                                        : new Container(),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    selectedJob?.transportCharge != null
+                                        ? RichText(
+                                            text: const TextSpan(
+                                              style: TextStyle(
+                                                fontSize: 12.0,
+                                                color: Colors.black54,
+                                              ),
+                                              children: <TextSpan>[
+                                                const TextSpan(
+                                                  text: 'COST',
+                                                ),
+                                              ],
+                                            ),
+                                          )
+                                        : new Container(),
+                                    selectedJob?.transportCharge != null
+                                        ? SizedBox(
+                                            height: 5,
+                                          )
+                                        : new Container(),
+                                    selectedJob?.transportCharge != null
+                                        ? RichText(
+                                            text: TextSpan(
+                                              style: TextStyle(
+                                                fontSize: 14.0,
+                                                color: Colors.black,
+                                              ),
+                                              children: <TextSpan>[
+                                                TextSpan(
+                                                  text: selectedJob
+                                                      ?.transportCharge
+                                                      ?.priceFormatted,
+                                                ),
+                                              ],
+                                            ),
+                                          )
+                                        : new Container(),
+                                  ],
+                                ),
+                              ),
+
+                              // Flexible(
+                              //   fit: FlexFit.tight,
+                              //   child: Padding(
+                              //     padding: const EdgeInsets.all(0.0),
+                              //     child: Column(
+                              //       mainAxisAlignment:
+                              //           MainAxisAlignment.spaceAround,
+                              //       crossAxisAlignment:
+                              //           CrossAxisAlignment.start,
+                              //       mainAxisSize: MainAxisSize.min,
+                              //       children: [
+                              //         true
+                              //             ? RichText(
+                              //                 text: const TextSpan(
+                              //                   style: TextStyle(
+                              //                     fontSize: 12.0,
+                              //                     color: Colors.black54,
+                              //                   ),
+                              //                   children: <TextSpan>[
+                              //                     const TextSpan(
+                              //                       text: 'SOLUTION',
+                              //                     ),
+                              //                   ],
+                              //                 ),
+                              //               )
+                              //             : new Container(),
+                              //         true
+                              //             ? SizedBox(
+                              //                 height: 5,
+                              //               )
+                              //             : new Container(),
+                              //         true
+                              //             ? RichText(
+                              //                 text: TextSpan(
+                              //                   style: TextStyle(
+                              //                     fontSize: 14.0,
+                              //                     color: Colors.black,
+                              //                   ),
+                              //                   children: <TextSpan>[
+                              //                     TextSpan(
+                              //                       text: "solu",
+                              //                     ),
+                              //                   ],
+                              //                 ),
+                              //               )
+                              //             : new Container(),
+                              //       ],
+                              //     ),
+                              //   ),
+                              // ),
+                              SizedBox(
+                                width: 50,
+                              ),
+                              true
+                                  ? SizedBox(
+                                      width: 70,
+                                      height: 40.0,
+                                      child: ElevatedButton(
+                                          child: const Padding(
+                                              padding: EdgeInsets.all(0.0),
+                                              child: Text(
+                                                'Clear',
+                                                style: TextStyle(
+                                                    fontSize: 15,
+                                                    color: Colors.white),
+                                              )),
+                                          style: ButtonStyle(
+                                              foregroundColor:
+                                                  MaterialStateProperty.all<Color>(
+                                                      Color(0xFF242A38)),
+                                              backgroundColor:
+                                                  MaterialStateProperty.all<Color>(
+                                                      Color(0xFF242A38)),
+                                              shape: MaterialStateProperty.all<
+                                                      RoundedRectangleBorder>(
+                                                  RoundedRectangleBorder(
+                                                      borderRadius: BorderRadius.circular(
+                                                          4.0),
+                                                      side: const BorderSide(
+                                                          color: Color(0xFF242A38))))),
+                                          onPressed: () async {
+                                            await Repositories
+                                                .addTransportChargesToJob(
+                                                    selectedJob!
+                                                            .serviceRequestid ??
+                                                        "0",
+                                                    (selectedJob
+                                                            ?.productModelId ??
+                                                        0),
+                                                    null);
+
+                                            await refreshJobDetails();
+                                          }),
                                     )
                                   : new Container(),
                             ],
-                          ),
-                        ),
-                      ),
-              ]),
-          Flexible(
-            fit: FlexFit.tight,
-            child: Padding(
-              padding: const EdgeInsets.all(0.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [],
-              ),
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 10),
-    ]);
+                          )
+                        : new Container(),
+                  ],
+                ),
+        ]);
   }
 
   _renderPickupCharges() {
@@ -4376,20 +4839,60 @@ class _JobDetailsState extends State<JobDetails>
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        RichText(
-          text: const TextSpan(
-              // Note: Styles for TextSpans must be explicitly defined.
-              // Child text spans will inherit styles from parent
-              style: TextStyle(
-                fontSize: 20.0,
-                color: Colors.black,
-              ),
-              children: <TextSpan>[
-                TextSpan(
-                  text: 'Pickup Charges',
+        Row(children: [
+          RichText(
+            text: const TextSpan(
+                // Note: Styles for TextSpans must be explicitly defined.
+                // Child text spans will inherit styles from parent
+                style: TextStyle(
+                  fontSize: 20.0,
+                  color: Colors.black,
                 ),
-              ]),
-        ),
+                children: <TextSpan>[
+                  TextSpan(
+                    text: 'Pickup Charges',
+                  ),
+                ]),
+          ),
+          SizedBox(
+            width: 20,
+          ),
+          FlutterSwitch(
+            activeColor: Colors.green,
+            inactiveColor: Colors.red,
+            activeTextColor: Colors.white,
+            inactiveTextColor: Colors.white,
+            activeText: "Chargeable",
+            inactiveText: "Not Chargeable",
+            value: isChargeablePickupCharges,
+            valueFontSize: 14.0,
+            width: 150,
+            borderRadius: 30.0,
+            showOnOff: true,
+            onToggle: (val) async {
+              if (selectedJob?.serviceJobStatus != "COMPLETED") {
+                // var result =
+                //     await Repositories.toggleChargable(selectedJob!.id ?? 0);
+                var result = null;
+                setState(() {
+                  //  selectedJob?.isChargeable = isChargeable;
+                });
+
+                if (result) {
+                  setState(() {
+                    isPartsEditable = false;
+                    isGeneralCodeEditable = false;
+                    this.isChargeablePickupCharges = val;
+                  });
+                } else {
+                  //TODO throw error
+                }
+
+                await refreshJobDetails();
+              }
+            },
+          ),
+        ]),
         allPickupCharges == null
             ? Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -4493,384 +4996,150 @@ class _JobDetailsState extends State<JobDetails>
                           //value: dropDownValue,
                         ),
                   SizedBox(height: 20),
-                  true
-                      ? Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.all(0.0),
-                                child: Column(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    true
-                                        ? RichText(
-                                            text: const TextSpan(
-                                              style: TextStyle(
-                                                fontSize: 12.0,
-                                                color: Colors.black54,
-                                              ),
-                                              children: <TextSpan>[
-                                                const TextSpan(
-                                                  text: 'PICKUP CHARGES CODE',
-                                                ),
-                                              ],
-                                            ),
-                                          )
-                                        : new Container(),
-                                    true
-                                        ? SizedBox(
-                                            height: 5,
-                                          )
-                                        : new Container(),
-                                    true
-                                        ? RichText(
-                                            text: TextSpan(
-                                              style: TextStyle(
-                                                fontSize: 14.0,
-                                                color: Colors.black,
-                                              ),
-                                              children: <TextSpan>[
-                                                TextSpan(
-                                                  text: selectedJob
-                                                      ?.pickupCharge?.code,
-                                                ),
-                                              ],
-                                            ),
-                                          )
-                                        : new Container(),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            Flexible(
-                              fit: FlexFit.tight,
-                              child: Padding(
-                                padding: const EdgeInsets.all(0.0),
-                                child: Column(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    true
-                                        ? RichText(
-                                            text: const TextSpan(
-                                              style: TextStyle(
-                                                fontSize: 12.0,
-                                                color: Colors.black54,
-                                              ),
-                                              children: <TextSpan>[
-                                                const TextSpan(
-                                                  text: 'CHARGE',
-                                                ),
-                                              ],
-                                            ),
-                                          )
-                                        : new Container(),
-                                    true
-                                        ? SizedBox(
-                                            height: 5,
-                                          )
-                                        : new Container(),
-                                    true
-                                        ? RichText(
-                                            text: TextSpan(
-                                              style: TextStyle(
-                                                fontSize: 14.0,
-                                                color: Colors.black,
-                                              ),
-                                              children: <TextSpan>[
-                                                TextSpan(
-                                                  text: selectedJob
-                                                      ?.pickupCharge
-                                                      ?.priceFormatted,
-                                                ),
-                                              ],
-                                            ),
-                                          )
-                                        : new Container(),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              width: 50,
-                            ),
-                            true
-                                ? SizedBox(
-                                    width: 70,
-                                    height: 40.0,
-                                    child: ElevatedButton(
-                                        child: const Padding(
-                                            padding: EdgeInsets.all(0.0),
-                                            child: Text(
-                                              'Clear',
-                                              style: TextStyle(
-                                                  fontSize: 15,
-                                                  color: Colors.white),
-                                            )),
-                                        style: ButtonStyle(
-                                            foregroundColor:
-                                                MaterialStateProperty.all<Color>(
-                                                    Color(0xFF242A38)),
-                                            backgroundColor:
-                                                MaterialStateProperty.all<Color>(
-                                                    Color(0xFF242A38)),
-                                            shape: MaterialStateProperty.all<
-                                                    RoundedRectangleBorder>(
-                                                RoundedRectangleBorder(
-                                                    borderRadius: BorderRadius.circular(
-                                                        4.0),
-                                                    side: const BorderSide(
-                                                        color: Color(0xFF242A38))))),
-                                        onPressed: () async {
-                                          // await Repositories
-                                          //     .updateSolutionOfJob(
-                                          //         selectedJob!.id ?? "0", 0);
-
-                                          await refreshJobDetails();
-                                        }),
-                                  )
-                                : new Container(),
-                          ],
-                        )
-                      : new Container(),
-                ],
-              ),
-      ],
-    );
-  }
-
-  _renderSolutionCharges() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        RichText(
-          text: const TextSpan(
-              // Note: Styles for TextSpans must be explicitly defined.
-              // Child text spans will inherit styles from parent
-              style: TextStyle(
-                fontSize: 20.0,
-                color: Colors.black,
-              ),
-              children: <TextSpan>[
-                TextSpan(
-                  text: 'Solution Charges',
-                ),
-              ]),
-        ),
-        allPickupCharges == null
-            ? Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                    Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            height: 30,
-                          ),
-                          Container(
-                            alignment: Alignment.center,
-                            child: Padding(
-                              padding: const EdgeInsets.all(5.0),
-                              child: LoadingAnimationWidget.staggeredDotsWave(
-                                color: Color(0xFF000000),
-                                size: MediaQuery.of(context).size.height * 0.03,
-                              ),
-                            ),
-                          )
-                        ])
-                  ])
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: 20),
                   selectedJob?.pickupCharge != null
-                      ? DropdownButtonFormField<String>(
-                          isExpanded: true,
-                          value: selectedJob != null
-                              ? selectedJob?.pickupCharge?.code
-                              : allPickupCharges != null
-                                  ? (allPickupCharges ?? [])[0].code
-                                  : "",
-                          items: allPickupCharges?.map((PickupCharge? value) {
-                            return DropdownMenuItem<String>(
-                              value: value?.code.toString(),
-                              child: Text(value?.code ?? ""),
-                            );
-                          }).toList(),
-                          onChanged: (element) async {
-                            var index =
-                                solutionLabels.indexOf(element.toString());
-                            // var res = await Repositories.updateSolutionOfJob(
-                            //     selectedJob!.serviceRequestid ?? "0",
-                            //     solutions[index].solutionId ?? 0);
-                            await refreshJobDetails();
-                          },
-                          decoration: InputDecoration(
-                              contentPadding: EdgeInsets.symmetric(
-                                  vertical: 7, horizontal: 3),
-                              border: OutlineInputBorder(
-                                borderRadius: const BorderRadius.all(
-                                  const Radius.circular(5.0),
-                                ),
-                              ),
-                              filled: true,
-                              hintStyle: TextStyle(color: Colors.grey[800]),
-                              hintText: "Please Select a Pickup charge type",
-                              fillColor: Colors.white),
-                          //value: dropDownValue,
-                        )
-                      : DropdownButtonFormField<String>(
-                          isExpanded: true,
-
-                          items: allPickupCharges?.map((PickupCharge? value) {
-                            return DropdownMenuItem<String>(
-                              value: value?.code.toString(),
-                              child: Text(value?.code ?? ""),
-                            );
-                          }).toList(),
-                          onChanged: (element) async {
-                            var index =
-                                solutionLabels.indexOf(element.toString());
-                            // var res = await Repositories.updateSolutionOfJob(
-                            //     selectedJob!.serviceRequestid ?? "0",
-                            //     solutions[index].solutionId ?? 0);
-                            await refreshJobDetails();
-                          },
-                          decoration: InputDecoration(
-                              contentPadding: EdgeInsets.symmetric(
-                                  vertical: 7, horizontal: 3),
-                              border: OutlineInputBorder(
-                                borderRadius: const BorderRadius.all(
-                                  const Radius.circular(5.0),
-                                ),
-                              ),
-                              filled: true,
-                              hintStyle: TextStyle(color: Colors.grey[800]),
-                              hintText: "Please Select a Pickup charge type",
-                              fillColor: Colors.white),
-                          //value: dropDownValue,
-                        ),
-                  SizedBox(height: 20),
-                  true
                       ? Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.all(0.0),
-                                child: Column(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    true
-                                        ? RichText(
-                                            text: const TextSpan(
-                                              style: TextStyle(
-                                                fontSize: 12.0,
-                                                color: Colors.black54,
-                                              ),
-                                              children: <TextSpan>[
-                                                const TextSpan(
-                                                  text: 'PICKUP CHARGES CODE',
-                                                ),
-                                              ],
+                            Container(
+                              child: Column(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceAround,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  selectedJob?.pickupCharge != null
+                                      ? RichText(
+                                          text: const TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 12.0,
+                                              color: Colors.black54,
                                             ),
-                                          )
-                                        : new Container(),
-                                    true
-                                        ? SizedBox(
-                                            height: 5,
-                                          )
-                                        : new Container(),
-                                    true
-                                        ? RichText(
-                                            text: TextSpan(
-                                              style: TextStyle(
-                                                fontSize: 14.0,
-                                                color: Colors.black,
+                                            children: <TextSpan>[
+                                              const TextSpan(
+                                                text: 'PICKUP CHARGE CODE',
                                               ),
-                                              children: <TextSpan>[
-                                                TextSpan(
-                                                  text: selectedJob
-                                                      ?.pickupCharge?.code,
-                                                ),
-                                              ],
+                                            ],
+                                          ),
+                                        )
+                                      : new Container(),
+                                  selectedJob?.pickupCharge != null
+                                      ? SizedBox(
+                                          height: 5,
+                                        )
+                                      : new Container(),
+                                  selectedJob?.pickupCharge != null
+                                      ? RichText(
+                                          text: TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 14.0,
+                                              color: Colors.black,
                                             ),
-                                          )
-                                        : new Container(),
-                                  ],
-                                ),
+                                            children: <TextSpan>[
+                                              TextSpan(
+                                                text: selectedJob
+                                                    ?.pickupCharge?.code,
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      : new Container(),
+                                ],
                               ),
                             ),
-                            Flexible(
-                              fit: FlexFit.tight,
-                              child: Padding(
-                                padding: const EdgeInsets.all(0.0),
-                                child: Column(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    true
-                                        ? RichText(
-                                            text: const TextSpan(
-                                              style: TextStyle(
-                                                fontSize: 12.0,
-                                                color: Colors.black54,
-                                              ),
-                                              children: <TextSpan>[
-                                                const TextSpan(
-                                                  text: 'CHARGE',
-                                                ),
-                                              ],
+                            Container(
+                              child: Column(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceAround,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  selectedJob?.pickupCharge != null
+                                      ? RichText(
+                                          text: const TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 12.0,
+                                              color: Colors.black54,
                                             ),
-                                          )
-                                        : new Container(),
-                                    true
-                                        ? SizedBox(
-                                            height: 5,
-                                          )
-                                        : new Container(),
-                                    true
-                                        ? RichText(
-                                            text: TextSpan(
-                                              style: TextStyle(
-                                                fontSize: 14.0,
-                                                color: Colors.black,
+                                            children: <TextSpan>[
+                                              const TextSpan(
+                                                text: 'PICKUP CHARGE',
                                               ),
-                                              children: <TextSpan>[
-                                                TextSpan(
-                                                  text: selectedJob
-                                                      ?.pickupCharge
-                                                      ?.priceFormatted,
-                                                ),
-                                              ],
+                                            ],
+                                          ),
+                                        )
+                                      : new Container(),
+                                  selectedJob?.pickupCharge != null
+                                      ? SizedBox(
+                                          height: 5,
+                                        )
+                                      : new Container(),
+                                  selectedJob?.pickupCharge != null
+                                      ? RichText(
+                                          text: TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 14.0,
+                                              color: Colors.black,
                                             ),
-                                          )
-                                        : new Container(),
-                                  ],
-                                ),
+                                            children: <TextSpan>[
+                                              TextSpan(
+                                                text: selectedJob
+                                                    ?.pickupCharge?.code,
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      : new Container(),
+                                ],
                               ),
                             ),
-                            SizedBox(
-                              width: 50,
+                            Container(
+                              child: Column(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceAround,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  selectedJob?.pickupCharge != null
+                                      ? RichText(
+                                          text: const TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 12.0,
+                                              color: Colors.black54,
+                                            ),
+                                            children: <TextSpan>[
+                                              const TextSpan(
+                                                text: 'COST',
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      : new Container(),
+                                  selectedJob?.pickupCharge != null
+                                      ? SizedBox(
+                                          height: 5,
+                                        )
+                                      : new Container(),
+                                  selectedJob?.pickupCharge != null
+                                      ? RichText(
+                                          text: TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 14.0,
+                                              color: Colors.black,
+                                            ),
+                                            children: <TextSpan>[
+                                              TextSpan(
+                                                text: selectedJob
+                                                    ?.pickupCharge?.code,
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      : new Container(),
+                                ],
+                              ),
                             ),
-                            true
+                            selectedJob?.pickupCharge != null
                                 ? SizedBox(
                                     width: 70,
                                     height: 40.0,
@@ -4898,6 +5167,10 @@ class _JobDetailsState extends State<JobDetails>
                                                     side: const BorderSide(
                                                         color: Color(0xFF242A38))))),
                                         onPressed: () async {
+                                          await Repositories.addPickupCharges(
+                                              selectedJob!.serviceRequestid ??
+                                                  "0",
+                                              null);
                                           await refreshJobDetails();
                                         }),
                                   )
@@ -4930,14 +5203,14 @@ class _JobDetailsState extends State<JobDetails>
     }
   }
 
-  Future<bool> updateSpareParts() async {
-    // var spareParts = await getJobSparePartItems();
-    var spareParts = null;
-    var res = await Repositories.addSparePartsToJob(
-        (selectedJob!.serviceRequestid ?? "0"), spareParts);
+  // Future<bool> updateSpareParts() async {
+  //   // var spareParts = await getJobSparePartItems();
+  //   var spareParts = null;
+  //   var res = await Repositories.addSparePartsToJob(
+  //       (selectedJob!.serviceRequestid ?? "0"), spareParts, "warehouse");
 
-    return res;
-  }
+  //   return res;
+  // }
 
   // Future<List<SparePart>> getJobSparePartItems() async {
   //   List<SparePart> spareParts = [];
@@ -4993,8 +5266,15 @@ class _JobDetailsState extends State<JobDetails>
   //   });
   // }
 
-  showMultipleImagesPromptDialog(BuildContext context, bool initial, bool isKIV,
-      bool isComplete, bool isCancel) async {
+  showMultipleImagesPromptDialog(
+      BuildContext context,
+      bool initial,
+      bool isKIV,
+      bool isComplete,
+      bool isCancel,
+      bool isStart,
+      bool isReject,
+      bool isClose) async {
     await showDialog(
       context: context,
       barrierDismissible: false,
@@ -5002,9 +5282,16 @@ class _JobDetailsState extends State<JobDetails>
         return MultiImageUploadDialog(
             isKiv: isKIV,
             isCancel: isCancel,
-            reasonId:
-                (isKIV ? selectedKIVReason : selectedCancellationReason) ?? 0,
             isComplete: isComplete,
+            isReject: isReject,
+            isClose: isClose,
+            isStart: isStart,
+            reasonId: (isKIV
+                    ? selectedKIVReason
+                    : (isReject
+                        ? selectedRejectReason
+                        : selectedCancellationReason)) ??
+                0,
             selectedJob: selectedJob ?? new Job());
       },
     ).then((value) async {
@@ -5072,6 +5359,12 @@ class _JobDetailsState extends State<JobDetails>
 
     setState(() {
       selectedJob = job;
+      Helpers.editableMiscItems = job?.miscCharges ?? [];
+      isChargeableTransportCharges =
+          selectedJob?.isChargeableTransport ?? false;
+      isChargeablePickupCharges = selectedJob?.isChargeablePickup ?? false;
+      isChargeableSolutionCharges = selectedJob?.isChargeableSolution ?? false;
+      isChargeableMiscellaneousCharges = selectedJob?.isChargeableMisc ?? false;
     });
 
     await fetchBag(jobId);
@@ -5103,8 +5396,10 @@ class _JobDetailsState extends State<JobDetails>
                   isBack: true,
                   isAppBarTranparent: true,
                   hasActions: false, handleBackPressed: () {
-                var res = validateIfEditedValuesAreSaved();
-                if (res) {}
+                Navigator.pop(context);
+                // var res = validateIfEditedValuesAreSaved();
+                // if (res) {
+                // }
               }),
               body: ExpandableBottomSheet(
                 //use the key to get access to expand(), contract() and expansionStatus
@@ -5120,24 +5415,45 @@ class _JobDetailsState extends State<JobDetails>
                     isExpanded ? MediaQuery.of(context).size.height * .8 : 0,
                 background: Stack(children: [
                   CustomPaint(
-                      child: SingleChildScrollView(
-                          physics: AlwaysScrollableScrollPhysics(),
-                          child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 30, vertical: 10),
-                              decoration:
-                                  new BoxDecoration(color: Colors.white),
-                              child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    errorMsg != ""
-                                        ? _renderError()
-                                        : Container(),
-                                    _renderForm(),
-                                    const SizedBox(height: 10),
-                                    //Expanded(child: _renderBottom()),
-                                    //version != "" ? _renderVersion() : Container()
-                                  ])))),
+                      child: Stack(children: [
+                    SingleChildScrollView(
+                        physics: AlwaysScrollableScrollPhysics(),
+                        child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 30, vertical: 10),
+                            decoration: new BoxDecoration(color: Colors.white),
+                            child: Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  errorMsg != "" ? _renderError() : Container(),
+                                  _renderForm(),
+                                  const SizedBox(height: 10),
+                                  //Expanded(child: _renderBottom()),
+                                  //version != "" ? _renderVersion() : Container()
+                                ]))),
+                    // Positioned(
+                    //     left: 5,
+                    //     right: 5,
+                    //     bottom: 5,
+                    //     child: GestureDetector(
+                    //       onTap: () {
+                    //         setState(() {
+                    //           isExpandedTotal = !isExpandedTotal;
+                    //         });
+                    //       },
+                    //       child: Container(
+                    //           padding: const EdgeInsets.symmetric(
+                    //               horizontal: 20, vertical: 10),
+                    //           decoration:
+                    //               new BoxDecoration(color: Colors.white),
+                    //           child: isExpandedTotal
+                    //               ? _renderCost()
+                    //               : ListTile(
+                    //                   title: Text('Total'),
+                    //                   trailing: Text('RM 140.00'),
+                    //                 )),
+                    //     )),
+                  ])),
                   isExpanded
                       ? GestureDetector(
                           onTap: () {
@@ -5694,15 +6010,21 @@ class _ImageViewerDialogState extends State<ImageViewerDialog> {
 class MultiImageUploadDialog extends StatefulWidget {
   final bool isKiv;
   final bool isCancel;
-  final int reasonId;
+  final bool isStart;
+  final bool isClose;
   final bool isComplete;
+  final bool isReject;
+  final int reasonId;
   final Job selectedJob;
 
   MultiImageUploadDialog(
       {required this.isKiv,
       required this.isCancel,
-      required this.reasonId,
       required this.isComplete,
+      required this.isReject,
+      required this.isClose,
+      required this.isStart,
+      required this.reasonId,
       required this.selectedJob});
 
   @override
@@ -5718,10 +6040,14 @@ class _MultiImageUploadDialogState extends State<MultiImageUploadDialog> {
   late bool isKiv = widget.isKiv;
   late bool isComplete = widget.isComplete;
   late bool isCancel = widget.isCancel;
+  late bool isStart = widget.isStart;
+  late bool isReject = widget.isReject;
+  late bool isClose = widget.isClose;
   late Job selectedJob = widget.selectedJob;
   bool isImagesEmpty = false;
 
-  processAction(bool isKIV, bool isComplete, bool isCancel) async {
+  processAction(bool isKIV, bool isComplete, bool isCancel, bool isStart,
+      bool isReject, bool isClose) async {
     var res;
     if (isKIV) {
       res = await Repositories.uploadKIV(
@@ -5731,12 +6057,27 @@ class _MultiImageUploadDialogState extends State<MultiImageUploadDialog> {
           images, this.selectedJob!.serviceRequestid ?? "0", widget.reasonId);
     } else if (isComplete) {
       res = await Repositories.completeJob(
+          images, selectedJob!.serviceRequestid ?? "0", selectedJob);
+
+      Navigator.pop(context, res);
+    } else if (isStart) {
+      res = await Repositories.startJob(
+          images, selectedJob!.serviceRequestid ?? "0", selectedJob);
+
+      Navigator.pop(context, res);
+    } else if (isReject) {
+      // res = await Repositories.rejectJob(
+      //     images, selectedJob!.serviceRequestid ?? "0", widget.reasonId);
+
+      // Navigator.pop(context, res);
+    } else if (isClose) {
+      res = await Repositories.closeJob(
           images, selectedJob!.serviceRequestid ?? "0");
 
       Navigator.pop(context, res);
     } else {
-      res = await Repositories.startJob(
-          images, selectedJob!.serviceRequestid ?? "0");
+      // res = await Repositories.startJob(
+      //     images, selectedJob!.serviceRequestid ?? "0");
     }
   }
 
@@ -5941,7 +6282,8 @@ class _MultiImageUploadDialogState extends State<MultiImageUploadDialog> {
                     nextPressed = false;
                     continuePressed = true;
                   });
-                  await processAction(isKiv, isComplete, isCancel);
+                  await processAction(
+                      isKiv, isComplete, isCancel, isStart, isReject, isClose);
                 }
               }),
         ),
@@ -5950,43 +6292,68 @@ class _MultiImageUploadDialogState extends State<MultiImageUploadDialog> {
   }
 }
 
-class AddPartItem extends StatelessWidget {
+class AddPartItem extends StatefulWidget {
+  double? width;
+  SparePart? part;
+  Job? job;
+  String? jobId;
+  int? index;
+  bool? isChargeable;
+  Function? onDeletePressed;
+  bool? editable;
+  List<SparePart>? partList;
+
   AddPartItem(
       {Key? key,
       required this.width,
       required this.part,
+      required this.isChargeable,
       required this.job,
       required this.jobId,
       required this.index,
       required this.onDeletePressed,
       required this.editable,
-      required this.partList})
-      : super(key: key);
+      required this.partList});
 
-  final double width;
-  final SparePart part;
-  final Job job;
-  final String jobId;
-  final int index;
-  Function onDeletePressed;
+  @override
+  AddPartItemState createState() => new AddPartItemState();
+}
 
-  final bool editable;
-  final List<SparePart> partList;
-  var isRecordEditable = false;
+class AddPartItemState extends State<AddPartItem> {
+  double? width;
+  SparePart? part;
+  Job? job;
+  String? jobId;
+  int? index;
+  bool? isChargeable;
+  Function? onDeletePressed;
+  List<SparePart>? partList;
+
+  int? selectedQuantity;
+
+  @override
+  void initState() {
+    super.initState();
+
+    setState(() {
+      width = widget.width;
+      part = widget.part;
+      job = widget.job;
+      jobId = widget.jobId;
+      index = widget.index;
+      isChargeable = widget.isChargeable;
+      onDeletePressed = widget.onDeletePressed;
+      partList = widget.partList;
+      selectedQuantity = widget.part?.quantity;
+    });
+  }
 
   showAlertDialog(BuildContext context) {
     // set up the button
     Widget okButton = TextButton(
       child: Text("OK"),
       onPressed: () async {
-        List<JobSparePart> finalArr = [];
-        for (int i = 0; i < partList.length; i++) {
-          if (partList[i].id == part.id) {
-            partList[i].quantity = 0;
-          }
-        }
-        await _AddSparePartsToJob(partList);
-        await onDeletePressed.call();
+        await onDeletePressed?.call(part?.id);
       },
     );
 
@@ -6012,37 +6379,25 @@ class AddPartItem extends StatelessWidget {
     );
   }
 
-  Future<bool> _AddSparePartsToJob(List<SparePart> jobSpareparts) async {
-    SparePart sparePart;
-    List<SparePart> spareParts = [];
-    jobSpareparts.forEach((element) {
-      sparePart = new SparePart();
-      sparePart.id = element!.id;
-      sparePart.quantity = element!.quantity;
-      spareParts.add(sparePart);
-    });
-
-    return await Repositories.addSparePartsToJob(jobId, spareParts);
-  }
-
   @override
   Widget build(BuildContext context) {
     // var transactionId = this.part.transactionId;
-    var sparePartId = this.part.id;
-    var quantity = this.part.quantity;
+    setState(() {});
+    var sparePartId = this.part?.id;
+    var quantity = this.part?.quantity;
     // var discount = this.part.discount;
-    var price = this.part.priceFormatted;
-    var sparePartCode = this.part.code;
-    var description = this.part.description;
+    var price = this.part?.priceFormatted;
+    var sparePartCode = this.part?.code;
+    var description = this.part?.description;
 
     // var total = (((double.parse(price ?? '0') *
     //         double.parse((quantity != "" ? quantity : "0") ?? "0")) *
     //     (100 - double.parse(discount ?? '0')) /
     //     100));
     return Row(
-      // mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: <Widget>[
-        job.serviceJobStatus != "COMPLETED"
+        job?.serviceJobStatus != "COMPLETED" && (widget.editable ?? false)
             ? Padding(
                 padding: EdgeInsets.fromLTRB(0, 0, 0, 40),
                 child: GestureDetector(
@@ -6061,13 +6416,12 @@ class AddPartItem extends StatelessWidget {
           width: 5,
         ),
         SizedBox(
-          width: 300,
+          width: MediaQuery.of(context).size.width * 0.25,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               SizedBox(
-                width: 200,
                 child: RichText(
                   text: TextSpan(
                       style: const TextStyle(
@@ -6099,14 +6453,49 @@ class AddPartItem extends StatelessWidget {
             ],
           ),
         ),
-        SizedBox(
-          width: 10,
+        Padding(
+          padding: EdgeInsets.only(bottom: 30),
+          child: FlutterSwitch(
+            activeColor: Colors.green,
+            inactiveColor: Colors.red,
+            activeTextColor: Colors.white,
+            inactiveTextColor: Colors.white,
+            activeText: "Chargeable",
+            inactiveText: "Not Chargeable",
+            value: isChargeable ?? false,
+            valueFontSize: 12.0,
+            width: 120,
+            borderRadius: 30.0,
+            showOnOff: true,
+            onToggle: (val) async {
+              if (widget.editable ?? false) {
+                // var result =
+                //     await Repositories.toggleChargable(selectedJob!.id ?? 0);
+                var result = null;
+                setState(() {
+                  isChargeable = (!(isChargeable ?? true));
+                });
+
+                // if (result) {
+                //   setState(() {
+                //     isPartsEditable = false;
+                //     isGeneralCodeEditable = false;
+                //     this.isChargeableSolutionCharges = val;
+                //   });
+                // } else {
+                //   //TODO throw error
+                // }
+
+                // await refreshJobDetails();
+              }
+            },
+          ),
         ),
-        !editable
+        !(widget.editable ?? false)
             ? SizedBox(
                 width: 90,
                 child: Container(
-                  padding: const EdgeInsets.only(bottom: 50),
+                  padding: const EdgeInsets.only(bottom: 30),
                   child: RichText(
                     text: TextSpan(
                         // Note: Styles for TextSpans must be explicitly defined.
@@ -6125,123 +6514,74 @@ class AddPartItem extends StatelessWidget {
                   ),
                 ),
               )
-            : Container(
-                width: 80,
-                padding: EdgeInsets.only(bottom: 50),
-                child: TextFormField(
-                    //focusNode: focusEmail,
-                    keyboardType: TextInputType.number,
-                    onChanged: (str) {
-                      Helpers.editableJobSpareParts[index].quantity = str;
+            : Row(children: [
+                Padding(
+                  padding: EdgeInsets.only(bottom: 30),
+                  child: IconButton(
+                    onPressed: () {
+                      if (Helpers.editableJobSpareParts[index ?? 0].quantity !=
+                          0) {
+                        setState(() {
+                          Helpers.editableJobSpareParts[index ?? 0].quantity =
+                              (Helpers.editableJobSpareParts[index ?? 0]
+                                          .quantity ??
+                                      0) -
+                                  1;
+                        });
+                      }
                     },
-                    onEditingComplete: () {},
-                    onFieldSubmitted: (val) {
-                      FocusScope.of(context).requestFocus(new FocusNode());
-                    },
-                    inputFormatters: <TextInputFormatter>[
-                      FilteringTextInputFormatter.allow(RegExp("[0-9a-zA-Z]")),
-                    ],
-                    style: TextStyle(
-                      fontSize: 18.0,
-                      color: Colors.black54,
+                    icon: Icon(
+                      Icons.remove,
+                      size: 15,
+                      color:
+                          Helpers.editableJobSpareParts[index ?? 0].quantity !=
+                                  0
+                              ? Colors.black
+                              : Colors.black45,
                     ),
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(),
-                      //suffixText: quantity == 1 ? ' Unit' : ' Units',
-                      hintText: '$quantity'.split(".")[0],
-                      hintStyle: TextStyle(color: Colors.grey.withOpacity(0.7)),
-                      contentPadding: EdgeInsets.fromLTRB(20, 5, 0, 0),
-                    )),
-              ),
+                  ),
+                ),
+                Container(
+                  width: 60,
+                  padding: EdgeInsets.only(bottom: 32),
+                  child: RichText(
+                    text: TextSpan(
+                        // Note: Styles for TextSpans must be explicitly defined.
+                        // Child text spans will inherit styles from parent
+                        style: TextStyle(
+                          fontSize: 18.0,
+                          color: Colors.black54,
+                        ),
+                        children: <TextSpan>[
+                          TextSpan(
+                            text:
+                                '${(Helpers.editableJobSpareParts[index ?? 0].quantity ?? 0)}',
+                          ),
+                        ]),
+                  ),
+                ),
+              ]),
         SizedBox(
           width: 10,
         ),
         SizedBox(
-          width: 70,
+          width: 90,
           child: Container(
-            padding: const EdgeInsets.only(bottom: 50),
+            padding: const EdgeInsets.only(bottom: 30),
             child: RichText(
               text: TextSpan(
                   // Note: Styles for TextSpans must be explicitly defined.
                   // Child text spans will inherit styles from parent
                   style: TextStyle(
-                    fontSize: 18.0,
+                    fontSize: 16.0,
                     color: Colors.black54,
                   ),
                   children: <TextSpan>[
                     TextSpan(
-                      text: '\$' +
-                          double.parse(price ?? "0").toStringAsFixed(2) +
-                          ((double.parse(price ?? "0")
-                                      .toStringAsFixed(2)
-                                      .split(".")[1]
-                                      .length ==
-                                  1)
-                              ? "0"
-                              : ""),
+                      text: price,
                     ),
                   ]),
             ),
-          ),
-        ),
-        !editable
-            ? Container(
-                padding: const EdgeInsets.fromLTRB(30, 0, 0, 50),
-                child: RichText(
-                  text: TextSpan(
-                      style: TextStyle(
-                        fontSize: 18.0,
-                        color: Colors.black54,
-                      ),
-                      children: <TextSpan>[
-                        TextSpan(
-                          text: "0%",
-                        ),
-                      ]),
-                ),
-              )
-            : Container(
-                width: 90,
-                padding: EdgeInsets.only(bottom: 50),
-                child: TextFormField(
-                    //focusNode: focusEmail,
-                    keyboardType: TextInputType.number,
-                    onChanged: (str) {
-                      Helpers.editableJobSpareParts[index].discount = str;
-                    },
-                    onEditingComplete: () {},
-                    onFieldSubmitted: (val) {
-                      FocusScope.of(context).requestFocus(new FocusNode());
-                    },
-                    inputFormatters: <TextInputFormatter>[
-                      FilteringTextInputFormatter.allow(RegExp("[0-9a-zA-Z]")),
-                    ],
-                    style: TextStyle(
-                      fontSize: 18.0,
-                      color: Colors.black54,
-                    ),
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintStyle: TextStyle(color: Colors.grey.withOpacity(0.7)),
-                      hintText: "0%",
-                      contentPadding: EdgeInsets.fromLTRB(20, 5, 0, 0),
-                    )),
-              ),
-        const Spacer(),
-        Container(
-          padding: const EdgeInsets.only(bottom: 50),
-          child: RichText(
-            text: TextSpan(
-                // Note: Styles for TextSpans must be explicitly defined.
-                // Child text spans will inherit styles from parent
-                style: TextStyle(
-                  fontSize: 18.0,
-                  color: Colors.black54,
-                ),
-                children: <TextSpan>[
-                  TextSpan(text: '\$0.00%'),
-                  //text: '\$100')
-                ]),
           ),
         ),
       ],
@@ -6278,14 +6618,14 @@ class PickListItem extends StatelessWidget {
     Widget okButton = TextButton(
       child: Text("OK"),
       onPressed: () async {
-        List<JobSparePart> finalArr = [];
-        for (int i = 0; i < partList.length; i++) {
-          if (partList[i].id == part.id) {
-            partList[i].quantity = 0;
-          }
-        }
-        await _AddSparePartsToJob(partList);
-        await onDeletePressed.call();
+        // List<JobSparePart> finalArr = [];
+        // for (int i = 0; i < partList.length; i++) {
+        //   if (partList[i].id == part.id) {
+        //     partList[i].quantity = 0;
+        //   }
+        // }
+        // await _AddSparePartsToJob(partList);
+        await onDeletePressed.call(part.id);
       },
     );
 
@@ -6328,7 +6668,7 @@ class PickListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     // var transactionId = this.part.transactionId;
     var sparePartId = this.part.id;
-    var quantity = this.part.quantity;
+    var quantity = this.part.quantity.toString();
     // var discount = this.part.discount;
     var price = this.part.priceFormatted;
     var sparePartCode = this.part.code;
@@ -6429,7 +6769,8 @@ class PickListItem extends StatelessWidget {
                     //focusNode: focusEmail,
                     keyboardType: TextInputType.number,
                     onChanged: (str) {
-                      Helpers.editableJobSpareParts[index].quantity = str;
+                      Helpers.editableJobSpareParts[index].quantity =
+                          int.parse(str);
                     },
                     onEditingComplete: () {},
                     onFieldSubmitted: (val) {
@@ -7382,10 +7723,13 @@ class MiscItem extends StatelessWidget {
   final String jobId;
   final int index;
   Function onDeletePressed;
-
   final bool editable;
   final List<SparePart> partList;
   var isRecordEditable = false;
+  final RegExp priceRegex = RegExp(r'^\d+(\.\d{0,2})?$');
+
+  TextEditingController quantityCT = new TextEditingController();
+  TextEditingController priceCT = new TextEditingController();
 
   showAlertDialog(BuildContext context, int id) {
     // set up the button
@@ -7393,6 +7737,7 @@ class MiscItem extends StatelessWidget {
       child: Text("OK"),
       onPressed: () async {
         await onDeletePressed.call(id);
+        Navigator.pop(context);
       },
     );
 
@@ -7512,14 +7857,15 @@ class MiscItem extends StatelessWidget {
                     //focusNode: focusEmail,
                     keyboardType: TextInputType.number,
                     onChanged: (str) {
-                      Helpers.editableJobSpareParts[index].quantity = str;
+                      Helpers.editableMiscItems[index].quantity =
+                          int.parse(str);
                     },
                     onEditingComplete: () {},
                     onFieldSubmitted: (val) {
                       FocusScope.of(context).requestFocus(new FocusNode());
                     },
                     inputFormatters: <TextInputFormatter>[
-                      FilteringTextInputFormatter.allow(RegExp("[0-9a-zA-Z]")),
+                      FilteringTextInputFormatter.allow(RegExp((r'^[0-9]*$'))),
                     ],
                     style: TextStyle(
                       fontSize: 18.0,
@@ -7527,39 +7873,72 @@ class MiscItem extends StatelessWidget {
                     ),
                     decoration: InputDecoration(
                       border: OutlineInputBorder(),
-                      //suffixText: quantity == 1 ? ' Unit' : ' Units',
-                      hintText: '$quantity'.split(".")[0],
                       hintStyle: TextStyle(color: Colors.grey.withOpacity(0.7)),
+                      hintText: quantity.toString(),
                       contentPadding: EdgeInsets.fromLTRB(20, 5, 0, 0),
                     )),
               ),
         SizedBox(
           width: 10,
         ),
-        SizedBox(
-          width: MediaQuery.of(context).size.width * 0.15,
-          child: Container(
-            padding: const EdgeInsets.only(bottom: 50),
-            child: RichText(
-              text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
-                  style: TextStyle(
-                    fontSize: 16.0,
-                    color: Colors.black54,
+        !editable
+            ? SizedBox(
+                width: MediaQuery.of(context).size.width * 0.15,
+                child: Container(
+                  padding: const EdgeInsets.only(bottom: 50),
+                  child: RichText(
+                    text: TextSpan(
+                        // Note: Styles for TextSpans must be explicitly defined.
+                        // Child text spans will inherit styles from parent
+                        style: TextStyle(
+                          fontSize: 16.0,
+                          color: Colors.black54,
+                        ),
+                        children: <TextSpan>[
+                          TextSpan(text: price),
+                        ]),
                   ),
-                  children: <TextSpan>[
-                    TextSpan(text: price),
-                  ]),
-            ),
-          ),
-        ),
+                ),
+              )
+            : Container(
+                width: 80,
+                padding: EdgeInsets.only(bottom: 50),
+                child: TextFormField(
+                    //focusNode: focusEmail,
+                    keyboardType: TextInputType.number,
+                    onChanged: (str) {
+                      Helpers.editableMiscItems[index].formattedPrice =
+                          'MYR ${str}';
+                    },
+                    onEditingComplete: () {},
+                    onFieldSubmitted: (val) {
+                      FocusScope.of(context).requestFocus(new FocusNode());
+                    },
+                    inputFormatters: <TextInputFormatter>[
+                      FilteringTextInputFormatter.allow(
+                          RegExp((r"^[0-9a-zA-Z]*\.?[0-9a-zA-Z]*$"))),
+                    ],
+                    style: TextStyle(
+                      fontSize: 18.0,
+                      color: Colors.black54,
+                    ),
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintStyle: TextStyle(color: Colors.grey.withOpacity(0.7)),
+                      hintText: price?.split("MYR")[1],
+                      contentPadding: EdgeInsets.fromLTRB(20, 5, 0, 0),
+                    )),
+              ),
       ],
     );
   }
 }
 
 class AddMiscItemsPopup extends StatefulWidget {
+  Function? newItemAdded;
+
+  AddMiscItemsPopup({required this.newItemAdded}) {}
+
   @override
   _AddMiscItemsPopupState createState() => _AddMiscItemsPopupState();
 }
@@ -7568,7 +7947,7 @@ class _AddMiscItemsPopupState extends State<AddMiscItemsPopup> {
   TextEditingController itemNameController = TextEditingController();
   TextEditingController quantityController = TextEditingController();
   TextEditingController priceController = TextEditingController();
-
+  Function? newItemAdded;
   int quantity = 1;
 
   void increment() {
@@ -7583,6 +7962,13 @@ class _AddMiscItemsPopupState extends State<AddMiscItemsPopup> {
         quantity--;
       });
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    newItemAdded = widget.newItemAdded;
   }
 
   @override
@@ -7681,7 +8067,7 @@ class _AddMiscItemsPopupState extends State<AddMiscItemsPopup> {
                     width: MediaQuery.of(context).size.width * 0.2,
                     padding: EdgeInsets.only(bottom: 50, left: 20),
                     child: TextFormField(
-                        controller: quantityController,
+                        controller: priceController,
                         keyboardType: TextInputType.number,
                         onChanged: (str) {},
                         onEditingComplete: () {},
@@ -7727,13 +8113,13 @@ class _AddMiscItemsPopupState extends State<AddMiscItemsPopup> {
                     RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(4.0),
                         side: const BorderSide(color: Color(0xFF242A38))))),
-            onPressed: () => {
-                  Navigator.pushNamed(context, 'warehouse',
-                          arguments: Helpers.selectedJob)
-                      .then((val) async {
-                    // await refreshJobDetails();
-                  })
-                }),
+            onPressed: () async {
+              await newItemAdded?.call(
+                  itemNameController.text.toString(),
+                  quantity,
+                  num.parse(priceController.text.toString())
+                      .toStringAsFixed(2));
+            }),
         ElevatedButton(
             child: Padding(
                 padding: EdgeInsets.all(0.0),
@@ -7758,4 +8144,22 @@ class _AddMiscItemsPopupState extends State<AddMiscItemsPopup> {
       ],
     );
   }
+}
+
+Widget _buildChargeItem(String chargeType, String cost, bool isTotal) {
+  return Padding(
+      padding: EdgeInsets.only(bottom: 5),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(chargeType,
+              style: TextStyle(
+                  fontSize: 16.0,
+                  color: isTotal ? Colors.black : Colors.black54)),
+          Text(cost,
+              style: TextStyle(
+                  fontSize: 16.0,
+                  color: isTotal ? Colors.black : Colors.black54)),
+        ],
+      ));
 }

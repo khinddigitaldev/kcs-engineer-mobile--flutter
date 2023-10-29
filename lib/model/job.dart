@@ -47,16 +47,27 @@ class Job {
   String? actualProblemDescription;
   String? estimatedSolutionCode;
   String? estimatedSolutionDescription;
+  String? estimatedSolutionIndoorCharges;
+  String? estimatedSolutionOutdoorCharges;
   String? actualSolutionCode;
   String? actualSolutionDescription;
+  String? actualSolutionIndoorCharges;
+  String? actualSolutionOutdoorCharges;
   String? remarks;
   String? adminRemarks;
   String? productCode;
   int? productId;
+  int? productModelId;
   String? productDescription;
   String? serialNo;
   TransportCharge? transportCharge;
   PickupCharge? pickupCharge;
+
+  bool? isChargeableMisc;
+  bool? isChargeablePickup;
+  bool? isChargeableSolution;
+  bool? isChargeableTransport;
+  List<String>? chargeableSparepartIds;
 
   List<SecondaryEngineer>? secondaryEngineers;
   List<SparePart>? picklist;
@@ -67,45 +78,56 @@ class Job {
 
   List<MiscellaneousItem>? miscCharges;
 
-  Job(
-      {this.serviceRequestid,
-      this.serviceJobNo,
-      this.serviceType,
-      this.serviceJobStatus,
-      this.serviceDate,
-      this.serviceTime,
-      this.customerName,
-      this.customerTelephone,
-      this.customerEmail,
-      this.customerAddressName,
-      this.serviceAddressStreet,
-      this.serviceAddressCity,
-      this.serviceAddressPostcode,
-      this.serviceAddressState,
-      this.reportedProblemCode,
-      this.reportedProblemDescription,
-      this.actualProblemCode,
-      this.actualProblemDescription,
-      this.estimatedSolutionCode,
-      this.estimatedSolutionDescription,
-      this.actualSolutionCode,
-      this.actualSolutionDescription,
-      this.remarks,
-      this.adminRemarks,
-      this.productCode,
-      this.productDescription,
-      this.serialNo,
-      this.productId,
-      this.serviceTypeId,
-      this.picklist,
-      this.currentJobSparepartsfromBag,
-      this.currentJobSparepartsfromWarehouse,
-      this.currentJobSparepartsfromPickList,
-      this.aggregatedSpareparts,
-      this.miscCharges,
-      this.transportCharge,
-      this.pickupCharge,
-      this.secondaryEngineers});
+  Job({
+    this.serviceRequestid,
+    this.serviceJobNo,
+    this.serviceType,
+    this.serviceJobStatus,
+    this.serviceDate,
+    this.serviceTime,
+    this.customerName,
+    this.customerTelephone,
+    this.customerEmail,
+    this.customerAddressName,
+    this.serviceAddressStreet,
+    this.serviceAddressCity,
+    this.serviceAddressPostcode,
+    this.serviceAddressState,
+    this.reportedProblemCode,
+    this.reportedProblemDescription,
+    this.actualProblemCode,
+    this.actualProblemDescription,
+    this.estimatedSolutionCode,
+    this.estimatedSolutionDescription,
+    this.estimatedSolutionIndoorCharges,
+    this.estimatedSolutionOutdoorCharges,
+    this.actualSolutionCode,
+    this.actualSolutionDescription,
+    this.actualSolutionIndoorCharges,
+    this.actualSolutionOutdoorCharges,
+    this.remarks,
+    this.adminRemarks,
+    this.productCode,
+    this.productDescription,
+    this.serialNo,
+    this.productId,
+    this.serviceTypeId,
+    this.picklist,
+    this.currentJobSparepartsfromBag,
+    this.currentJobSparepartsfromWarehouse,
+    this.currentJobSparepartsfromPickList,
+    this.aggregatedSpareparts,
+    this.miscCharges,
+    this.transportCharge,
+    this.pickupCharge,
+    this.secondaryEngineers,
+    this.productModelId,
+    this.isChargeableMisc,
+    this.isChargeablePickup,
+    this.isChargeableSolution,
+    this.isChargeableTransport,
+    this.chargeableSparepartIds,
+  });
 
   Job.fromJson(Map<String, dynamic> json) {
     this.serviceRequestid = json["service_request_id"];
@@ -129,8 +151,16 @@ class Job {
     this.estimatedSolutionCode = json["solution"]?["estimated"]?["code"];
     this.estimatedSolutionDescription =
         json["solution"]?["estimated"]?["solution"];
+    this.estimatedSolutionIndoorCharges =
+        json["solution"]?["estimated"]?["indoor_charges"]?["formatted"];
+    this.estimatedSolutionOutdoorCharges =
+        json["solution"]?["estimated"]?["outdoor_charges"]?["formatted"];
     this.actualSolutionCode = json["solution"]?["actual"]?["code"];
     this.actualSolutionDescription = json["solution"]?["actual"]?["solution"];
+    this.actualSolutionIndoorCharges =
+        json["solution"]?["actual"]?["indoor_charges"]?["formatted"];
+    this.actualSolutionOutdoorCharges =
+        json["solution"]?["actual"]?["outdoor_charges"]?["formatted"];
     this.remarks = json["remarks"]?["remarks"];
     this.adminRemarks = json["remarks"]?["admin_remarks"];
     this.productCode = json["product"]?["code"];
@@ -138,6 +168,23 @@ class Job {
     this.serialNo = json["warranty_info"]?["serial_no"];
     this.productId = json["product"]?["id"];
     this.serviceTypeId = json["service_type_id"];
+    this.productModelId = json["product"]?["model_id"];
+
+    this.isChargeableMisc =
+        json["saved_states"]?["is_chargeable"]?["misc"] == "1";
+    this.isChargeablePickup =
+        json["saved_states"]?["is_chargeable"]?["pickup"] == "1";
+    this.isChargeableSolution =
+        json["saved_states"]?["is_chargeable"]?["solution"] == "1";
+    this.isChargeableTransport =
+        json["saved_states"]?["is_chargeable"]?["transport"] == "1";
+    this.chargeableSparepartIds =
+        json["saved_states"]?["list_of_spareparts_not_chargeable"] != null
+            ? (json["saved_states"]?["list_of_spareparts_not_chargeable"]
+                    as List<dynamic>)
+                .map((e) => e.toString())
+                .toList()
+            : [];
 
     this.secondaryEngineers = json["secondary_engineers"] != null
         ? (json["secondary_engineers"] as List)

@@ -23,12 +23,20 @@ class MiscellaneousItem {
     this.quantity = json["quantity"];
   }
 
-  Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data["misc_charges_id"] = this.miscChargesId;
-    data["remarks"] = this.remarks;
-    data["amount"] = this.amount;
+  List<Map<String, dynamic>> ListOfbjectsToListofMaps(
+      List<MiscellaneousItem> items) {
+    List<Map<String, dynamic>> listOfMaps = [];
+    items.forEach((element) {
+      Map<String, dynamic> data;
+      data = new Map<String, dynamic>();
+      data["remarks"] = element.remarks;
+      data["misc_charges"] = element.formattedPrice?.split("MYR")[1].trim();
+      data["misc_charges_id"] = element.miscChargesId;
+      data["quantity"] = element.quantity;
 
-    return data;
+      listOfMaps.add(data);
+    });
+
+    return listOfMaps;
   }
 }

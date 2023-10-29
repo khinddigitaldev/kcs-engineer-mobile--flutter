@@ -4,6 +4,7 @@ import 'package:after_layout/after_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:kcs_engineer/model/bag.dart';
 import 'package:kcs_engineer/model/sparepart.dart';
+import 'package:kcs_engineer/util/repositories.dart';
 
 class AddItemsFromBagDialog extends StatefulWidget {
   BagMetaData? bag;
@@ -295,13 +296,37 @@ class _AddItemsFromBagDialogState extends State<AddItemsFromBagDialog>
           mainAxisAlignment: MainAxisAlignment.end,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
+            // SizedBox(
+            //   height: 40.0,
+            //   child: ElevatedButton(
+            //       child: const Padding(
+            //           padding: EdgeInsets.all(0.0),
+            //           child: Text(
+            //             'Add from Warehouse',
+            //             style: TextStyle(fontSize: 15, color: Colors.white),
+            //           )),
+            //       style: ButtonStyle(
+            //           foregroundColor:
+            //               MaterialStateProperty.all<Color>(Color(0xFF242A38)),
+            //           backgroundColor:
+            //               MaterialStateProperty.all<Color>(Color(0xFF242A38)),
+            //           shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+            //               RoundedRectangleBorder(
+            //                   borderRadius: BorderRadius.circular(4.0),
+            //                   side:
+            //                       const BorderSide(color: Color(0xFF242A38))))),
+            //       onPressed: () async {
+            //         Navigator.pushNamed(context, 'warehouse', arguments: jobId);
+            //       }),
+            // ),
+            SizedBox(width: 20),
             SizedBox(
               height: 40.0,
               child: ElevatedButton(
                   child: const Padding(
                       padding: EdgeInsets.all(0.0),
                       child: Text(
-                        'Add from Warehouse',
+                        'Cancel',
                         style: TextStyle(fontSize: 15, color: Colors.white),
                       )),
                   style: ButtonStyle(
@@ -315,17 +340,16 @@ class _AddItemsFromBagDialogState extends State<AddItemsFromBagDialog>
                               side:
                                   const BorderSide(color: Color(0xFF242A38))))),
                   onPressed: () async {
-                    Navigator.pushNamed(context, 'warehouse', arguments: jobId);
+                    Navigator.pop(context);
                   }),
             ),
-            SizedBox(width: 20),
             SizedBox(
               height: 40.0,
               child: ElevatedButton(
                   child: const Padding(
                       padding: EdgeInsets.all(0.0),
                       child: Text(
-                        'Update',
+                        'Add Parts',
                         style: TextStyle(fontSize: 15, color: Colors.white),
                       )),
                   style: ButtonStyle(
@@ -338,7 +362,20 @@ class _AddItemsFromBagDialogState extends State<AddItemsFromBagDialog>
                               borderRadius: BorderRadius.circular(4.0),
                               side:
                                   const BorderSide(color: Color(0xFF242A38))))),
-                  onPressed: () async {}),
+                  onPressed: () async {
+                    if ((existingJobSpareParts?.length ?? 0) > 0) {
+                      var arr = existingJobSpareParts?.map((e) {
+                        e.from = "bag";
+                        return e;
+                      }).toList();
+                      var res = await Repositories.addSparePartsToJob(
+                              jobId ?? "", arr ?? [])
+                          .then((value) {
+                        Navigator.pop(context);
+                      });
+                    }
+                    print("asdasds");
+                  }),
             )
           ],
         )
@@ -347,19 +384,22 @@ class _AddItemsFromBagDialogState extends State<AddItemsFromBagDialog>
   }
 
   populateList() {
+    List<SparePart> list = [];
+
     setState(() {
       itemList = [];
+      list = [];
     });
-
-    List<SparePart> list = [];
 
     if ((bag?.partOfBom?.length ?? 0) > 0) {
       list.add(new SparePart(isSparePart: false, headingTitle: "Part of BOM"));
 
       bag?.partOfBom?.forEach((element) {
+        var e = SparePart.cloneInstance(element);
+
         setState(() {
-          element.isBomSpecific = true;
-          list.add(element);
+          e.isBomSpecific = true;
+          list.add(e);
         });
       });
     }
@@ -368,8 +408,9 @@ class _AddItemsFromBagDialogState extends State<AddItemsFromBagDialog>
       list.add(new SparePart(isSparePart: false, headingTitle: "Other"));
 
       bag?.notPartOfBom?.forEach((element) {
+        var e = SparePart.cloneInstance(element);
         setState(() {
-          list.add(element);
+          list.add(e);
         });
       });
     }
@@ -427,7 +468,9 @@ class _AddItemsFromBagDialogState extends State<AddItemsFromBagDialog>
                   if ((selectedBag?.length ?? 0) > 0) {
                     selectedBag?.forEach((element) {
                       var index = list?.indexOf(list
-                              ?.where((item) => item.code == element.code)
+                              ?.where((item) =>
+                                  item.description?.toLowerCase() ==
+                                  element.description?.toLowerCase())
                               .toList()[0] ??
                           new SparePart());
 
@@ -471,11 +514,11 @@ class _AddItemsFromBagDialogState extends State<AddItemsFromBagDialog>
                       selectedBag = [];
                     });
 
-                    // setState(() {
-                    //   itemList = [];
-                    //   itemList?.addAll(list);
-                    //   itemList = list;
-                    // });
+                    setState(() {
+                      itemList = [];
+                      itemList?.addAll(list);
+                      itemList = list;
+                    });
                   }
                 }
               },
@@ -609,8 +652,8 @@ class _SparePartItemState extends State<SparePartItem> {
     index = widget.index;
     isLeft = widget.isLeft;
     tappedOnItem = widget.tappedOnItem;
-    selectedArray = widget.selectedArray;
     currentList = widget.currentList;
+    selectedArray = widget.selectedArray;
     Future.delayed(Duration(milliseconds: 50 + (widget.index * 100)), () {
       // Trigger the animation only for the first build
       if (!startAnimation) {
