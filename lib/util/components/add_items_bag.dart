@@ -10,8 +10,10 @@ class AddItemsFromBagDialog extends StatefulWidget {
   BagMetaData? bag;
   List<SparePart>? existingJobSpareParts;
   String? jobId;
+  String? ticketNo;
 
-  AddItemsFromBagDialog({this.bag, this.existingJobSpareParts, this.jobId});
+  AddItemsFromBagDialog(
+      {this.bag, this.existingJobSpareParts, this.jobId, this.ticketNo});
 
   @override
   _AddItemsFromBagDialogState createState() => _AddItemsFromBagDialogState();
@@ -25,6 +27,7 @@ class _AddItemsFromBagDialogState extends State<AddItemsFromBagDialog>
   List<SparePart>? selectedBag;
   List<SparePart>? selectedJobSpareParts;
   String? jobId;
+  String? ticketNo;
 
   BagMetaData? bag;
 
@@ -33,6 +36,7 @@ class _AddItemsFromBagDialogState extends State<AddItemsFromBagDialog>
     super.initState();
     bag = widget?.bag;
     jobId = widget.jobId;
+    ticketNo = widget.ticketNo;
     existingJobSpareParts = widget.existingJobSpareParts;
   }
 
@@ -195,7 +199,7 @@ class _AddItemsFromBagDialogState extends State<AddItemsFromBagDialog>
                               ),
                               children: <TextSpan>[
                                 TextSpan(
-                                    text: "#45678",
+                                    text: "#${ticketNo}",
                                     style: const TextStyle(
                                         fontWeight: FontWeight.bold)),
                               ],
@@ -343,6 +347,7 @@ class _AddItemsFromBagDialogState extends State<AddItemsFromBagDialog>
                     Navigator.pop(context);
                   }),
             ),
+            SizedBox(width: 20),
             SizedBox(
               height: 40.0,
               child: ElevatedButton(

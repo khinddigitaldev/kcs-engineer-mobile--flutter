@@ -650,9 +650,7 @@ class _JobListState extends State<JobList>
               : new Container(),
           (inProgressJobs != null && inProgressJobs.length > 0)
               ? ConstrainedBox(
-                
                   constraints: BoxConstraints(
-                    
                       maxHeight: MediaQuery.of(context).size.height * .58,
                       minHeight: MediaQuery.of(context).size.height * .1),
                   child: ReorderableListView.builder(
@@ -683,7 +681,6 @@ class _JobListState extends State<JobList>
                           Navigator.pop(context);
                           // if (job != null) {
                           Helpers.selectedJob = job;
-                          Helpers.showAlert(context);
                           Navigator.pushNamed(context, 'jobDetails',
                                   arguments:
                                       inProgressJobs[index].serviceRequestid)
@@ -1274,19 +1271,15 @@ class _JobItemState extends State<JobItem> {
     width = widget.width;
   }
 
-  final imageUrls = [
-    "https://www.pngitem.com/pimgs/m/30-307416_profile-icon-png-image-free-download-searchpng-employee.png",
-    "https://www.pngitem.com/pimgs/m/30-307416_profile-icon-png-image-free-download-searchpng-employee.png",
-    "https://www.pngitem.com/pimgs/m/30-307416_profile-icon-png-image-free-download-searchpng-employee.png",
-    "https://www.pngitem.com/pimgs/m/30-307416_profile-icon-png-image-free-download-searchpng-employee.png"
-  ];
+  final defaultUrl =
+      "https://www.pngitem.com/pimgs/m/30-307416_profile-icon-png-image-free-download-searchpng-employee.png";
 
   Color getColor() {
-    if (job?.serviceJobStatus?.toLowerCase() == "request created" ||
-        job?.serviceJobStatus == "PENDING REPAIR") {
-      return Colors.red;
-    } else {
+    if (job?.serviceJobStatus?.toLowerCase() == "completed" ||
+        job?.serviceJobStatus?.toLowerCase() == "closed") {
       return Colors.green;
+    } else {
+      return Colors.red;
     }
   }
 
@@ -1367,7 +1360,9 @@ class _JobItemState extends State<JobItem> {
                               width: MediaQuery.of(context).size.width * 0.2,
                               height: MediaQuery.of(context).size.height * 0.03,
                               child: Stack(
-                                children: List.generate(4, (index) {
+                                children: List.generate(
+                                    job?.secondaryEngineers?.length ?? 0,
+                                    (index) {
                                   double position = index.toDouble() *
                                       25; // Adjust the overlapping position
                                   return Positioned(
@@ -1381,8 +1376,12 @@ class _JobItemState extends State<JobItem> {
                                         child: CircleAvatar(
                                           radius: 15.0,
                                           backgroundImage:
-                                              CachedNetworkImageProvider(
-                                                  imageUrls[index]),
+                                              CachedNetworkImageProvider(job
+                                                      ?.secondaryEngineers?[
+                                                          index]
+                                                      .profileImage
+                                                      .toString() ??
+                                                  defaultUrl),
                                         )),
                                   );
                                 }),

@@ -2,10 +2,8 @@ import 'dart:io';
 
 //import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_config/flutter_config.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/intl.dart';
-import 'package:kcs_engineer/UI/bag.dart';
 import 'package:kcs_engineer/model/bag.dart';
 import 'package:kcs_engineer/model/checklistAttachment.dart';
 import 'package:kcs_engineer/model/comment.dart';
@@ -20,13 +18,12 @@ import 'package:kcs_engineer/model/payment_method.dart';
 import 'package:kcs_engineer/model/pick_list_Items.dart';
 import 'package:kcs_engineer/model/pickup_charges.dart';
 import 'package:kcs_engineer/model/problem.dart';
+import 'package:kcs_engineer/model/rcpCost.dart';
 import 'package:kcs_engineer/model/reason.dart';
 import 'package:kcs_engineer/model/solution.dart';
 import 'package:kcs_engineer/model/payment_history_item.dart';
 import 'package:kcs_engineer/model/sparepart.dart';
 import 'package:kcs_engineer/model/transportCharge.dart';
-import 'package:kcs_engineer/model/job_sparepart.dart';
-import 'package:kcs_engineer/model/user.dart';
 import 'package:kcs_engineer/util/api.dart';
 import 'package:kcs_engineer/util/helpers.dart';
 import 'dart:convert';
@@ -236,7 +233,7 @@ class Repositories {
   static Future<bool> addComment(String salesOrdefId, String content) async {
     final Map<String, dynamic> map = {
       'content': content,
-      'sales_order_id': salesOrdefId,
+      'service_request_id': salesOrdefId,
     };
     final response = await Api.bearerPost('job/comments/create', params: map);
     print("#Resp: ${jsonEncode(response)}");
@@ -405,6 +402,32 @@ class Repositories {
     }
   }
 
+  static Future<bool> addItemsToPickList(
+      String jobId, List<SparePart> spareparts) async {
+    List<Map<String, dynamic>> spareParts = [];
+
+    spareparts.forEach((element) {
+      Map<String, dynamic> e = {
+        'spareparts_id': element.id,
+        'quantity_taken': element.quantity,
+      };
+      spareParts.add(e);
+    });
+
+    final Map<String, dynamic> map = {
+      'service_request_id': jobId,
+      'spareparts': spareParts
+    };
+
+    final response = await Api.bearerPost('job/create-pick-list', params: map);
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   static Future<bool> deleteMiscItem(String jobId, int miscChargesId) async {
     final Map<String, dynamic> map = {
       'service_request_id': jobId,
@@ -568,14 +591,16 @@ class Repositories {
       List<File> images, String jobId, Job selectedJob) async {
     String baseUrl = dotenv.env["API_BASE_URL"] ?? "";
     var url = Uri.parse('${baseUrl}/job/start-job');
-    return await sendMultipartReq(images, url, false, 0, jobId, selectedJob);
+    return await sendMultipartReq(
+        images, url, false, 0, jobId, selectedJob, false);
   }
 
   static Future<bool> completeJob(
       List<File> images, String jobId, Job selectedJob) async {
     String baseUrl = dotenv.env["API_BASE_URL"] ?? "";
     var url = Uri.parse('${baseUrl}/job/complete-job');
-    return await sendMultipartReq(images, url, false, 0, jobId, selectedJob);
+    return await sendMultipartReq(
+        images, url, false, 0, jobId, selectedJob, true);
   }
 
   static Future<bool> cancelJob(
@@ -585,20 +610,22 @@ class Repositories {
   ) async {
     String baseUrl = dotenv.env["API_BASE_URL"] ?? "";
     var url = Uri.parse('${baseUrl}/job/cancel-job');
-    return await sendMultipartReq(images, url, true, reasonId, jobId, null);
+    return await sendMultipartReq(
+        images, url, true, reasonId, jobId, null, false);
   }
 
   static Future<bool> uploadKIV(
       List<File> images, String jobId, int reasonId) async {
     String baseUrl = dotenv.env["API_BASE_URL"] ?? "";
     var url = Uri.parse('${baseUrl}/job/kiv-job');
-    return await sendMultipartReq(images, url, true, reasonId, jobId, null);
+    return await sendMultipartReq(
+        images, url, true, reasonId, jobId, null, false);
   }
 
   static Future<bool> closeJob(List<File> images, String jobId) async {
     String baseUrl = dotenv.env["API_BASE_URL"] ?? "";
     var url = Uri.parse('${baseUrl}/job/job-close');
-    return await sendMultipartReq(images, url, false, 0, jobId, null);
+    return await sendMultipartReq(images, url, false, 0, jobId, null, false);
   }
 
   static Future<bool> rejectJob(String jobId, int? reasonId) async {
@@ -617,12 +644,14 @@ class Repositories {
   }
 
   static Future<bool> sendMultipartReq(
-      List<File> images,
-      Uri url,
-      bool isKivOrIsCancelOrIsReject,
-      int? reasonId,
-      String serviceRequestId,
-      Job? selectedJob) async {
+    List<File> images,
+    Uri url,
+    bool isKivOrIsCancelOrIsReject,
+    int? reasonId,
+    String serviceRequestId,
+    Job? selectedJob,
+    bool isComplete,
+  ) async {
     var token = await storage.read(key: TOKEN);
 
     var headers = {
@@ -646,12 +675,11 @@ class Repositories {
 
     request.files.addAll(multipartFiles);
 
-    if (isKivOrIsCancelOrIsReject) {
-      request.fields["service_request_id"] = serviceRequestId;
-      request.fields["cancellation_reason_id"] = reasonId.toString();
-    } else {
-      request.fields["service_request_id"] = serviceRequestId;
+    request.fields["service_request_id"] = serviceRequestId;
 
+    if (isKivOrIsCancelOrIsReject) {
+      request.fields["cancellation_reason_id"] = reasonId.toString();
+    } else if (isComplete) {
       request.fields["is_chargeable[spareparts]"] =
           (selectedJob?.chargeableSparepartIds?.length ?? 0) > 0 ? "1" : "0";
       request.fields["is_chargeable[solution]"] =
@@ -716,6 +744,136 @@ class Repositories {
       return reason;
     } else {
       return [];
+    }
+  }
+
+  static Future<bool> updateChargeable(
+      String jobId,
+      bool isChargeablePickup,
+      bool isChargeableTransport,
+      bool isChargeableSolution,
+      bool isChargeableMisc,
+      List<String> ids) async {
+    var query = "";
+
+    if (ids.length > 0) {
+      ids.forEach((element) {
+        query = '${query}&list_of_spareparts_not_chargeable[]=${element}';
+      });
+    }
+
+    var url =
+        'job/fetch-payment-rcp?service_request_id=${jobId}&is_chargeable[spareparts]=${ids.length > 0 ? "1" : "0"}&is_chargeable[solution]=${isChargeableSolution ? "1" : "0"}&is_chargeable[transport]=${isChargeableTransport ? "1" : "0"}&is_chargeable[pickup]=${isChargeablePickup ? "1" : "0"}&is_chargeable[misc]=${isChargeableMisc ? "1" : "0"}${query}';
+    final response = await Api.bearerGet(
+        'job/fetch-payment-rcp?service_request_id=${jobId}&is_chargeable[spareparts]=${ids.length > 0 ? "1" : "0"}&is_chargeable[solution]=${isChargeableSolution ? "1" : "0"}&is_chargeable[transport]=${isChargeableTransport ? "1" : "0"}&is_chargeable[pickup]=${isChargeablePickup ? "1" : "0"}&is_chargeable[misc]=${isChargeableMisc ? "1" : "0"}${query}');
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  static Future<List<PaymentMethod>> fetchPaymentMethodLabels() async {
+    final response = await Api.bearerGet('payment-methods');
+    if (response["success"] != null && response["success"]) {
+      var paymentMethods = (response['data'] as List)
+          .map((i) => (PaymentMethod.fromJson(i)))
+          .toList();
+      return paymentMethods;
+    } else {
+      return [];
+    }
+  }
+
+  static Future<bool> confirmAcknowledgement(String jobId, File image,
+      bool isMailInvoice, String mailEmail, String paymentMethodId
+      // double amount,
+      // String currency,
+      ) async {
+    var token = await storage.read(key: TOKEN);
+
+    String baseUrl = dotenv.env["API_BASE_URL"] ?? "";
+    var url = Uri.parse('${baseUrl}/job/service-request-acknowledgement');
+
+    var headers = {
+      'Accept': 'application/vnd.api+json',
+      'Content-Type': 'application/vnd.api+json',
+      'Authorization': 'Bearer $token'
+    };
+    var request = http.MultipartRequest('POST', url);
+    request.files
+        .add(await http.MultipartFile.fromPath('signature', image.path));
+
+    request.headers.addAll(headers);
+    request.fields['service_request_id'] = jobId;
+    request.fields['payment_method_id'] = paymentMethodId;
+    request.fields['mail_invoice'] = isMailInvoice ? "1" : "0";
+    (mailEmail != "" && isMailInvoice)
+        ? request.fields['mailing_email'] = mailEmail
+        : {};
+
+    http.StreamedResponse response = await request.send();
+
+    if (response.statusCode == 200) {
+      print(await response.stream.bytesToString());
+      return true;
+    } else {
+      print(response.reasonPhrase);
+      return false;
+    }
+  }
+
+  static Future<List<Solution>> fetchSolutions(
+      String productModelId, String serviceTypeId) async {
+    final response = await Api.bearerGet(
+        'general/solutions?product_model_id=${productModelId}&service_type_id=${serviceTypeId}');
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      var solutions =
+          (response['data'] as List).map((i) => Solution.fromJson(i)).toList();
+      return solutions;
+    } else {
+      return [];
+    }
+  }
+
+  static Future<List<Problem>> fetchProblems() async {
+    final response = await Api.bearerGet('general/problems');
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      var problems =
+          (response['data'] as List).map((i) => Problem.fromJson(i)).toList();
+      return problems;
+    } else {
+      return [];
+    }
+  }
+
+  static Future<RCPCost?> fetchPaymentRCP(
+      String jobId,
+      bool isChargeablePickup,
+      bool isChargeableTransport,
+      bool isChargeableSolution,
+      bool isChargeableMisc,
+      List<String> ids) async {
+    var query = "";
+
+    if (ids.length > 0) {
+      ids.forEach((element) {
+        query = '${query}&list_of_spareparts_not_chargeable[]=${element}';
+      });
+    }
+
+    var url =
+        'job/fetch-payment-rcp?service_request_id=${jobId}&is_chargeable[spareparts]=${ids.length > 0 ? "1" : "0"}&is_chargeable[solution]=${isChargeableSolution ? "1" : "0"}&is_chargeable[transport]=${isChargeableTransport ? "1" : "0"}&is_chargeable[pickup]=${isChargeablePickup ? "1" : "0"}&is_chargeable[misc]=${isChargeableMisc ? "1" : "0"}${query}';
+    final response = await Api.bearerGet(
+        'job/fetch-payment-rcp?service_request_id=${jobId}&is_chargeable[spareparts]=${ids.length > 0 ? "1" : "0"}&is_chargeable[solution]=${isChargeableSolution ? "1" : "0"}&is_chargeable[transport]=${isChargeableTransport ? "1" : "0"}&is_chargeable[pickup]=${isChargeablePickup ? "1" : "0"}&is_chargeable[misc]=${isChargeableMisc ? "1" : "0"}${query}');
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      return RCPCost.fromJson(response["data"]);
+    } else {
+      return null;
     }
   }
 
@@ -875,32 +1033,6 @@ class Repositories {
     }
   }
 
-  static Future<List<Solution>> fetchSolutions(
-      String productModelId, String serviceTypeId) async {
-    final response = await Api.bearerGet(
-        'general/solutions?product_model_id=${productModelId}&service_type_id=${serviceTypeId}');
-    print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null && response["success"]) {
-      var solutions =
-          (response['data'] as List).map((i) => Solution.fromJson(i)).toList();
-      return solutions;
-    } else {
-      return [];
-    }
-  }
-
-  static Future<List<Problem>> fetchProblems() async {
-    final response = await Api.bearerGet('general/problems');
-    print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null && response["success"]) {
-      var problems =
-          (response['data'] as List).map((i) => Problem.fromJson(i)).toList();
-      return problems;
-    } else {
-      return [];
-    }
-  }
-
   static Future<PaymentHistoryItem?> fetchPaymentHistory(
       String startDate, String endDate) async {
     var url = 'payment/history' +
@@ -916,22 +1048,8 @@ class Repositories {
     }
   }
 
-  static Future<List<String>> fetchPaymentMethodLabels() async {
-    final response = await Api.bearerGet('payment-methods');
-    List<String> pmLabels = [];
-    if (response["success"] != null && response["success"]) {
-      var paymentMethods = (response['data'] as List)
-          .map((i) => (PaymentMethod.fromJson(i).description ?? "ERROR"))
-          .toList();
-      return paymentMethods;
-    } else {
-      return [];
-    }
-  }
-
   static Future<List<PaymentMethod>> fetchPaymentMethods() async {
-    final response = await Api.bearerGet('payment-methods');
-    List<String> pmLabels = [];
+    final response = await Api.bearerGet('general/payment-methods');
     if (response["success"] != null && response["success"]) {
       var paymentMethods = (response['data'] as List)
           .map((i) => (PaymentMethod.fromJson(i)))
@@ -943,49 +1061,6 @@ class Repositories {
   }
 
   //POST RATING
-  static Future<bool> processPayment(
-      String jobId,
-      File image,
-      bool isMailInvoice,
-      String mailEmail,
-      double amount,
-      String currency,
-      List<Map<String, dynamic>>? paymentTransactions) async {
-    var token = await storage.read(key: TOKEN);
-
-    var url =
-        Uri.parse('https://mc.mayer.sg/api/v1/job-orders/$jobId/job-payment');
-
-    var headers = {
-      'Accept': 'application/vnd.api+json',
-      'Content-Type': 'application/vnd.api+json',
-      'Authorization': 'Bearer $token'
-    };
-    var request = http.MultipartRequest('POST', url);
-    request.files.add(await http.MultipartFile.fromPath('image', image.path));
-
-    request.headers.addAll(headers);
-    request.fields['mail_invoice'] = isMailInvoice ? "true" : "false";
-    request.fields['amount'] = amount.toStringAsFixed(2);
-    request.fields['currency'] = "SGD";
-    paymentTransactions != null
-        ? request.fields['payment_transaction'] =
-            json.encode(paymentTransactions)
-        : {};
-    (mailEmail != "" && isMailInvoice)
-        ? request.fields['mailing_email'] = mailEmail
-        : {};
-
-    http.StreamedResponse response = await request.send();
-
-    if (response.statusCode == 200) {
-      print(await response.stream.bytesToString());
-      return true;
-    } else {
-      print(response.reasonPhrase);
-      return false;
-    }
-  }
 
   //JOBcOPLETE upload SIGNATURE
   static Future<bool> postRating(String jobId, List<int> categories,

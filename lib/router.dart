@@ -31,21 +31,21 @@ class AppRouter {
             builder: (_) => Warehouse(jobId: arguments as String));
       case 'signIn':
         return MaterialPageRoute(builder: (_) => SignIn());
-      // case 'payment':
-      //   return MaterialPageRoute(
-      //       builder: (_) => Payment(
-      //           data: (arguments as List<dynamic>)[0] as Job,
-      //           paymentDTO: (arguments as List<dynamic>)[1] as PaymentDTO));
-      // case 'signature':
-      //   return MaterialPageRoute(
-      //       builder: (_) => SignatureUI(data: arguments as Job));
+      case 'payment':
+        return MaterialPageRoute(
+            builder: (_) => Payment(
+                data: (arguments as List<dynamic>)[0] as Job,
+                paymentDTO: (arguments as List<dynamic>)[1] as PaymentDTO));
+      case 'signature':
+        return MaterialPageRoute(
+            builder: (_) => SignatureUI(data: arguments as Job));
       case 'payment_history':
         return MaterialPageRoute(builder: (_) => PaymentHistory());
-      // case 'feedback':
-      //   return MaterialPageRoute(
-      //       builder: (_) => FeedbackUI(
-      //           data: (arguments as List<dynamic>)[0] as Job,
-      //           paymentDTO: (arguments as List<dynamic>)[1] as PaymentDTO));
+      case 'feedback':
+        return MaterialPageRoute(
+            builder: (_) => FeedbackUI(
+                data: (arguments as List<dynamic>)[0] as Job,
+                paymentDTO: (arguments as List<dynamic>)[1] as PaymentDTO));
       case 'feedback_confirmation':
         return MaterialPageRoute(
             builder: (_) => FeedBackConfirmation(data: arguments as Job));

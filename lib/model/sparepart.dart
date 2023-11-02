@@ -29,8 +29,8 @@ class SparePart {
       this.headingTitle = ""});
 
   SparePart.fromJson(Map<String, dynamic> json) {
-    this.id = json["id"];
-    this.code = json["code"];
+    this.id = json["id"] != null ? json["id"] : json["spareparts_id"];
+    this.code = json["code"] != null ? json["code"] : json["spareparts_code"];
     this.description = json["description"];
     this.from = "";
     this.priceAmount =

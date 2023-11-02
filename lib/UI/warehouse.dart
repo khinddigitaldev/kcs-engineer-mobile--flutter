@@ -121,14 +121,8 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
       bool isTop = controller?.position.pixels == 0;
 
       if (!isTop) {
-        if (isSpareParts && sparePartsCurrentPage <= sparePartsMaxPages) {
-          sparePartsCurrentPage = sparePartsCurrentPage + 1;
-          var SpareParts = await _fetchSpareParts(false, false);
-        } else if (!isSpareParts &&
-            generalCodeCurrentPage <= generalCodeMaxPages) {
-          generalCodeCurrentPage = generalCodeCurrentPage + 1;
-          var SpareParts = await _fetchGeneralCodes(false);
-        }
+        sparePartsCurrentPage = sparePartsCurrentPage + 1;
+        var SpareParts = await _fetchSpareParts(false, false);
       }
     }
   }
@@ -144,13 +138,8 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
     setState(() => searchOnStoppedTyping = new Timer(duration, () async {
           if (currentSearchText != value) {
             currentSearchText = value;
-            if (isSpareParts) {
-              sparePartsCurrentPage = 1;
-              await _fetchSpareParts(true, false);
-            } else {
-              generalCodeCurrentPage = 1;
-              await _fetchGeneralCodes(true);
-            }
+            sparePartsCurrentPage = 1;
+            await _fetchSpareParts(true, false);
           }
         }));
   }
@@ -364,19 +353,9 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                                                 color: Colors.black54)))),
                                 onPressed: () async {
                                   Helpers.showAlert(context);
-                                  if (isSpareParts) {
-                                    if (await _AddSparePartsToJob()) {
-                                      Navigator.pop(context, true);
-                                    } else {
-                                      Navigator.pop(context, true);
-                                    }
-                                  } else {
-                                    if (await _AddGeneralCodeToJob()) {
-                                      Navigator.pop(context, true);
-                                    } else {
-                                      Navigator.pop(context, true);
-                                    }
-                                  }
+
+                                  await _AddSparePartsToJob().then(
+                                      (value) => Navigator.pop(context, true));
 
                                   Navigator.pop(context, true);
                                 }),
@@ -881,13 +860,24 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
   }
 
   Future<bool> _AddSparePartsToJob() async {
-    // sparePartList.forEach((element) {
-    //   if (element.quantity > 0) {
-    //     addedSparePartQuantities.add(element);
-    //   }
-    // });
+    setState(() {
+      addedSparePartQuantities = [];
+    });
 
-    return await Repositories.addSparePartsToJob(
+    var ids = addedSparePartQuantities.map((e) => e.id).toList();
+
+    sparePartList.forEach((element) {
+      if ((element.selectedQuantity ?? 0) > 0 && !(ids.contains(element.id))) {
+        addedSparePartQuantities.add(element);
+      }
+    });
+
+    addedSparePartQuantities.forEach((element) {
+      element.from = "warehouse";
+      element.quantity = element.selectedQuantity;
+    });
+
+    return await Repositories.addItemsToPickList(
         (selectedJob!.serviceRequestid ?? "0"), addedSparePartQuantities);
   }
 
@@ -908,18 +898,6 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
     if (!eraseEarlyRecords) {
       currentHistory.addAll(sparePartList);
     }
-    var url = 'general/spareparts?per_page=20' +
-        '&page=$sparePartsCurrentPage' +
-        (warehouseSearchCT.text != ""
-            ? '&q=' + warehouseSearchCT.text.toString()
-            : "") +
-        (searchByCode ? '&search_only_by_code=1' : '&search_only_by_code=0') +
-        (!searchByCode ? '&product_id=${selectedJob?.productId}' : '') +
-        (searchByCode
-            ? '&q=${codeSearchCT.text.toString()}'
-            : (warehouseSearchCT.text != ""
-                ? '&q=' + warehouseSearchCT.text.toString()
-                : ""));
 
     Helpers.showAlert(context);
 
@@ -930,6 +908,7 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
             : "") +
         (searchByCode ? '&search_only_by_code=1' : '&search_only_by_code=0') +
         (!searchByCode ? '&product_id=${selectedJob?.productId}' : '') +
+        '&service_request_id=${jobId}' +
         (searchByCode
             ? '&q=${codeSearchCT.text.toString()}'
             : (warehouseSearchCT.text != ""
@@ -953,35 +932,6 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
       sparePartsMaxPages =
           response['data']?['spareparts']?['meta']?['last_page'];
       sparePartList = currentHistory;
-    });
-  }
-
-  _fetchGeneralCodes(bool eraseEarlyRecords) async {
-    Helpers.showAlert(context);
-    List<GeneralCode> currentHistory = [];
-
-    if (!eraseEarlyRecords) {
-      currentHistory.addAll(generalCodeList);
-    }
-
-    final response = await Api.bearerGet(
-        'general-code?per_page=20&page=${generalCodeCurrentPage}' +
-            (warehouseSearchCT.text != ""
-                ? '&q=' + warehouseSearchCT.text.toString()
-                : ""));
-    Navigator.pop(context);
-    print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null) {
-      var generalCodes = (response['data']?['data'] as List)
-          .map((i) => GeneralCode.fromJson(i))
-          .toList();
-
-      currentHistory.addAll(generalCodes);
-    }
-
-    setState(() {
-      generalCodeMaxPages = response['data']?['meta']?['last_page'];
-      generalCodeList = currentHistory;
     });
   }
 
