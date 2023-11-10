@@ -753,6 +753,7 @@ class Repositories {
       bool isChargeableTransport,
       bool isChargeableSolution,
       bool isChargeableMisc,
+      bool isDiscountApplied,
       List<String> ids) async {
     var query = "";
 
@@ -763,9 +764,9 @@ class Repositories {
     }
 
     var url =
-        'job/fetch-payment-rcp?service_request_id=${jobId}&is_chargeable[spareparts]=${ids.length > 0 ? "1" : "0"}&is_chargeable[solution]=${isChargeableSolution ? "1" : "0"}&is_chargeable[transport]=${isChargeableTransport ? "1" : "0"}&is_chargeable[pickup]=${isChargeablePickup ? "1" : "0"}&is_chargeable[misc]=${isChargeableMisc ? "1" : "0"}${query}';
+        'job/fetch-payment-rcp?service_request_id=${jobId}&is_chargeable[spareparts]=${ids.length > 0 ? "1" : "0"}&is_chargeable[solution]=${isChargeableSolution ? "1" : "0"}&is_discount_applied=${isDiscountApplied ? "1" : "0"}&is_chargeable[transport]=${isChargeableTransport ? "1" : "0"}&is_chargeable[pickup]=${isChargeablePickup ? "1" : "0"}&is_chargeable[misc]=${isChargeableMisc ? "1" : "0"}${query}';
     final response = await Api.bearerGet(
-        'job/fetch-payment-rcp?service_request_id=${jobId}&is_chargeable[spareparts]=${ids.length > 0 ? "1" : "0"}&is_chargeable[solution]=${isChargeableSolution ? "1" : "0"}&is_chargeable[transport]=${isChargeableTransport ? "1" : "0"}&is_chargeable[pickup]=${isChargeablePickup ? "1" : "0"}&is_chargeable[misc]=${isChargeableMisc ? "1" : "0"}${query}');
+        'job/fetch-payment-rcp?service_request_id=${jobId}&is_chargeable[spareparts]=${ids.length > 0 ? "1" : "0"}&is_chargeable[solution]=${isChargeableSolution ? "1" : "0"}&is_discount_applied=${isDiscountApplied ? "1" : "0"}&is_chargeable[transport]=${isChargeableTransport ? "1" : "0"}&is_chargeable[pickup]=${isChargeablePickup ? "1" : "0"}&is_chargeable[misc]=${isChargeableMisc ? "1" : "0"}${query}');
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null && response["success"]) {
       return true;
@@ -856,6 +857,7 @@ class Repositories {
       bool isChargeableTransport,
       bool isChargeableSolution,
       bool isChargeableMisc,
+      bool isDiscountApplied,
       List<String> ids) async {
     var query = "";
 
@@ -866,9 +868,9 @@ class Repositories {
     }
 
     var url =
-        'job/fetch-payment-rcp?service_request_id=${jobId}&is_chargeable[spareparts]=${ids.length > 0 ? "1" : "0"}&is_chargeable[solution]=${isChargeableSolution ? "1" : "0"}&is_chargeable[transport]=${isChargeableTransport ? "1" : "0"}&is_chargeable[pickup]=${isChargeablePickup ? "1" : "0"}&is_chargeable[misc]=${isChargeableMisc ? "1" : "0"}${query}';
+        'job/fetch-payment-rcp?service_request_id=${jobId}&is_chargeable[spareparts]=${ids.length > 0 ? "1" : "0"}&is_chargeable[solution]=${isChargeableSolution ? "1" : "0"}&is_discount_applied=${isDiscountApplied ? "1" : "0"}&is_chargeable[transport]=${isChargeableTransport ? "1" : "0"}&is_chargeable[pickup]=${isChargeablePickup ? "1" : "0"}&is_chargeable[misc]=${isChargeableMisc ? "1" : "0"}${query}';
     final response = await Api.bearerGet(
-        'job/fetch-payment-rcp?service_request_id=${jobId}&is_chargeable[spareparts]=${ids.length > 0 ? "1" : "0"}&is_chargeable[solution]=${isChargeableSolution ? "1" : "0"}&is_chargeable[transport]=${isChargeableTransport ? "1" : "0"}&is_chargeable[pickup]=${isChargeablePickup ? "1" : "0"}&is_chargeable[misc]=${isChargeableMisc ? "1" : "0"}${query}');
+        'job/fetch-payment-rcp?service_request_id=${jobId}&is_chargeable[spareparts]=${ids.length > 0 ? "1" : "0"}&is_chargeable[solution]=${isChargeableSolution ? "1" : "0"}&is_discount_applied=${isDiscountApplied ? "1" : "0"}&is_chargeable[transport]=${isChargeableTransport ? "1" : "0"}&is_chargeable[pickup]=${isChargeablePickup ? "1" : "0"}&is_chargeable[misc]=${isChargeableMisc ? "1" : "0"}${query}');
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null && response["success"]) {
       return RCPCost.fromJson(response["data"]);

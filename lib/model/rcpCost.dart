@@ -8,19 +8,22 @@ class RCPCost {
   String? pickupCost;
   String? miscCost;
   String? total;
+  String? totalRCP;
+  String? discount;
 
-  RCPCost({
-    this.sparePartCost,
-    this.solutionCost,
-    this.transportCost,
-    this.pickupCost,
-    this.miscCost,
-    this.isDiscountValid,
-    this.total,
-  });
+  RCPCost(
+      {this.sparePartCost,
+      this.solutionCost,
+      this.transportCost,
+      this.pickupCost,
+      this.miscCost,
+      this.isDiscountValid,
+      this.total,
+      this.discount,
+      this.totalRCP});
 
   RCPCost.fromJson(Map<String, dynamic> json) {
-    this.isDiscountValid = json["meta"]?["discount_valid"];
+    this.isDiscountValid = json["meta"]?["discount_valid"] == "1";
     // var list1 = (json['spareparts'] as List)
     //     .map((i) => RCPSparePart.fromJson(i))
     //     .toList();
@@ -36,9 +39,7 @@ class RCPCost {
             ? convertToCurrency(((((json['spareparts'] as List)
                         .map((i) => RCPSparePart.fromJson(i))
                         .toList())
-                    .map((e) => num.parse((this.isDiscountValid ?? false)
-                        ? e.rcpAmountVal ?? "0"
-                        : e.amountVal ?? "0"))
+                    .map((e) => num.parse(e.amountVal ?? "0"))
                     .toList())
                 .reduce((value, element) => value + element)).toString())
             : convertToCurrency(null);
@@ -47,29 +48,34 @@ class RCPCost {
         ? ((json['misc'] as List)
             .map((i) => RCPSparePart.fromJson(i))
             .toList()
-            .map((e) => num.parse((this.isDiscountValid ?? false)
-                ? e.rcpAmountVal ?? "0"
-                : e.amountVal ?? "0"))
+            .map((e) => num.parse(e.amountVal ?? "0"))
             .reduce((value, element) => value + element)).toString()
         : "0.0");
 
     this.transportCost = convertToCurrency(json["transport"] != null
-        ? ((this.isDiscountValid ?? false)
-            ? (json["transport"]?["rcp_amount"]?["amount"].toString())
-            : json["transport"]?["amount"]?["amount"].toString())
+        ? (json["transport"]?["amount"]?["amount"].toString())
         : null);
 
     this.pickupCost = convertToCurrency(json["pickup"] != null
-        ? ((this.isDiscountValid ?? false)
-            ? (json["pickup"]?["rcp_amount"]?["amount"].toString())
-            : json["pickup"]?["amount"]?["amount"].toString())
+        ? (json["pickup"]?["amount"]?["amount"].toString())
         : null);
 
     this.total = convertToCurrency(json["meta"] != null
-        ? ((this.isDiscountValid ?? false)
-            ? (json["meta"]?["total_sum_rcp"]?["amount"].toString())
-            : (json["meta"]?["total_sum"]?["amount"].toString()))
+        ? ((json["meta"]?["total_sum"]?["amount"].toString()))
         : "0");
+
+    this.totalRCP = convertToCurrency(json["meta"] != null
+        ? (json["meta"]?["total_sum_rcp"]?["amount"].toString())
+        : "0");
+
+    this.discount = (num.parse(
+                    json["meta"]?["total_sum"]?["amount"].toString() ?? "0") >
+                0) &&
+            (num.parse(json["meta"]?["total_sum_rcp"]?["amount"].toString() ??
+                    "0") >
+                0)
+        ? '- MYR ${((num.parse(json["meta"]?["total_sum"]?["amount"].toString() ?? "0") - num.parse(json["meta"]?["total_sum_rcp"]?["amount"].toString() ?? "0")) / 100).toStringAsFixed(2)}'
+        : "MYR 0.00";
 
     this.solutionCost = convertToCurrency(json["solution"] != null
         ? ((this.isDiscountValid ?? false)

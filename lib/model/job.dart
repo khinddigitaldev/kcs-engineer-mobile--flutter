@@ -78,56 +78,58 @@ class Job {
 
   List<MiscellaneousItem>? miscCharges;
 
-  Job({
-    this.serviceRequestid,
-    this.serviceJobNo,
-    this.serviceType,
-    this.serviceJobStatus,
-    this.serviceDate,
-    this.serviceTime,
-    this.customerName,
-    this.customerTelephone,
-    this.customerEmail,
-    this.customerAddressName,
-    this.serviceAddressStreet,
-    this.serviceAddressCity,
-    this.serviceAddressPostcode,
-    this.serviceAddressState,
-    this.reportedProblemCode,
-    this.reportedProblemDescription,
-    this.actualProblemCode,
-    this.actualProblemDescription,
-    this.estimatedSolutionCode,
-    this.estimatedSolutionDescription,
-    this.estimatedSolutionIndoorCharges,
-    this.estimatedSolutionOutdoorCharges,
-    this.actualSolutionCode,
-    this.actualSolutionDescription,
-    this.actualSolutionIndoorCharges,
-    this.actualSolutionOutdoorCharges,
-    this.remarks,
-    this.adminRemarks,
-    this.productCode,
-    this.productDescription,
-    this.serialNo,
-    this.productId,
-    this.serviceTypeId,
-    this.picklist,
-    this.currentJobSparepartsfromBag,
-    this.currentJobSparepartsfromWarehouse,
-    this.currentJobSparepartsfromPickList,
-    this.aggregatedSpareparts,
-    this.miscCharges,
-    this.transportCharge,
-    this.pickupCharge,
-    this.secondaryEngineers,
-    this.productModelId,
-    this.isChargeableMisc,
-    this.isChargeablePickup,
-    this.isChargeableSolution,
-    this.isChargeableTransport,
-    this.chargeableSparepartIds,
-  });
+  bool? isDiscountApplied;
+
+  Job(
+      {this.serviceRequestid,
+      this.serviceJobNo,
+      this.serviceType,
+      this.serviceJobStatus,
+      this.serviceDate,
+      this.serviceTime,
+      this.customerName,
+      this.customerTelephone,
+      this.customerEmail,
+      this.customerAddressName,
+      this.serviceAddressStreet,
+      this.serviceAddressCity,
+      this.serviceAddressPostcode,
+      this.serviceAddressState,
+      this.reportedProblemCode,
+      this.reportedProblemDescription,
+      this.actualProblemCode,
+      this.actualProblemDescription,
+      this.estimatedSolutionCode,
+      this.estimatedSolutionDescription,
+      this.estimatedSolutionIndoorCharges,
+      this.estimatedSolutionOutdoorCharges,
+      this.actualSolutionCode,
+      this.actualSolutionDescription,
+      this.actualSolutionIndoorCharges,
+      this.actualSolutionOutdoorCharges,
+      this.remarks,
+      this.adminRemarks,
+      this.productCode,
+      this.productDescription,
+      this.serialNo,
+      this.productId,
+      this.serviceTypeId,
+      this.picklist,
+      this.currentJobSparepartsfromBag,
+      this.currentJobSparepartsfromWarehouse,
+      this.currentJobSparepartsfromPickList,
+      this.aggregatedSpareparts,
+      this.miscCharges,
+      this.transportCharge,
+      this.pickupCharge,
+      this.secondaryEngineers,
+      this.productModelId,
+      this.isChargeableMisc,
+      this.isChargeablePickup,
+      this.isChargeableSolution,
+      this.isChargeableTransport,
+      this.chargeableSparepartIds,
+      this.isDiscountApplied});
 
   Job.fromJson(Map<String, dynamic> json) {
     this.serviceRequestid = json["service_request_id"];
@@ -178,6 +180,11 @@ class Job {
         json["saved_states"]?["is_chargeable"]?["solution"] == "1";
     this.isChargeableTransport =
         json["saved_states"]?["is_chargeable"]?["transport"] == "1";
+    this.isDiscountApplied =
+        (json["saved_states"]?['is_discount_applied'] != null
+            ? (json["saved_states"]?['is_discount_applied']) == "1"
+            : false);
+
     this.chargeableSparepartIds =
         json["saved_states"]?["list_of_spareparts_not_chargeable"] != null
             ? (json["saved_states"]?["list_of_spareparts_not_chargeable"]

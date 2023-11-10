@@ -77,16 +77,17 @@ class _MyHomePageState extends State<MyHomePage> {
                 //     child: SparepartHistory(),
                 //   ),
                 // ),
+
                 Container(
                   color: Colors.white,
                   child: Center(
-                    child: UserProfile(),
+                    child: new Container(),
                   ),
                 ),
                 Container(
                   color: Colors.white,
                   child: Center(
-                    child: new Container(),
+                    child: UserProfile(),
                   ),
                 ),
               ],

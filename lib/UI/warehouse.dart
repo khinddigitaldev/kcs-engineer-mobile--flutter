@@ -927,6 +927,9 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
               : [];
 
       currentHistory.addAll(spareParts);
+
+      currentHistory
+          .sort((a, b) => b.quantity?.compareTo(a.quantity ?? 0) ?? 0);
     }
     setState(() {
       sparePartsMaxPages =

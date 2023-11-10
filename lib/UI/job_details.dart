@@ -41,7 +41,7 @@ class JobDetails extends StatefulWidget {
 }
 
 class _JobDetailsState extends State<JobDetails>
-    with WidgetsBindingObserver, AfterLayoutMixin {
+    with WidgetsBindingObserver, AfterLayoutMixin, TickerProviderStateMixin {
   GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
   GlobalKey<ScaffoldState> _imgScaffoldKey = new GlobalKey<ScaffoldState>();
 
@@ -126,15 +126,17 @@ class _JobDetailsState extends State<JobDetails>
   List<TransportCharge>? allTransportCharges = null;
 
   bool isTransportationChargesAvailable = true;
-
   List<String> priority = ["bag", "warehouse", "picklist"];
 
   int stepperCounter = 1;
 
+  late TabController tabController;
+  bool isDiscountApplied = false;
+
   @override
   FutureOr<void> afterFirstLayout(BuildContext context) async {
     jobId = widget.id ?? "";
-    //TODO conditionllly TAKE REASONS
+
     await fetchJobDetails();
     await fetchRCPCost();
     await fetchTransportCharges();
@@ -198,10 +200,12 @@ class _JobDetailsState extends State<JobDetails>
     var transportCharges =
         await Repositories.fetchTransportCharges(selectedJob?.productModelId);
     isLoading = false;
-    setState(() {
-      allTransportCharges = transportCharges;
-      isTransportationChargesAvailable = transportCharges.length > 0;
-    });
+    if (mounted) {
+      setState(() {
+        allTransportCharges = transportCharges;
+        isTransportationChargesAvailable = transportCharges.length > 0;
+      });
+    }
   }
 
   fetchPickUpCharges() async {
@@ -222,6 +226,36 @@ class _JobDetailsState extends State<JobDetails>
         break;
       case "repairing":
         res = true;
+        break;
+      case "kiv":
+        res = true;
+        break;
+      case "cancelled":
+        res = false;
+        break;
+      case "completed":
+        res = false;
+        break;
+      case "closed":
+        res = false;
+        break;
+      case "pending delivery":
+        res = false;
+        break;
+    }
+
+    return res;
+  }
+
+  bool checkIfEditableByJobStatusForSolution(bool isActual) {
+    bool res = false;
+
+    switch (selectedJob?.serviceJobStatus?.toLowerCase()) {
+      case "pending job start":
+        res = true;
+        break;
+      case "repairing":
+        res = isActual;
         break;
       case "kiv":
         res = true;
@@ -305,7 +339,11 @@ class _JobDetailsState extends State<JobDetails>
                   });
                   Navigator.pop(context);
                   await pickImage(false, true, false, false, false, false)
-                      .then((value) => Navigator.pop(context));
+                      .then((value) {
+                    if (mounted) {
+                      Navigator.pop(context);
+                    }
+                  });
                 });
           });
         });
@@ -342,6 +380,11 @@ class _JobDetailsState extends State<JobDetails>
   @override
   void initState() {
     WidgetsBinding.instance.addObserver(this);
+    tabController = TabController(
+      initialIndex: 0,
+      length: 2,
+      vsync: this,
+    );
     super.initState();
 
     serialNoFocusNode = FocusNode();
@@ -382,7 +425,8 @@ class _JobDetailsState extends State<JobDetails>
 
       print(abc);
 
-      int indexIfExists = updatedArray?.indexWhere((e) => e.id == element.id) ?? 0;
+      int indexIfExists =
+          updatedArray?.indexWhere((e) => e.id == element.id) ?? 0;
 
       if (indexIfExists == -1) {
         var obj = SparePart.cloneInstance(element);
@@ -406,10 +450,9 @@ class _JobDetailsState extends State<JobDetails>
 
           if ((sparePartExisting?.length ?? 0) != 0) {
             SparePart newClone = SparePart.cloneInstance(obj);
-            newClone.quantity = 0 - (quantityToRemove ?? 0);
+            newClone.quantity = (quantityToRemove ?? 0);
             newClone.from = priority;
-            quantityToRemove =
-                (quantityToRemove ?? 0) - (sparePartExisting?[0].quantity ?? 0);
+
             finalArr.add(newClone);
           }
 
@@ -419,57 +462,53 @@ class _JobDetailsState extends State<JobDetails>
         });
       } else {
         //reduced quantity
-        if(updatedArray?[indexIfExists].quantity != element?.quantity){
+        if (updatedArray?[indexIfExists].quantity != element?.quantity) {
+          var obj = updatedArray?.firstWhere((e) => element.id == e.id);
 
-var obj = updatedArray?.firstWhere((e) => element.id == e.id);
+          if (obj != null && obj.quantity != element.quantity) {
+            quantityToRemove = (element.quantity ?? 0) - (obj.quantity ?? 0);
 
-        if (obj != null && obj.quantity != element.quantity) {
-          quantityToRemove = (element.quantity ?? 0) - (obj.quantity ?? 0);
+            priority.forEach((priority) {
+              switch (priority) {
+                case "bag":
+                  sparePartExisting = selectedJob?.currentJobSparepartsfromBag
+                      ?.where(
+                          (currentSparePart) => currentSparePart.id == obj.id)
+                      .toList();
+                  break;
+                case "warehouse":
+                  sparePartExisting = selectedJob
+                      ?.currentJobSparepartsfromWarehouse
+                      ?.where(
+                          (currentSparePart) => currentSparePart.id == obj.id)
+                      .toList();
+                  break;
+                case "picklist":
+                  sparePartExisting = selectedJob
+                      ?.currentJobSparepartsfromPickList
+                      ?.where(
+                          (currentSparePart) => currentSparePart.id == obj.id)
+                      .toList();
+                  break;
+              }
 
-          priority.forEach((priority) {
-            switch (priority) {
-              case "bag":
-                sparePartExisting = selectedJob?.currentJobSparepartsfromBag
-                    ?.where((currentSparePart) => currentSparePart.id == obj.id)
-                    .toList();
-                break;
-              case "warehouse":
-                sparePartExisting = selectedJob
-                    ?.currentJobSparepartsfromWarehouse
-                    ?.where((currentSparePart) => currentSparePart.id == obj.id)
-                    .toList();
-                break;
-              case "picklist":
-                sparePartExisting = selectedJob
-                    ?.currentJobSparepartsfromPickList
-                    ?.where((currentSparePart) => currentSparePart.id == obj.id)
-                    .toList();
-                break;
-            }
+              if ((sparePartExisting?.length ?? 0) != 0) {
+                int currentQuantity = sparePartExisting?[0].quantity ?? 0;
+                SparePart newClone = SparePart.cloneInstance(obj);
+                newClone.quantity = 0 - (quantityToRemove ?? 0);
+                newClone.from = priority;
 
-            if ((sparePartExisting?.length ?? 0) != 0) {
-              int currentQuantity = sparePartExisting?[0].quantity ?? 0;
-              SparePart newClone = SparePart.cloneInstance(obj);
-              newClone.quantity = 0 - (quantityToRemove ?? 0);
-              newClone.from = priority;
+                quantityToRemove =
+                    (quantityToRemove ?? 0) + (newClone.quantity ?? 0);
+                finalArr.add(newClone);
+              }
 
-              quantityToRemove =
-                  (quantityToRemove ?? 0) + (newClone.quantity ?? 0);
-              finalArr.add(newClone);
-            }
-
-            if (quantityToRemove == 0) {
-              return;
-            }
-          });
+              if (quantityToRemove == 0) {
+                return;
+              }
+            });
+          }
         }
-
-
-        }
-
-
-
-        
       }
     });
 
@@ -873,8 +912,7 @@ var obj = updatedArray?.firstWhere((e) => element.id == e.id);
                                       ),
                                       children: <TextSpan>[
                                         TextSpan(
-                                          text: selectedJobDetails
-                                              ?.productDescription,
+                                          text: selectedJob?.productDescription,
                                         ),
                                       ]),
                                 ),
@@ -1601,7 +1639,7 @@ var obj = updatedArray?.firstWhere((e) => element.id == e.id);
                                     ? Container(
                                         width:
                                             MediaQuery.of(context).size.width *
-                                                0.2,
+                                                0.15,
                                         height:
                                             MediaQuery.of(context).size.height *
                                                 0.03,
@@ -2010,7 +2048,13 @@ var obj = updatedArray?.firstWhere((e) => element.id == e.id);
                                                   height: 50),
                                               hasCancel: true,
                                               onPressed: () async {
-                                            _renderStepper();
+                                            // _renderStepper();
+                                            Navigator.pushNamed(
+                                                    context, 'signature',
+                                                    arguments: selectedJob)
+                                                .then((val) async {
+                                              if ((val as bool)) {}
+                                            });
                                           });
                                         }
                                       }))
@@ -2023,7 +2067,7 @@ var obj = updatedArray?.firstWhere((e) => element.id == e.id);
                           checkActionsEnabled("kiv")
                               ? SizedBox(
                                   width: MediaQuery.of(context).size.width *
-                                      0.25, // <-- match_parent
+                                      0.15, // <-- match_parent
                                   height: MediaQuery.of(context).size.width *
                                       0.05, // <-- match-parent
                                   child: true
@@ -2747,10 +2791,28 @@ var obj = updatedArray?.firstWhere((e) => element.id == e.id);
                     const SizedBox(height: 20),
                     buildIssueInfo(),
                     const SizedBox(height: 20),
-                    Divider(),
-                    const SizedBox(height: 20),
-                    _renderCost(false),
-                    const SizedBox(height: 10),
+                    checkActionsEnabled('start') ? Divider() : new Container(),
+                    checkActionsEnabled('start')
+                        ? const SizedBox(height: 20)
+                        : new Container(),
+                    checkActionsEnabled('start')
+                        ? _renderStartButton()
+                        : new Container(),
+                    checkActionsEnabled('start')
+                        ? const SizedBox(height: 20)
+                        : new Container(),
+                    (rcpCost != null && rcpCost?.total != "MYR 0.00")
+                        ? Divider()
+                        : new Container(),
+                    (rcpCost != null && rcpCost?.total != "MYR 0.00")
+                        ? const SizedBox(height: 20)
+                        : new Container(),
+                    (rcpCost?.total != "MYR 0.00")
+                        ? _renderCost(false)
+                        : new Container(),
+                    (rcpCost != null && rcpCost?.total != "MYR 0.00")
+                        ? const SizedBox(height: 10)
+                        : new Container(),
                     Divider(),
                     const SizedBox(height: 20),
                     _renderPickList(false),
@@ -2779,23 +2841,25 @@ var obj = updatedArray?.firstWhere((e) => element.id == e.id);
                     _renderPickupCharges(false),
                     const SizedBox(height: 20),
                     Divider(),
-                    const SizedBox(height: 20),
-                    _renderSolutions(false),
-                    const SizedBox(height: 20),
-                    Divider(),
+                    selectedJob?.actualSolutionCode == null &&
+                            selectedJob?.estimatedSolutionCode == null
+                        ? new Container()
+                        : const SizedBox(height: 20),
+                    selectedJob?.actualSolutionCode == null &&
+                            selectedJob?.estimatedSolutionCode == null
+                        ? new Container()
+                        : _renderSolutions(false),
+                    selectedJob?.actualSolutionCode == null &&
+                            selectedJob?.estimatedSolutionCode == null
+                        ? new Container()
+                        : const SizedBox(height: 20),
+                    selectedJob?.actualSolutionCode == null &&
+                            selectedJob?.estimatedSolutionCode == null
+                        ? new Container()
+                        : Divider(),
                     const SizedBox(height: 20),
                     _renderProblems(false),
                     const SizedBox(height: 20),
-                    checkActionsEnabled('start') ? Divider() : new Container(),
-                    checkActionsEnabled('start')
-                        ? const SizedBox(height: 20)
-                        : new Container(),
-                    checkActionsEnabled('start')
-                        ? _renderStartButton()
-                        : new Container(),
-                    checkActionsEnabled('start')
-                        ? const SizedBox(height: 20)
-                        : new Container(),
                   ]))
               : (jobHistory != null && jobHistory.length > 0)
                   ? ConstrainedBox(
@@ -2901,13 +2965,13 @@ var obj = updatedArray?.firstWhere((e) => element.id == e.id);
               )),
           style: ButtonStyle(
               foregroundColor:
-                  MaterialStateProperty.all<Color>(Color(0xFF242A38)),
+                  MaterialStateProperty.all<Color>(Color(0xFFffb700)),
               backgroundColor:
-                  MaterialStateProperty.all<Color>(Color(0xFF242A38)),
+                  MaterialStateProperty.all<Color>(Color(0xFFffb700)),
               shape: MaterialStateProperty.all<RoundedRectangleBorder>(
                   RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(4.0),
-                      side: const BorderSide(color: Color(0xFF242A38))))),
+                      side: const BorderSide(color: Color(0xFFffb700))))),
           onPressed: () async {
             var res = validateIfEditedValuesAreSaved();
 
@@ -2929,6 +2993,316 @@ var obj = updatedArray?.firstWhere((e) => element.id == e.id);
 
     await showMultipleImagesPromptDialog(
         context, true, isKIV, isComplete, isCancel, isStart, isReject, isClose);
+  }
+
+  _renderSolutionComponents(bool isStepper, bool isActual) {
+    return Container(
+        padding: EdgeInsets.only(bottom: 10),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(height: 30),
+            isActual &&
+                    checkIfEditableByJobStatusForSolution(isActual) &&
+                    !isStepper
+                ? DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    items: solutionLabels.map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                    onChanged: (element) async {
+                      var index = solutionLabels.indexOf(element.toString());
+                      var res = await Repositories.addSolutionToJob(
+                          selectedJob!.serviceRequestid ?? "0",
+                          solutions[index].solutionId ?? 0,
+                          selectedJob?.serviceJobStatus?.toLowerCase() !=
+                              "repairing");
+                      //show error if error
+                      await refreshJobDetails();
+                    },
+                    decoration: InputDecoration(
+                        contentPadding:
+                            EdgeInsets.symmetric(vertical: 7, horizontal: 3),
+                        border: OutlineInputBorder(
+                          borderRadius: const BorderRadius.all(
+                            const Radius.circular(5.0),
+                          ),
+                        ),
+                        filled: true,
+                        hintStyle: TextStyle(color: Colors.grey[800]),
+                        hintText: "Please Select a Solution",
+                        fillColor: Colors.white),
+                    value: solutionLabels.contains(isActual
+                            ? selectedJob?.actualSolutionDescription
+                            : selectedJob?.estimatedSolutionDescription)
+                        ? isActual
+                            ? selectedJob?.actualSolutionDescription
+                            : selectedJob?.estimatedSolutionDescription
+                        : "",
+                  )
+                : checkIfEditableByJobStatusForSolution(isActual) && !isStepper
+                    ? DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        items: solutionLabels.map((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                        onChanged: (element) async {
+                          var index =
+                              solutionLabels.indexOf(element.toString());
+                          var res = await Repositories.addSolutionToJob(
+                              selectedJob!.serviceRequestid ?? "0",
+                              solutions[index].solutionId ?? 0,
+                              selectedJob?.serviceJobStatus?.toLowerCase() !=
+                                  "repairing");
+                          //show error if error
+                          await refreshJobDetails();
+                        },
+                        decoration: InputDecoration(
+                            contentPadding: EdgeInsets.symmetric(
+                                vertical: 7, horizontal: 3),
+                            border: OutlineInputBorder(
+                              borderRadius: const BorderRadius.all(
+                                const Radius.circular(5.0),
+                              ),
+                            ),
+                            filled: true,
+                            hintStyle: TextStyle(color: Colors.grey[800]),
+                            hintText: "Please Select a Solution",
+                            fillColor: Colors.white),
+                        //value: dropDownValue,
+                      )
+                    : new Container(),
+            SizedBox(height: 20),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      RichText(
+                        text: TextSpan(
+                          style: TextStyle(
+                            fontSize: 12.0,
+                            color: Colors.black54,
+                          ),
+                          children: <TextSpan>[
+                            TextSpan(
+                              text: (isActual
+                                  ? 'ESTIMATED SOLUTION CODE'
+                                  : 'ACTUAL SOLUTION CODE'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(
+                        height: 5,
+                      ),
+                      RichText(
+                        text: TextSpan(
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            color: Colors.black,
+                          ),
+                          children: <TextSpan>[
+                            TextSpan(
+                              text: isActual
+                                  ? selectedJob?.actualSolutionCode
+                                  : selectedJob?.estimatedSolutionCode,
+                            ),
+                          ],
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+                Container(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      RichText(
+                        text: TextSpan(
+                          style: TextStyle(
+                            fontSize: 12.0,
+                            color: Colors.black54,
+                          ),
+                          children: <TextSpan>[
+                            TextSpan(
+                              text: isActual
+                                  ? 'ACTUAL SOLUTION'
+                                  : 'ESTIMATED SOLUTION',
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(
+                        height: 5,
+                      ),
+                      RichText(
+                        text: TextSpan(
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            color: Colors.black,
+                          ),
+                          children: <TextSpan>[
+                            TextSpan(
+                              text: isActual
+                                  ? selectedJob?.actualSolutionDescription
+                                  : selectedJob?.estimatedSolutionDescription,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                (isActual
+                            ? selectedJob?.actualSolutionIndoorCharges
+                            : selectedJob?.estimatedSolutionIndoorCharges) ==
+                        "MYR 0.00"
+                    ? Container(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            RichText(
+                              text: const TextSpan(
+                                style: TextStyle(
+                                  fontSize: 12.0,
+                                  color: Colors.black54,
+                                ),
+                                children: <TextSpan>[
+                                  const TextSpan(
+                                    text: 'INDOOR COST',
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(
+                              height: 5,
+                            ),
+                            RichText(
+                              text: TextSpan(
+                                style: TextStyle(
+                                  fontSize: 14.0,
+                                  color: Colors.black,
+                                ),
+                                children: <TextSpan>[
+                                  TextSpan(
+                                    text: isActual
+                                        ? selectedJob
+                                            ?.actualSolutionIndoorCharges
+                                        : selectedJob
+                                            ?.estimatedSolutionIndoorCharges,
+                                  ),
+                                ],
+                              ),
+                            )
+                          ],
+                        ),
+                      )
+                    : new Container(),
+                (isActual
+                            ? selectedJob?.actualSolutionOutdoorCharges
+                            : selectedJob?.estimatedSolutionOutdoorCharges) ==
+                        "MYR 0.00"
+                    ? Container(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            RichText(
+                              text: const TextSpan(
+                                style: TextStyle(
+                                  fontSize: 12.0,
+                                  color: Colors.black54,
+                                ),
+                                children: <TextSpan>[
+                                  const TextSpan(
+                                    text: 'OUTDOOR COST',
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(
+                              height: 5,
+                            ),
+                            RichText(
+                              text: TextSpan(
+                                style: TextStyle(
+                                  fontSize: 14.0,
+                                  color: Colors.black,
+                                ),
+                                children: <TextSpan>[
+                                  TextSpan(
+                                    text: isActual
+                                        ? selectedJob
+                                            ?.actualSolutionOutdoorCharges
+                                        : selectedJob
+                                            ?.estimatedSolutionOutdoorCharges,
+                                  ),
+                                ],
+                              ),
+                            )
+                          ],
+                        ),
+                      )
+                    : new Container(),
+                checkIfEditableByJobStatusForSolution(isActual)
+                    ? SizedBox(
+                        width: 70,
+                        height: 40.0,
+                        child: ElevatedButton(
+                            child: const Padding(
+                                padding: EdgeInsets.all(0.0),
+                                child: Text(
+                                  'Clear',
+                                  style: TextStyle(
+                                      fontSize: 15, color: Colors.white),
+                                )),
+                            style: ButtonStyle(
+                                foregroundColor:
+                                    MaterialStateProperty.all<Color>(
+                                        Color(0xFF242A38)),
+                                backgroundColor:
+                                    MaterialStateProperty.all<Color>(
+                                        Color(0xFF242A38)),
+                                shape: MaterialStateProperty.all<
+                                        RoundedRectangleBorder>(
+                                    RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(4.0),
+                                        side: const BorderSide(
+                                            color: Color(0xFF242A38))))),
+                            onPressed: () async {
+                              await Repositories.addSolutionToJob(
+                                  selectedJob!.serviceRequestid ?? "0",
+                                  null,
+                                  !isActual);
+
+                              await refreshJobDetails();
+                            }),
+                      )
+                    : new Container()
+              ],
+            )
+          ],
+        ));
   }
 
   _renderSolutions(bool isStepper) {
@@ -2975,6 +3349,7 @@ var obj = updatedArray?.firstWhere((e) => element.id == e.id);
                       isChargeableTransportCharges,
                       !isChargeableSolutionCharges,
                       isChargeableMiscellaneousCharges,
+                      isDiscountApplied,
                       (selectedJob?.chargeableSparepartIds ?? []));
 
                   await refreshJobDetails();
@@ -2982,270 +3357,66 @@ var obj = updatedArray?.firstWhere((e) => element.id == e.id);
               },
             )
           ]),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(height: 30),
-              (selectedJob?.estimatedSolutionCode != null ||
-                          selectedJob?.actualSolutionCode != null) &&
-                      checkIfEditableByJobStatus() &&
-                      !isStepper
-                  ? DropdownButtonFormField<String>(
-                      isExpanded: true,
-                      items: solutionLabels.map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                      onChanged: (element) async {
-                        var index = solutionLabels.indexOf(element.toString());
-                        var res = await Repositories.addSolutionToJob(
-                            selectedJob!.serviceRequestid ?? "0",
-                            solutions[index].solutionId ?? 0,
-                            selectedJob?.serviceJobStatus?.toLowerCase() !=
-                                "repairing");
-                        //show error if error
-                        await refreshJobDetails();
-                      },
-                      decoration: InputDecoration(
-                          contentPadding:
-                              EdgeInsets.symmetric(vertical: 7, horizontal: 3),
-                          border: OutlineInputBorder(
-                            borderRadius: const BorderRadius.all(
-                              const Radius.circular(5.0),
-                            ),
-                          ),
-                          filled: true,
-                          hintStyle: TextStyle(color: Colors.grey[800]),
-                          hintText: "Please Select a Solution",
-                          fillColor: Colors.white),
-                      value: solutionLabels.contains(
-                              selectedJob?.actualSolutionDescription != null
-                                  ? selectedJob?.actualSolutionDescription
-                                  : selectedJob?.estimatedSolutionDescription)
-                          ? selectedJob?.actualSolutionDescription != null
-                              ? selectedJob?.actualSolutionDescription
-                              : selectedJob?.estimatedSolutionDescription
-                          : "",
-                    )
-                  : checkIfEditableByJobStatus() && !isStepper
-                      ? DropdownButtonFormField<String>(
-                          isExpanded: true,
-                          items: solutionLabels.map((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value),
-                            );
-                          }).toList(),
-                          onChanged: (element) async {
-                            var index =
-                                solutionLabels.indexOf(element.toString());
-                            var res = await Repositories.addSolutionToJob(
-                                selectedJob!.serviceRequestid ?? "0",
-                                solutions[index].solutionId ?? 0,
-                                selectedJob?.serviceJobStatus?.toLowerCase() !=
-                                    "repairing");
-                            //show error if error
-                            await refreshJobDetails();
-                          },
-                          decoration: InputDecoration(
-                              contentPadding: EdgeInsets.symmetric(
-                                  vertical: 7, horizontal: 3),
-                              border: OutlineInputBorder(
-                                borderRadius: const BorderRadius.all(
-                                  const Radius.circular(5.0),
-                                ),
-                              ),
-                              filled: true,
-                              hintStyle: TextStyle(color: Colors.grey[800]),
-                              hintText: "Please Select a Solution",
-                              fillColor: Colors.white),
-                          //value: dropDownValue,
-                        )
-                      : new Container(),
-              SizedBox(height: 20),
-              selectedJob?.estimatedSolutionDescription != null ||
-                      selectedJob?.actualSolutionDescription != null
-                  ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              RichText(
-                                text: const TextSpan(
-                                  style: TextStyle(
-                                    fontSize: 12.0,
-                                    color: Colors.black54,
-                                  ),
-                                  children: <TextSpan>[
-                                    const TextSpan(
-                                      text: 'SOLUTION CODE',
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(
-                                height: 5,
-                              ),
-                              RichText(
-                                text: TextSpan(
-                                  style: TextStyle(
-                                    fontSize: 14.0,
-                                    color: Colors.black,
-                                  ),
-                                  children: <TextSpan>[
-                                    TextSpan(
-                                      text: selectedJob?.actualSolutionCode !=
-                                              null
-                                          ? selectedJob?.actualSolutionCode
-                                          : selectedJob?.estimatedSolutionCode,
-                                    ),
-                                  ],
-                                ),
-                              )
-                            ],
-                          ),
-                        ),
-                        Container(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              RichText(
-                                text: const TextSpan(
-                                  style: TextStyle(
-                                    fontSize: 12.0,
-                                    color: Colors.black54,
-                                  ),
-                                  children: <TextSpan>[
-                                    const TextSpan(
-                                      text: 'SOLUTION',
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(
-                                height: 5,
-                              ),
-                              RichText(
-                                text: TextSpan(
-                                  style: TextStyle(
-                                    fontSize: 14.0,
-                                    color: Colors.black,
-                                  ),
-                                  children: <TextSpan>[
-                                    TextSpan(
-                                      text: selectedJob
-                                                  ?.actualSolutionDescription !=
-                                              null
-                                          ? selectedJob
-                                              ?.actualSolutionDescription
-                                          : selectedJob
-                                              ?.estimatedSolutionDescription,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              RichText(
-                                text: const TextSpan(
-                                  style: TextStyle(
-                                    fontSize: 12.0,
-                                    color: Colors.black54,
-                                  ),
-                                  children: <TextSpan>[
-                                    const TextSpan(
-                                      text: 'COST',
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(
-                                height: 5,
-                              ),
-                              RichText(
-                                text: TextSpan(
-                                  style: TextStyle(
-                                    fontSize: 14.0,
-                                    color: Colors.black,
-                                  ),
-                                  children: <TextSpan>[
-                                    TextSpan(
-                                      text: selectedJob?.actualSolutionCode !=
-                                              null
-                                          ? selectedJob
-                                              ?.actualSolutionIndoorCharges
-                                          : selectedJob
-                                              ?.estimatedSolutionIndoorCharges,
-                                    ),
-                                  ],
-                                ),
-                              )
-                            ],
-                          ),
-                        ),
-                        checkIfEditableByJobStatus() && !isStepper
-                            ? SizedBox(
-                                width: 70,
-                                height: 40.0,
-                                child: ElevatedButton(
-                                    child: const Padding(
-                                        padding: EdgeInsets.all(0.0),
-                                        child: Text(
-                                          'Clear',
-                                          style: TextStyle(
-                                              fontSize: 15,
-                                              color: Colors.white),
-                                        )),
-                                    style: ButtonStyle(
-                                        foregroundColor:
-                                            MaterialStateProperty.all<Color>(
-                                                Color(0xFF242A38)),
-                                        backgroundColor:
-                                            MaterialStateProperty.all<Color>(
-                                                Color(0xFF242A38)),
-                                        shape: MaterialStateProperty.all<
-                                                RoundedRectangleBorder>(
-                                            RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(4.0),
-                                                side: const BorderSide(
-                                                    color:
-                                                        Color(0xFF242A38))))),
-                                    onPressed: () async {
-                                      await Repositories.addSolutionToJob(
-                                          selectedJob!.serviceRequestid ?? "0",
-                                          null,
-                                          selectedJob?.actualSolutionCode !=
-                                              null);
-
-                                      await refreshJobDetails();
-                                    }),
-                              )
-                            : new Container()
-                      ],
-                    )
-                  : new Container(),
-            ],
+          SizedBox(
+            height: 20,
           ),
-          const SizedBox(height: 10),
+          Container(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // SwitcherButton(
+                //   value: true,
+                //   onChange: (value) {
+                //     print(value);
+                //   },
+                // ),
+                Padding(
+                  padding: const EdgeInsets.all(0),
+                  child: Container(
+                    height: MediaQuery.of(context).size.height * 0.03,
+                    width: MediaQuery.of(context).size.width * 0.4,
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        color: Colors.white),
+                    child: TabBar(
+                      controller: tabController,
+                      indicator: BoxDecoration(
+                        color: Colors.black,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      labelColor: Colors.white,
+                      unselectedLabelColor: Colors.black,
+                      // ignore: prefer_const_literals_to_create_immutables
+                      tabs: [
+                        Tab(
+                          text: "Estimated Solution",
+                        ),
+                        Tab(
+                          text: "Actual Solution",
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  height: 10,
+                ),
+                Container(
+                  height: MediaQuery.of(context).size.height * 0.2,
+                  width: MediaQuery.of(context).size.width * 1,
+                  child: TabBarView(controller: tabController, children: [
+                    selectedJob?.estimatedSolutionCode != null
+                        ? _renderSolutionComponents(isStepper, false)
+                        : new Container(),
+                    selectedJob?.actualSolutionCode != null
+                        ? _renderSolutionComponents(isStepper, true)
+                        : new Container(),
+                  ]),
+                ),
+              ],
+            ),
+          )
         ]);
   }
 
@@ -3850,30 +4021,80 @@ var obj = updatedArray?.firstWhere((e) => element.id == e.id);
                   ],
                 ),
               ),
+              SizedBox(
+                width: 10,
+              ),
+              FlutterSwitch(
+                activeColor: Colors.green,
+                inactiveColor: Colors.red,
+                activeTextColor: Colors.white,
+                inactiveTextColor: Colors.white,
+                activeText: "Discount added",
+                inactiveText: "Discount removed",
+                value: isDiscountApplied,
+                valueFontSize: 14.0,
+                width: 150,
+                borderRadius: 30.0,
+                showOnOff: true,
+                onToggle: (val) async {
+                  if (checkIfEditableByJobStatus() && !isStepper) {
+                    var result = await Repositories.updateChargeable(
+                        selectedJob!.serviceRequestid ?? "0",
+                        isChargeablePickupCharges,
+                        isChargeableTransportCharges,
+                        isChargeableSolutionCharges,
+                        isChargeableMiscellaneousCharges,
+                        !isDiscountApplied,
+                        (selectedJob?.chargeableSparepartIds ?? []));
+
+                    await refreshJobDetails();
+                  }
+                },
+              ),
             ],
           ),
           const SizedBox(height: 40),
           ConstrainedBox(
             constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * .12,
-                minHeight: MediaQuery.of(context).size.height * .09),
+                maxHeight: MediaQuery.of(context).size.height * .2,
+                minHeight: MediaQuery.of(context).size.height * .15),
             child: ListView(
               children: [
-                _buildChargeItem("Sparepart charges",
-                    rcpCost?.sparePartCost ?? "MYR 0.00", false),
-                _buildChargeItem("Solution charges",
-                    rcpCost?.solutionCost ?? "MYR 0.00", false),
-                _buildChargeItem("Miscellaneous charges",
-                    rcpCost?.miscCost ?? "MYR 0.00", false),
-                _buildChargeItem("Transport charges",
-                    rcpCost?.transportCost ?? "MYR 0.00", false),
-                _buildChargeItem(
-                    "Pickup charges", rcpCost?.pickupCost ?? "MYR 0.00", false),
-                // Divider(), // Add a divider line
+                rcpCost?.sparePartCost != "MYR 0.00"
+                    ? _buildChargeItem("Sparepart charges",
+                        rcpCost?.sparePartCost ?? "MYR 0.00", false)
+                    : new Container(),
+                rcpCost?.solutionCost != "MYR 0.00"
+                    ? _buildChargeItem("Solution charges",
+                        rcpCost?.solutionCost ?? "MYR 0.00", false)
+                    : new Container(),
+                rcpCost?.miscCost != "MYR 0.00"
+                    ? _buildChargeItem("Miscellaneous charges",
+                        rcpCost?.miscCost ?? "MYR 0.00", false)
+                    : new Container(),
+                rcpCost?.transportCost != "MYR 0.00"
+                    ? _buildChargeItem("Transport charges",
+                        rcpCost?.transportCost ?? "MYR 0.00", false)
+                    : new Container(),
+                rcpCost?.pickupCost != "MYR 0.00"
+                    ? _buildChargeItem("Pickup charges",
+                        rcpCost?.pickupCost ?? "MYR 0.00", false)
+                    : new Container(),
                 SizedBox(
                   height: 5,
                 ),
                 _buildChargeItem("Total", rcpCost?.total ?? "MYR 0.00", true),
+                (rcpCost?.isDiscountValid ?? false)
+                    ? _buildChargeItem("10% Discount applied",
+                        rcpCost?.discount ?? "MYR 0.00", true)
+                    : new Container(),
+                (rcpCost?.isDiscountValid ?? false)
+                    ? Divider()
+                    : new Container(),
+                (rcpCost?.isDiscountValid ?? false)
+                    ? _buildChargeItem(
+                        "Grand Total", rcpCost?.totalRCP ?? "MYR 0.00", true)
+                    : new Container(),
               ],
             ),
           )
@@ -4107,6 +4328,7 @@ var obj = updatedArray?.firstWhere((e) => element.id == e.id);
                                         isChargeablePickupCharges,
                                         isChargeableTransportCharges,
                                         isChargeableSolutionCharges,
+                                        isDiscountApplied,
                                         isChargeableMiscellaneousCharges,
                                         ids);
 
@@ -4119,14 +4341,17 @@ var obj = updatedArray?.firstWhere((e) => element.id == e.id);
                                   (selectedJob!.aggregatedSpareparts ?? []),
                               onDeletePressed: (id) async {
                                 var arr = Helpers?.editableJobSpareParts;
-                                setState(() {
-                                  Helpers.editableJobSpareParts.removeWhere(
-                                      (element) => element.id == id);
-                                });
+
+                                Helpers.editableJobSpareParts
+                                    .removeWhere((element) => element.id == id);
 
                                 await removeItemsBasedOnPriority(
                                     Helpers.editableJobSpareParts);
                                 await refreshJobDetails();
+                                Navigator.pop(context);
+                                setState(() {
+                                  isPartsEditable = false;
+                                });
                               },
                               job: selectedJob ?? new Job());
                         },
@@ -4337,6 +4562,7 @@ var obj = updatedArray?.firstWhere((e) => element.id == e.id);
                       isChargeableTransportCharges,
                       isChargeableSolutionCharges,
                       !isChargeableMiscellaneousCharges,
+                      isDiscountApplied,
                       (selectedJob?.chargeableSparepartIds ?? []));
 
                   await refreshJobDetails();
@@ -4739,6 +4965,7 @@ var obj = updatedArray?.firstWhere((e) => element.id == e.id);
                       !isChargeableTransportCharges,
                       isChargeableSolutionCharges,
                       isChargeableMiscellaneousCharges,
+                      isDiscountApplied,
                       (selectedJob?.chargeableSparepartIds ?? []));
                   await refreshJobDetails();
                 }
@@ -5143,6 +5370,7 @@ var obj = updatedArray?.firstWhere((e) => element.id == e.id);
                     isChargeableTransportCharges,
                     isChargeableSolutionCharges,
                     isChargeableMiscellaneousCharges,
+                    isDiscountApplied,
                     (selectedJob?.chargeableSparepartIds ?? []));
 
                 await refreshJobDetails();
@@ -5576,9 +5804,10 @@ var obj = updatedArray?.firstWhere((e) => element.id == e.id);
     RCPCost? res = await Repositories.fetchPaymentRCP(
         selectedJob!.serviceRequestid ?? "0",
         isChargeablePickupCharges,
-        isChargeableTransportCharges,
+        isChargeableTransportCharges, 
         isChargeableSolutionCharges,
         isChargeableMiscellaneousCharges,
+        isDiscountApplied,
         (selectedJob?.chargeableSparepartIds ?? []));
 
     if (mounted) {
@@ -5609,11 +5838,15 @@ var obj = updatedArray?.firstWhere((e) => element.id == e.id);
     setState(() {
       selectedJob = job;
       Helpers.editableMiscItems = job?.miscCharges ?? [];
+      Helpers.editableJobSpareParts = [];
+      var arr = SparePart.cloneArray(selectedJob?.aggregatedSpareparts ?? []);
+      Helpers.editableJobSpareParts.addAll(arr);
       isChargeableTransportCharges =
           selectedJob?.isChargeableTransport ?? false;
       isChargeablePickupCharges = selectedJob?.isChargeablePickup ?? false;
       isChargeableSolutionCharges = selectedJob?.isChargeableSolution ?? false;
       isChargeableMiscellaneousCharges = selectedJob?.isChargeableMisc ?? false;
+      isDiscountApplied = selectedJob?.isDiscountApplied ?? false;
     });
 
     await fetchBag(jobId);
@@ -5660,7 +5893,7 @@ var obj = updatedArray?.firstWhere((e) => element.id == e.id);
                 onIsExtendedCallback: () => print('extended'),
                 animationDurationExtend: Duration(milliseconds: 500),
                 animationDurationContract: Duration(milliseconds: 250),
-                animationCurveExpand: Curves.bounceOut,
+                // animationCurveExpand: Curves.bounceOut,
                 animationCurveContract: Curves.ease,
                 persistentContentHeight:
                     isExpanded ? MediaQuery.of(context).size.height * .8 : 0,
@@ -5784,6 +6017,7 @@ var obj = updatedArray?.firstWhere((e) => element.id == e.id);
                                               checklistAttachments.length > 0
                                           ? DataTable(
                                               headingRowHeight: 50.0,
+                                              dataRowHeight: 80,
                                               headingRowColor:
                                                   MaterialStateColor
                                                       .resolveWith((states) =>
@@ -8418,17 +8652,18 @@ class _StepperAlertDialogState extends State<StepperAlertDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-        title: Text('Custom Popup'),
+        title: Text('Job Summary'),
         content: Container(
             color: Colors.white,
             padding: EdgeInsets.fromLTRB(20, 20, 20, 20),
-            height: MediaQuery.of(context).size.height * 0.5,
             width: MediaQuery.of(context).size.height * 0.5,
-            child: Container(
-                padding: EdgeInsets.fromLTRB(20, 20, 20, 20),
+            child: ConstrainedBox(
+                constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * .4,
+                    minHeight: MediaQuery.of(context).size.height * .1),
                 child: Column(children: [
-                  widget.content,
                   SizedBox(height: 50),
+                  widget.content,
                 ]))),
         actions: <Widget>[
           SizedBox(
