@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:kcs_engineer/UI/feedback.dart';
 import 'package:kcs_engineer/UI/feedback_confirmation.dart';
@@ -10,7 +12,9 @@ import 'package:kcs_engineer/UI/signin.dart';
 import 'package:kcs_engineer/UI/splashScreen.dart';
 import 'package:kcs_engineer/UI/warehouse.dart';
 import 'package:kcs_engineer/model/job.dart';
+import 'package:kcs_engineer/model/payment_method.dart';
 import 'package:kcs_engineer/model/payment_request.dart';
+import 'package:kcs_engineer/model/rcpCost.dart';
 
 class AppRouter {
   static const String initialRoute = "/";
@@ -35,10 +39,19 @@ class AppRouter {
         return MaterialPageRoute(
             builder: (_) => Payment(
                 data: (arguments as List<dynamic>)[0] as Job,
-                paymentDTO: (arguments as List<dynamic>)[1] as PaymentDTO));
+                paymentDTO: (arguments as List<dynamic>)[1] as PaymentDTO,
+                rcpCost: (arguments as List<dynamic>)[2] as RCPCost,
+                signature: (arguments as List<dynamic>)[3] as File,
+                isWantInvoice: (arguments as List<dynamic>)[4] as bool,
+                payByCash: (arguments as List<dynamic>)[5] as bool,
+                email: (arguments as List<dynamic>)[6] as String,
+                paymentMethods:
+                    (arguments as List<dynamic>)[7] as List<PaymentMethod>));
       case 'signature':
         return MaterialPageRoute(
-            builder: (_) => SignatureUI(data: arguments as Job));
+            builder: (_) => SignatureUI(
+                data: (arguments as List<dynamic>)[0] as Job,
+                rcpCost: (arguments as List<dynamic>)[1] as RCPCost));
       case 'payment_history':
         return MaterialPageRoute(builder: (_) => PaymentHistory());
       case 'feedback':
@@ -48,7 +61,8 @@ class AppRouter {
                 paymentDTO: (arguments as List<dynamic>)[1] as PaymentDTO));
       case 'feedback_confirmation':
         return MaterialPageRoute(
-            builder: (_) => FeedBackConfirmation(data: arguments as Job));
+            builder: (_) => FeedBackConfirmation(
+                data: arguments != null ? arguments as Job : null));
       default:
         return MaterialPageRoute(
             builder: (_) => Scaffold(

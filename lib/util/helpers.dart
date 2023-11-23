@@ -239,6 +239,130 @@ class Helpers {
     }
   }
 
+  static bool checkIfEditableByJobStatus(Job? job) {
+    bool res = false;
+
+    switch (job?.serviceJobStatus?.toLowerCase()) {
+      case "pending job start":
+        res = true;
+        break;
+      case "repairing":
+        res = true;
+        break;
+      case "kiv":
+        res = true;
+        break;
+      case "cancelled":
+        res = false;
+        break;
+      case "completed":
+        res = false;
+        break;
+      case "closed":
+        res = false;
+        break;
+      case "pending delivery":
+        res = false;
+        break;
+    }
+
+    return res;
+  }
+
+  static bool checkIfEditableByJobStatusForSolution(bool isActual, Job? job) {
+    bool res = false;
+
+    switch (job?.serviceJobStatus?.toLowerCase()) {
+      case "pending job start":
+        res = true;
+        break;
+      case "repairing":
+        res = isActual;
+        break;
+      case "kiv":
+        res = true;
+        break;
+      case "cancelled":
+        res = false;
+        break;
+      case "completed":
+        res = false;
+        break;
+      case "closed":
+        res = false;
+        break;
+      case "pending delivery":
+        res = false;
+        break;
+    }
+
+    return res;
+  }
+
+  static Color getTextColorByJobStatus(String status) {
+    Color color = Color(0xFF676767);
+    switch (status.toLowerCase()) {
+      case 'pending job start':
+        color = Color(0xFF676767);
+        break;
+      case 'repairing':
+        color = Color(0xFF143A55);
+        break;
+      case 'kiv':
+        color = Color(0xFF7E300B);
+        break;
+      case 'cancelled':
+        color = Color(0xFF670B0B);
+        break;
+      case 'completed':
+        color = Color(0xFF57450D);
+        break;
+      case 'pending delivery':
+        color = Color(0xFF1C5830);
+        break;
+      case 'closed':
+        color = Color(0xFF1C5830);
+        break;
+      default:
+        color = Color(0xFF676767);
+        break;
+    }
+
+    return color;
+  }
+
+  static Color getForegroundColorByJobStatus(String status) {
+    Color color = Color(0xFFEAEAEA);
+    switch (status.toLowerCase()) {
+      case 'pending job start':
+        color = Color(0xFFEAEAEA);
+        break;
+      case 'repairing':
+        color = Color(0xFFA1D8FF);
+        break;
+      case 'kiv':
+        color = Color(0xFFFFAE88);
+        break;
+      case 'cancelled':
+        color = Color(0xFFFFABAB);
+        break;
+      case 'completed':
+        color = Color(0xFFFFDF7E);
+        break;
+      case 'pending delivery':
+        color = Color(0xFF6EE295);
+        break;
+      case 'closed':
+        color = Color(0xFF6EE295);
+        break;
+      default:
+        color = Color(0xFFEAEAEA);
+        break;
+    }
+
+    return color;
+  }
+
   static Future<void> launchInWebViewOrVC(String url) async {
     if (!await launch(url,
         forceSafariVC: true,

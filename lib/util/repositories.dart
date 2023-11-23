@@ -62,7 +62,8 @@ class Repositories {
   }
 
   static Future<bool> handleLogout() async {
-    final response = await Api.bearerPost('auth/logout');
+    Map<String, dynamic> map = {"logout_all_devices": false};
+    final response = await Api.bearerPost('auth/logout', params: map);
     print("#Resp: ${jsonEncode(response)}");
 
     if (response["success"] != null && response["success"]) {
@@ -187,7 +188,7 @@ class Repositories {
         'general/spareparts-from-bag?service_request_id=${serviceRequestId}&search_only_by_code=0&include_spareparts_from_bag=1');
     print("#Resp: ${jsonEncode(response)}");
     // Navigator.pop(context);
-    if (response["success"]) {
+    if (response["success"] && response['data'] != null) {
       bag = (BagMetaData.selectedJobFromJson(response['data']));
     }
     return bag;
@@ -635,6 +636,21 @@ class Repositories {
     };
 
     final response = await Api.bearerPost('job/reject-job', params: map);
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  static Future<bool> rejectJobBulk(List<String> jobIds, int? reasonId) async {
+    final Map<String, dynamic> map = {
+      'service_request_ids': jobIds,
+      'cancellation_reason_id': reasonId,
+    };
+
+    final response = await Api.bearerPost('job/reject-job-bulk', params: map);
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null && response["success"]) {
       return true;

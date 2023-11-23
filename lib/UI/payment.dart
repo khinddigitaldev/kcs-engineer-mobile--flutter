@@ -1,17 +1,35 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kcs_engineer/model/job.dart';
+import 'package:kcs_engineer/model/payment_method.dart';
 import 'package:kcs_engineer/model/payment_request.dart';
+import 'package:kcs_engineer/model/rcpCost.dart';
 import 'package:kcs_engineer/util/helpers.dart';
+import 'package:kcs_engineer/util/repositories.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 class Payment extends StatefulWidget {
   Job? data;
   PaymentDTO? paymentDTO;
-  Payment({this.data, this.paymentDTO});
+  RCPCost? rcpCost;
+  File signature;
+  String? email;
+  bool? isWantInvoice;
+  bool? payByCash;
+  List<PaymentMethod>? paymentMethods;
+  Payment(
+      {this.data,
+      this.paymentDTO,
+      this.rcpCost,
+      required this.signature,
+      this.isWantInvoice,
+      this.payByCash,
+      this.email,
+      this.paymentMethods});
 
   @override
   _PaymentState createState() => _PaymentState();
@@ -20,8 +38,6 @@ class Payment extends StatefulWidget {
 class _PaymentState extends State<Payment> {
   GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  TextEditingController emailCT = new TextEditingController();
-  TextEditingController passwordCT = new TextEditingController();
   FocusNode focusEmail = new FocusNode();
   FocusNode focusPwd = new FocusNode();
   bool isLoading = false;
@@ -35,11 +51,6 @@ class _PaymentState extends State<Payment> {
 
   @override
   void initState() {
-    // emailCT.text = 'khindtest1@gmail.com';
-    // passwordCT.text = 'Abcd@1234';
-    // emailCT.text = 'khindcustomerservice@gmail.com';
-    // passwordCT.text = 'Khindanshin118';
-
     super.initState();
     setState(() {
       selectedJob = widget.data;
@@ -52,8 +63,6 @@ class _PaymentState extends State<Payment> {
 
   @override
   void dispose() {
-    emailCT.dispose();
-    passwordCT.dispose();
     super.dispose();
   }
 
@@ -202,7 +211,11 @@ class _PaymentState extends State<Payment> {
                     color: Colors.black,
                   ),
                   children: <TextSpan>[
-                    TextSpan(text: 'RM 230.00'),
+                    TextSpan(
+                      text: (widget.rcpCost?.isDiscountValid ?? false)
+                          ? widget.rcpCost?.totalRCP
+                          : widget.rcpCost?.total,
+                    )
                   ],
                 ),
               ),
@@ -248,7 +261,7 @@ class _PaymentState extends State<Payment> {
                       ),
                       children: <TextSpan>[
                         TextSpan(
-                          text: '#242424',
+                          text: '#${selectedJob?.serviceJobNo}',
                         ),
                       ],
                     ),
@@ -271,17 +284,38 @@ class _PaymentState extends State<Payment> {
                       )),
                   style: ButtonStyle(
                       foregroundColor: MaterialStateProperty.all<Color>(
-                          Colors.red.withOpacity(0.7)),
+                          Color(0xFFFFB700).withOpacity(0.7)),
                       backgroundColor: MaterialStateProperty.all<Color>(
-                          Colors.red.withOpacity(0.7)),
+                          Color(0xFFFFB700).withOpacity(0.7)),
                       shape: MaterialStateProperty.all<RoundedRectangleBorder>(
                           RoundedRectangleBorder(
                               borderRadius: BorderRadius.zero,
                               side: BorderSide(
-                                  color: Colors.red.withOpacity(0.7))))),
-                  onPressed: () {
-                    Navigator.pushNamed(context, 'feedback',
-                        arguments: [selectedJob, paymentDTO]);
+                                  color: Color(0xFFFFB700).withOpacity(0.7))))),
+                  onPressed: () async {
+                    var val = await Repositories.confirmAcknowledgement(
+                        selectedJob?.serviceRequestid ?? "",
+                        widget.signature,
+                        widget.isWantInvoice ?? false,
+                        widget.email ?? "",
+                        (widget.payByCash ?? false)
+                            ? (widget.paymentMethods ?? [])
+                                .where((element) =>
+                                    element.method?.toLowerCase() == "cash")
+                                .toList()[0]
+                                .id
+                                .toString()
+                            : (widget.paymentMethods ?? [])
+                                .where((element) =>
+                                    element.method?.toLowerCase() == "scanned")
+                                .toList()[0]
+                                .id
+                                .toString());
+
+                    // if (val) {
+                    Navigator.pushNamed(context, 'feedback_confirmation',
+                        arguments: selectedJob);
+                    // }
                   }),
             ),
           ],
@@ -298,8 +332,8 @@ class _PaymentState extends State<Payment> {
   }
 
   Future<bool> _onWillPop() async {
-    Navigator.pop(context);
-    return true;
+    //Navigator.pop(context);
+    return false;
   }
 
   @override
@@ -310,7 +344,7 @@ class _PaymentState extends State<Payment> {
           key: _scaffoldKey,
           appBar: Helpers.customAppBar(context, _scaffoldKey,
               title: "Payment",
-              isBack: true,
+              isBack: false,
               isAppBarTranparent: true,
               hasActions: false, handleBackPressed: () {
             if (widget.data == 1) {

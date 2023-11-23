@@ -172,7 +172,7 @@ class _MyHomePageState extends State<MyHomePage> {
             var res = await _logout();
             Navigator.pop(context);
             Navigator.pushReplacementNamed(context, 'signIn');
-            //Navigator.of(context).popUntil((route) => route.isFirst);
+            // Navigator.of(context).popUntil((route) => route.isFirst);
           },
           icon: const Icon(SideMenuIcons.logout),
         ),

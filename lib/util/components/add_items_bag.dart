@@ -34,7 +34,7 @@ class _AddItemsFromBagDialogState extends State<AddItemsFromBagDialog>
   @override
   void initState() {
     super.initState();
-    bag = widget?.bag;
+    bag = widget.bag;
     jobId = widget.jobId;
     ticketNo = widget.ticketNo;
     existingJobSpareParts = widget.existingJobSpareParts;
@@ -49,342 +49,487 @@ class _AddItemsFromBagDialogState extends State<AddItemsFromBagDialog>
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: Color(0xFFFAFAFA),
-      title: Text('Add From Bag'),
+      title: Row(children: [
+        Text(
+          'Add From Bag',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        Spacer(),
+        SizedBox(
+          height: 40.0,
+          child: ElevatedButton(
+              child: Padding(
+                  padding: EdgeInsets.all(0.0),
+                  child: Row(children: [
+                    Text(
+                      'Add from Warehouse',
+                      style: TextStyle(fontSize: 15, color: Colors.white),
+                    ),
+                    SizedBox(
+                      width: 10,
+                    ),
+                    Icon(
+                      size: 15,
+                      Icons.arrow_forward_ios,
+                      color: Colors.white,
+                    )
+                  ])),
+              style: ButtonStyle(
+                  foregroundColor:
+                      MaterialStateProperty.all<Color>(Color(0xFF242A38)),
+                  backgroundColor:
+                      MaterialStateProperty.all<Color>(Color(0xFF242A38)),
+                  shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                      RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4.0),
+                          side: const BorderSide(color: Color(0xFF242A38))))),
+              onPressed: () async {
+                Navigator.pushNamed(context, 'warehouse', arguments: jobId)
+                    .then((value) async {
+                  Navigator.pop(context);
+                });
+              }),
+        ),
+        SizedBox(width: 20),
+      ]),
       content: Container(
         color: Color(0xFFFAFAFA),
-        height: MediaQuery.of(context).size.height * 0.6,
+        height: ((bag?.notPartOfBom?.length ?? 0) > 0 ||
+                (bag?.notPartOfBom?.length ?? 0) > 0)
+            ? MediaQuery.of(context).size.height * 0.6
+            : MediaQuery.of(context).size.height * 0.3,
         width: double.maxFinite,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            (itemList?.length ?? 0) > 0
-                ? Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                        RichText(
-                          text: TextSpan(
-                            style: const TextStyle(
-                              fontSize: 18.0,
-                              color: Colors.black,
-                            ),
-                            children: <TextSpan>[
-                              TextSpan(
-                                  text: "Bag",
+        child: ((bag?.notPartOfBom?.length ?? 0) > 0 ||
+                (bag?.notPartOfBom?.length ?? 0) > 0)
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  (itemList?.length ?? 0) > 0
+                      ? Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                              RichText(
+                                text: TextSpan(
                                   style: const TextStyle(
-                                      fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                        SizedBox(
-                          height: 15,
-                        ),
-                        Container(
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                border:
-                                    Border.all(color: Colors.grey, width: 1),
-                                boxShadow: [
-                                  BoxShadow(
-                                      color: Colors.white,
-                                      offset: Offset(0.0, 1.5),
-                                      blurRadius: 1.5)
-                                ]),
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                  maxHeight:
-                                      MediaQuery.of(context).size.height * .48,
-                                  minWidth:
-                                      MediaQuery.of(context).size.width * .35,
-                                  maxWidth:
-                                      MediaQuery.of(context).size.width * .35,
-                                  minHeight:
-                                      MediaQuery.of(context).size.height * .1),
-                              child: ListView.builder(
-                                itemCount: itemList?.length,
-                                itemBuilder: (BuildContext context, int index) {
-                                  return GestureDetector(
-                                    child: Container(
-                                      color: ((selectedBag ?? [])
-                                              .contains(itemList?[index]))
-                                          ? Color(0xFF242A38)
-                                          : Colors.transparent,
-                                      child: Container(
-                                          margin: const EdgeInsets.symmetric(
-                                            vertical: 14.0,
-                                            horizontal: 10.0,
+                                    fontSize: 18.0,
+                                    color: Colors.black,
+                                  ),
+                                  children: <TextSpan>[
+                                    TextSpan(
+                                        text: "Bag",
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(
+                                height: 15,
+                              ),
+                              Container(
+                                  decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                          color: Colors.grey, width: 1),
+                                      boxShadow: [
+                                        BoxShadow(
+                                            color: Colors.white,
+                                            offset: Offset(0.0, 1.5),
+                                            blurRadius: 1.5)
+                                      ]),
+                                  child: ConstrainedBox(
+                                    constraints: BoxConstraints(
+                                        maxHeight:
+                                            MediaQuery.of(context).size.height *
+                                                .48,
+                                        minWidth:
+                                            MediaQuery.of(context).size.width *
+                                                .35,
+                                        maxWidth:
+                                            MediaQuery.of(context).size.width *
+                                                .35,
+                                        minHeight:
+                                            MediaQuery.of(context).size.height *
+                                                .1),
+                                    child: ListView.builder(
+                                      itemCount: itemList?.length,
+                                      itemBuilder:
+                                          (BuildContext context, int index) {
+                                        return GestureDetector(
+                                          child: Container(
+                                            color: ((selectedBag ?? [])
+                                                    .contains(itemList?[index]))
+                                                ? Color(0xFF242A38)
+                                                : Colors.transparent,
+                                            child: Container(
+                                                margin:
+                                                    const EdgeInsets.symmetric(
+                                                  vertical: 14.0,
+                                                  horizontal: 10.0,
+                                                ),
+                                                child: SparePartItem(
+                                                    tappedOnItem:
+                                                        (tappedIndex, isleft) {
+                                                      if (true) {
+                                                        List<SparePart> array =
+                                                            [];
+                                                        array.addAll(
+                                                            (selectedBag ??
+                                                                []));
+                                                        setState(() {
+                                                          selectedBag = [];
+                                                          selectedJobSpareParts =
+                                                              [];
+                                                        });
+                                                        if (!array.contains(
+                                                            itemList?[
+                                                                tappedIndex])) {
+                                                          array.add(itemList?[
+                                                                  tappedIndex] ??
+                                                              new SparePart());
+                                                        } else {
+                                                          array.remove(
+                                                              itemList?[
+                                                                  tappedIndex]);
+                                                        }
+                                                        setState(() {
+                                                          selectedJobSpareParts =
+                                                              [];
+                                                          selectedBag = array;
+                                                        });
+                                                      }
+                                                    },
+                                                    quantityChanged:
+                                                        (int quantity,
+                                                            SparePart item) {
+                                                      var index = selectedBag
+                                                          ?.indexWhere(
+                                                              (element) =>
+                                                                  element
+                                                                      .code ==
+                                                                  item.code);
+
+                                                      setState(() {
+                                                        selectedBag?[index ?? 0]
+                                                                .selectedQuantity =
+                                                            quantity;
+                                                      });
+                                                    },
+                                                    currentList:
+                                                        (itemList ?? []),
+                                                    selectedArray:
+                                                        selectedBag ?? [],
+                                                    isLeft: true,
+                                                    index: index)),
                                           ),
-                                          child: SparePartItem(
-                                              tappedOnItem:
-                                                  (tappedIndex, isleft) {
-                                                if (true) {
+                                          onTap: () async {
+                                            // }
+                                          },
+                                          key: ValueKey(index),
+                                        );
+                                      },
+                                    ),
+                                  ))
+                            ])
+                      : new Container(),
+                  buildIconButtons(),
+                  (itemList?.length ?? 0) > 0 ||
+                          (existingJobSpareParts?.length ?? 0) > 0
+                      ? Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                              Row(children: [
+                                RichText(
+                                  text: TextSpan(
+                                    style: const TextStyle(
+                                      fontSize: 18.0,
+                                      color: Colors.black,
+                                    ),
+                                    children: <TextSpan>[
+                                      TextSpan(
+                                          text: "Job",
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(width: 10),
+                                RichText(
+                                  text: TextSpan(
+                                    style: const TextStyle(
+                                      fontSize: 18.0,
+                                      color: Colors.blue,
+                                    ),
+                                    children: <TextSpan>[
+                                      TextSpan(
+                                          text: "#${ticketNo}",
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                )
+                              ]),
+                              SizedBox(
+                                height: 15,
+                              ),
+                              Container(
+                                  decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                          color: Colors.grey, width: 1),
+                                      boxShadow: [
+                                        BoxShadow(
+                                            color: Colors.white,
+                                            offset: Offset(0.0, 1.5),
+                                            blurRadius: 1.5)
+                                      ]),
+                                  child: ConstrainedBox(
+                                    constraints: BoxConstraints(
+                                        maxHeight:
+                                            MediaQuery.of(context).size.height *
+                                                .48,
+                                        minWidth:
+                                            MediaQuery.of(context).size.width *
+                                                .35,
+                                        maxWidth:
+                                            MediaQuery.of(context).size.width *
+                                                .35,
+                                        minHeight:
+                                            MediaQuery.of(context).size.height *
+                                                .1),
+                                    child: ListView.builder(
+                                      itemCount: existingJobSpareParts?.length,
+                                      itemBuilder:
+                                          (BuildContext context, int index) {
+                                        return GestureDetector(
+                                          child: Container(
+                                            margin: const EdgeInsets.symmetric(
+                                              vertical: 14.0,
+                                              horizontal: 10.0,
+                                            ),
+                                            child: SparePartItem(
+                                                tappedOnItem:
+                                                    (tappedIndex, isleft) {
                                                   List<SparePart> array = [];
                                                   array.addAll(
-                                                      (selectedBag ?? []));
+                                                      selectedJobSpareParts ??
+                                                          []);
                                                   setState(() {
                                                     selectedBag = [];
                                                     selectedJobSpareParts = [];
                                                   });
                                                   if (!array.contains(
-                                                      itemList?[tappedIndex])) {
-                                                    array.add(itemList?[
-                                                            tappedIndex] ??
-                                                        new SparePart());
+                                                      existingJobSpareParts?[
+                                                          tappedIndex])) {
+                                                    array.add(
+                                                        existingJobSpareParts?[
+                                                                tappedIndex] ??
+                                                            new SparePart());
                                                   } else {
                                                     array.remove(
-                                                        itemList?[tappedIndex]);
+                                                        existingJobSpareParts?[
+                                                            tappedIndex]);
                                                   }
                                                   setState(() {
-                                                    selectedJobSpareParts = [];
-                                                    selectedBag = array;
+                                                    selectedBag = [];
+                                                    selectedJobSpareParts =
+                                                        array;
                                                   });
-                                                }
-                                              },
-                                              quantityChanged: (int quantity,
-                                                  SparePart item) {
-                                                var index = selectedBag
-                                                    ?.indexWhere((element) =>
-                                                        element.code ==
-                                                        item.code);
+                                                },
+                                                quantityChanged: (int quantity,
+                                                    SparePart item) {
+                                                  var index =
+                                                      existingJobSpareParts
+                                                          ?.indexWhere(
+                                                              (element) =>
+                                                                  element
+                                                                      .code ==
+                                                                  item.code);
 
-                                                setState(() {
-                                                  selectedBag?[index ?? 0]
-                                                          .selectedQuantity =
-                                                      quantity;
-                                                });
-                                              },
-                                              currentList: (itemList ?? []),
-                                              selectedArray: selectedBag ?? [],
-                                              isLeft: true,
-                                              index: index)),
+                                                  setState(() {
+                                                    existingJobSpareParts?[
+                                                                index ?? 0]
+                                                            .selectedQuantity =
+                                                        quantity;
+                                                  });
+                                                },
+                                                currentList:
+                                                    existingJobSpareParts ?? [],
+                                                selectedArray:
+                                                    selectedJobSpareParts ?? [],
+                                                isLeft: false,
+                                                index: index),
+                                          ),
+                                          onTap: () async {
+                                            // }
+                                          },
+                                          key: ValueKey(index),
+                                        );
+                                      },
                                     ),
-                                    onTap: () async {
-                                      // }
-                                    },
-                                    key: ValueKey(index),
-                                  );
-                                },
-                              ),
-                            ))
-                      ])
-                : new Container(),
-            buildIconButtons(),
-            (itemList?.length ?? 0) > 0 ||
-                    (existingJobSpareParts?.length ?? 0) > 0
-                ? Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                        Row(children: [
+                                  ))
+                            ])
+                      : new Container(),
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Container(
+                      alignment: Alignment.center,
+                      child: Column(
+                        children: [
+                          SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.05,
+                          ),
+                          Icon(
+                            // <-- Icon
+                            Icons.indeterminate_check_box,
+                            color: Colors.grey,
+                            size: 130.0,
+                          ),
                           RichText(
                             text: TextSpan(
-                              style: const TextStyle(
-                                fontSize: 18.0,
-                                color: Colors.black,
-                              ),
-                              children: <TextSpan>[
-                                TextSpan(
-                                    text: "Job",
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold)),
-                              ],
+                                style: const TextStyle(
+                                  fontSize: 30.0,
+                                  color: Colors.black,
+                                ),
+                                children: <TextSpan>[
+                                  TextSpan(
+                                    text: 'No data found',
+                                  ),
+                                ]),
+                          ),
+                          SizedBox(
+                            height: 10,
+                          ),
+                          Container(
+                            alignment: Alignment.center,
+                            width: 400,
+                            child: RichText(
+                              text: TextSpan(
+                                  style: const TextStyle(
+                                    fontSize: 15.0,
+                                    color: Colors.black,
+                                  ),
+                                  children: <TextSpan>[
+                                    TextSpan(
+                                      text:
+                                          'Currently there are no Spare parts in your bag.',
+                                    ),
+                                  ]),
                             ),
                           ),
-                          SizedBox(width: 10),
-                          RichText(
-                            text: TextSpan(
-                              style: const TextStyle(
-                                fontSize: 18.0,
-                                color: Colors.blue,
-                              ),
-                              children: <TextSpan>[
-                                TextSpan(
-                                    text: "#${ticketNo}",
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                          )
-                        ]),
-                        SizedBox(
-                          height: 15,
-                        ),
-                        Container(
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                border:
-                                    Border.all(color: Colors.grey, width: 1),
-                                boxShadow: [
-                                  BoxShadow(
-                                      color: Colors.white,
-                                      offset: Offset(0.0, 1.5),
-                                      blurRadius: 1.5)
-                                ]),
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                  maxHeight:
-                                      MediaQuery.of(context).size.height * .48,
-                                  minWidth:
-                                      MediaQuery.of(context).size.width * .35,
-                                  maxWidth:
-                                      MediaQuery.of(context).size.width * .35,
-                                  minHeight:
-                                      MediaQuery.of(context).size.height * .1),
-                              child: ListView.builder(
-                                itemCount: existingJobSpareParts?.length,
-                                itemBuilder: (BuildContext context, int index) {
-                                  return GestureDetector(
-                                    child: Container(
-                                      margin: const EdgeInsets.symmetric(
-                                        vertical: 14.0,
-                                        horizontal: 10.0,
-                                      ),
-                                      child: SparePartItem(
-                                          tappedOnItem: (tappedIndex, isleft) {
-                                            List<SparePart> array = [];
-                                            array.addAll(
-                                                selectedJobSpareParts ?? []);
-                                            setState(() {
-                                              selectedBag = [];
-                                              selectedJobSpareParts = [];
-                                            });
-                                            if (!array.contains(
-                                                existingJobSpareParts?[
-                                                    tappedIndex])) {
-                                              array.add(existingJobSpareParts?[
-                                                      tappedIndex] ??
-                                                  new SparePart());
-                                            } else {
-                                              array.remove(
-                                                  existingJobSpareParts?[
-                                                      tappedIndex]);
-                                            }
-                                            setState(() {
-                                              selectedBag = [];
-                                              selectedJobSpareParts = array;
-                                            });
-                                          },
-                                          quantityChanged:
-                                              (int quantity, SparePart item) {
-                                            var index = existingJobSpareParts
-                                                ?.indexWhere((element) =>
-                                                    element.code == item.code);
-
-                                            setState(() {
-                                              existingJobSpareParts?[index ?? 0]
-                                                  .selectedQuantity = quantity;
-                                            });
-                                          },
-                                          currentList:
-                                              existingJobSpareParts ?? [],
-                                          selectedArray:
-                                              selectedJobSpareParts ?? [],
-                                          isLeft: false,
-                                          index: index),
-                                    ),
-                                    onTap: () async {
-                                      // }
-                                    },
-                                    key: ValueKey(index),
-                                  );
-                                },
-                              ),
-                            ))
-                      ])
-                : new Container(),
-          ],
-        ),
+                          SizedBox(
+                            height: 30,
+                          ),
+                          SizedBox(
+                            height: 40.0,
+                            child: ElevatedButton(
+                                child: const Padding(
+                                    padding: EdgeInsets.all(0.0),
+                                    child: Text(
+                                      'Cancel',
+                                      style: TextStyle(
+                                          fontSize: 15, color: Colors.white),
+                                    )),
+                                style: ButtonStyle(
+                                    foregroundColor:
+                                        MaterialStateProperty.all<Color>(
+                                            Color(0xFF242A38)),
+                                    backgroundColor:
+                                        MaterialStateProperty.all<Color>(
+                                            Color(0xFF242A38)),
+                                    shape: MaterialStateProperty.all<
+                                            RoundedRectangleBorder>(
+                                        RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(4.0),
+                                            side: const BorderSide(
+                                                color: Color(0xFF242A38))))),
+                                onPressed: () async {
+                                  Navigator.pop(context);
+                                }),
+                          ),
+                        ],
+                      ))
+                ],
+              ),
       ),
-      actions: <Widget>[
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            // SizedBox(
-            //   height: 40.0,
-            //   child: ElevatedButton(
-            //       child: const Padding(
-            //           padding: EdgeInsets.all(0.0),
-            //           child: Text(
-            //             'Add from Warehouse',
-            //             style: TextStyle(fontSize: 15, color: Colors.white),
-            //           )),
-            //       style: ButtonStyle(
-            //           foregroundColor:
-            //               MaterialStateProperty.all<Color>(Color(0xFF242A38)),
-            //           backgroundColor:
-            //               MaterialStateProperty.all<Color>(Color(0xFF242A38)),
-            //           shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-            //               RoundedRectangleBorder(
-            //                   borderRadius: BorderRadius.circular(4.0),
-            //                   side:
-            //                       const BorderSide(color: Color(0xFF242A38))))),
-            //       onPressed: () async {
-            //         Navigator.pushNamed(context, 'warehouse', arguments: jobId);
-            //       }),
-            // ),
-            SizedBox(width: 20),
-            SizedBox(
-              height: 40.0,
-              child: ElevatedButton(
-                  child: const Padding(
-                      padding: EdgeInsets.all(0.0),
-                      child: Text(
-                        'Cancel',
-                        style: TextStyle(fontSize: 15, color: Colors.white),
-                      )),
-                  style: ButtonStyle(
-                      foregroundColor:
-                          MaterialStateProperty.all<Color>(Color(0xFF242A38)),
-                      backgroundColor:
-                          MaterialStateProperty.all<Color>(Color(0xFF242A38)),
-                      shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-                          RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4.0),
-                              side:
-                                  const BorderSide(color: Color(0xFF242A38))))),
-                  onPressed: () async {
-                    Navigator.pop(context);
-                  }),
-            ),
-            SizedBox(width: 20),
-            SizedBox(
-              height: 40.0,
-              child: ElevatedButton(
-                  child: const Padding(
-                      padding: EdgeInsets.all(0.0),
-                      child: Text(
-                        'Add Parts',
-                        style: TextStyle(fontSize: 15, color: Colors.white),
-                      )),
-                  style: ButtonStyle(
-                      foregroundColor:
-                          MaterialStateProperty.all<Color>(Color(0xFF242A38)),
-                      backgroundColor:
-                          MaterialStateProperty.all<Color>(Color(0xFF242A38)),
-                      shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-                          RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4.0),
-                              side:
-                                  const BorderSide(color: Color(0xFF242A38))))),
-                  onPressed: () async {
-                    if ((existingJobSpareParts?.length ?? 0) > 0) {
-                      var arr = existingJobSpareParts?.map((e) {
-                        e.from = "bag";
-                        return e;
-                      }).toList();
-                      var res = await Repositories.addSparePartsToJob(
-                              jobId ?? "", arr ?? [])
-                          .then((value) {
-                        Navigator.pop(context);
-                      });
-                    }
-                    print("asdasds");
-                  }),
-            )
-          ],
-        )
-      ],
+      actions: ((bag?.notPartOfBom?.length ?? 0) > 0 &&
+              (bag?.notPartOfBom?.length ?? 0) > 0)
+          ? <Widget>[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  SizedBox(
+                    height: 40.0,
+                    child: ElevatedButton(
+                        child: const Padding(
+                            padding: EdgeInsets.all(0.0),
+                            child: Text(
+                              'Cancel',
+                              style:
+                                  TextStyle(fontSize: 15, color: Colors.white),
+                            )),
+                        style: ButtonStyle(
+                            foregroundColor: MaterialStateProperty.all<Color>(
+                                Color(0xFF242A38)),
+                            backgroundColor: MaterialStateProperty.all<Color>(
+                                Color(0xFF242A38)),
+                            shape: MaterialStateProperty.all<
+                                    RoundedRectangleBorder>(
+                                RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4.0),
+                                    side: const BorderSide(
+                                        color: Color(0xFF242A38))))),
+                        onPressed: () async {
+                          Navigator.pop(context);
+                        }),
+                  ),
+                  SizedBox(width: 20),
+                  SizedBox(
+                    height: 40.0,
+                    child: ElevatedButton(
+                        child: const Padding(
+                            padding: EdgeInsets.all(0.0),
+                            child: Text(
+                              'Add Parts From Bag',
+                              style:
+                                  TextStyle(fontSize: 15, color: Colors.white),
+                            )),
+                        style: ButtonStyle(
+                            foregroundColor: MaterialStateProperty.all<Color>(
+                                Color(0xFF242A38)),
+                            backgroundColor: MaterialStateProperty.all<Color>(
+                                Color(0xFF242A38)),
+                            shape: MaterialStateProperty.all<
+                                    RoundedRectangleBorder>(
+                                RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4.0),
+                                    side: const BorderSide(
+                                        color: Color(0xFF242A38))))),
+                        onPressed: () async {
+                          if ((existingJobSpareParts?.length ?? 0) > 0) {
+                            var arr = existingJobSpareParts?.map((e) {
+                              e.from = "bag";
+                              return e;
+                            }).toList();
+                            var res = await Repositories.addSparePartsToJob(
+                                    jobId ?? "", arr ?? [])
+                                .then((value) {
+                              Navigator.pop(context);
+                            });
+                          }
+                          print("asdasds");
+                        }),
+                  )
+                ],
+              )
+            ]
+          : [],
     );
   }
 
@@ -689,7 +834,7 @@ class _SparePartItemState extends State<SparePartItem> {
                                 children: [
                                   SizedBox(
                                     width:
-                                        MediaQuery.of(context).size.width * .18,
+                                        MediaQuery.of(context).size.width * .2,
                                     child: Text(
                                         currentList?[index].description ?? "",
                                         style: TextStyle(

@@ -10,6 +10,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kcs_engineer/model/job.dart';
 import 'package:kcs_engineer/model/job_filter_options.dart';
 import 'package:kcs_engineer/model/job_order_seq.dart';
+import 'package:kcs_engineer/model/reason.dart';
 import 'package:kcs_engineer/model/user.dart';
 import 'package:kcs_engineer/themes/text_styles.dart';
 import 'package:kcs_engineer/util/api.dart';
@@ -33,8 +34,7 @@ class _JobListState extends State<JobList>
   var _refreshKey = GlobalKey<RefreshIndicatorState>();
   GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  TextEditingController inProgressSearchCT = new TextEditingController();
-  TextEditingController completedSearchCT = new TextEditingController();
+  TextEditingController searchCT = new TextEditingController();
   FocusNode focusinProgressSearch = new FocusNode();
   FocusNode focusCompletedSearch = new FocusNode();
   bool isLoading = false;
@@ -49,7 +49,8 @@ class _JobListState extends State<JobList>
   Timer? searchCompletedOnStoppedTyping;
   String currentSearchTextCompleted = "";
   List<Job> inProgressJobs = [];
-  List<Job> completedJobs = [];
+  List<Job?> rejectableJobs = [];
+
   final _listSizeController = TextEditingController(text: '5');
   int _listSize = 5;
   final _bsbController = BottomSheetBarController();
@@ -58,24 +59,25 @@ class _JobListState extends State<JobList>
   bool isFilterPressed = false;
   JobFilterOptions? fetchedJobFilterOptions;
   int consecutiveDays = -1;
-
   var serviceTypes = [];
   var paymentStatuses = ["Paid", "Unpaid"];
   var serviceStatuses = [];
-
   var selectedServiceTypes = [];
   var selectedPaymentStatuses = [];
   var selectedServiceStatuses = [];
-
   var prevSelectedServiceTypes = [];
   var prevSelectedPaymentStatuses = [];
   var prevSelectedServiceStatuses = [];
-
   JobData? jobData;
-
   int? currentSelectedIndex = 0;
-
   User? user;
+  bool isBulkRejectEnabled = false;
+  List<Job> selectedJobsToReject = [];
+  int? selectedRejectReason = null;
+  List<Reason>? rejectReasons = [];
+  bool isErrorRejectReason = false;
+
+  String? currentSearchText;
 
   final storage = new FlutterSecureStorage();
   String? token;
@@ -90,6 +92,7 @@ class _JobListState extends State<JobList>
     await _loadVersion();
     await _fetchJobs();
     await _fetchJobStatuses();
+    await fetchRejecReasons();
     _bsbController.addListener(() {
       if (isFilterPressed) {
         setState(() {
@@ -108,10 +111,20 @@ class _JobListState extends State<JobList>
     });
   }
 
+  fetchRejecReasons() async {
+    isLoading = true;
+    var reasons = await Repositories.fetchRejectReasons();
+    isLoading = false;
+    if (mounted) {
+      setState(() {
+        rejectReasons = reasons;
+      });
+    }
+  }
+
   @override
   void dispose() {
-    inProgressSearchCT.dispose();
-    completedSearchCT.dispose();
+    searchCT.dispose();
     super.dispose();
   }
 
@@ -136,7 +149,8 @@ class _JobListState extends State<JobList>
     var fetchedJobData = null;
 
     var filters = {
-      // "consecutive_days": consecutiveDays,
+      "consecutive_days": consecutiveDays,
+      ...(currentSearchText != null ? {"q": currentSearchText} : {}),
       "filter": {
         ...(selectedServiceTypes.length > 0
             ? {
@@ -162,7 +176,7 @@ class _JobListState extends State<JobList>
                     .map((e) => e?.id)
                     .toList())
               }
-            : {})
+            : {}),
       }
     };
 
@@ -178,9 +192,12 @@ class _JobListState extends State<JobList>
     setState(() {
       jobData = fetchedJobData;
       inProgressJobs = (jobData as JobData).jobs ?? [];
-      completedJobs = (jobData as JobData).jobs ?? [];
-      Helpers.completedJobs = inProgressJobs;
-      Helpers.inProgressJobs = completedJobs;
+      rejectableJobs = ((jobData as JobData).jobs ?? []).map((e) {
+        if (e.serviceJobStatus?.toLowerCase() == "pending job start") {
+          return e;
+        }
+      }).toList();
+      Helpers.inProgressJobs = inProgressJobs;
       Helpers.loggedInUser = user;
     });
   }
@@ -214,11 +231,8 @@ class _JobListState extends State<JobList>
   }
 
   searchBox(String query, bool isInprogress) async {
-    if (isInprogress) {
-      Helpers.inProgressJobs = inProgressJobs;
-    } else {
-      Helpers.completedJobs = completedJobs;
-    }
+    Helpers.inProgressJobs = inProgressJobs;
+
     setState(() {
       if (isInprogress) {
         Helpers.inProgressJobs = Helpers.inProgressJobs.where((element) {
@@ -429,7 +443,7 @@ class _JobListState extends State<JobList>
   _onChangeHandlerForInprogress(value) {
     const duration = Duration(
         milliseconds:
-            50); // set the duration that you want call search() after that.
+            1000); // set the duration that you want call search() after that.
 
     if (searchOnInProgressStoppedTyping != null) {
       setState(() => searchOnInProgressStoppedTyping!.cancel()); // clear timer
@@ -437,27 +451,32 @@ class _JobListState extends State<JobList>
     setState(
         () => searchOnInProgressStoppedTyping = new Timer(duration, () async {
               if (currentSearchTextInProgress != value) {
-                currentSearchTextInProgress = value;
-                await searchBox(currentSearchTextInProgress, true);
+                currentSearchText = value;
+                await _fetchJobs();
               }
             }));
   }
 
-  _onChangeHandlerForCompletion(value) {
-    const duration = Duration(
-        milliseconds:
-            50); // set the duration that you want call search() after that.
+  _sortJobsForReject() {
+    List<Job> items = [];
+    items.addAll(inProgressJobs);
+    items.sort(customComparator);
+    setState(() {
+      inProgressJobs = [];
+      inProgressJobs = items;
+    });
+  }
 
-    if (searchCompletedOnStoppedTyping != null) {
-      setState(() => searchCompletedOnStoppedTyping!.cancel()); // clear timer
+  int customComparator(Job a, Job b) {
+    if (a.serviceJobStatus?.toLowerCase() == 'pending job start' &&
+        b.serviceJobStatus?.toLowerCase() != 'pending job start') {
+      return -1;
+    } else if (a.serviceJobStatus?.toLowerCase() != 'pending job start' &&
+        b.serviceJobStatus?.toLowerCase() == 'pending job start') {
+      return 1;
+    } else {
+      return 0;
     }
-    setState(
-        () => searchCompletedOnStoppedTyping = new Timer(duration, () async {
-              if (currentSearchTextCompleted != value) {
-                currentSearchTextCompleted = value;
-                await searchBox(currentSearchTextCompleted, false);
-              }
-            }));
   }
 
   Widget _renderForm() {
@@ -509,7 +528,7 @@ class _JobListState extends State<JobList>
                   });
                 } else {
                   setState(() {
-                    consecutiveDays = index + 1;
+                    consecutiveDays = index - 1;
                   });
                 }
                 setState(() {
@@ -575,7 +594,6 @@ class _JobListState extends State<JobList>
             height: 20,
           ),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               (inProgressJobs != null && inProgressJobs.length > 0)
@@ -593,7 +611,7 @@ class _JobListState extends State<JobList>
                               child: TextFormField(
                                   focusNode: focusinProgressSearch,
                                   keyboardType: TextInputType.text,
-                                  controller: inProgressSearchCT,
+                                  controller: searchCT,
                                   onChanged: _onChangeHandlerForInprogress,
                                   onFieldSubmitted: (val) {
                                     FocusScope.of(context)
@@ -612,18 +630,240 @@ class _JobListState extends State<JobList>
                         ),
                       ))
                   : new Container(),
-              SizedBox(
-                width:
-                    MediaQuery.of(context).size.width * 0.1, // <-- match_parent
-                height: MediaQuery.of(context).size.width *
-                    0.05, // <-- match-parent
+              Spacer(),
+              !isBulkRejectEnabled
+                  ? SizedBox(
+                      width: MediaQuery.of(context).size.width * 0.18,
+                      height: MediaQuery.of(context).size.width * 0.05,
+                      child: ElevatedButton(
+                          child: Padding(
+                              padding: const EdgeInsets.all(0.0),
+                              child: Text(
+                                'Reject Jobs',
+                                style: TextStyle(
+                                    fontSize: 15, color: Colors.black54),
+                              )),
+                          style: ButtonStyle(
+                              foregroundColor: MaterialStateProperty.all<Color>(
+                                  Colors.white),
+                              backgroundColor: MaterialStateProperty.all<Color>(
+                                  Colors.white),
+                              shape: MaterialStateProperty.all<
+                                      RoundedRectangleBorder>(
+                                  RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4.0),
+                                      side:
+                                          BorderSide(color: Colors.black54)))),
+                          onPressed: () {
+                            setState(() {
+                              isBulkRejectEnabled = true;
+                              selectedJobsToReject = [];
+                              _sortJobsForReject();
+                            });
+                          }),
+                    )
+                  : Row(children: [
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width * 0.14,
+                        height: MediaQuery.of(context).size.width * 0.05,
+                        child: ElevatedButton(
+                            child: Padding(
+                                padding: const EdgeInsets.all(0.0),
+                                child: Row(children: [
+                                  Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                  ),
+                                  Text(
+                                    'Reject',
+                                    style: TextStyle(
+                                        fontSize: 15, color: Colors.white),
+                                  )
+                                ])),
+                            style: ButtonStyle(
+                                foregroundColor:
+                                    MaterialStateProperty.all<Color>(
+                                        Colors.red),
+                                backgroundColor:
+                                    MaterialStateProperty.all<Color>(
+                                        Colors.red),
+                                shape: MaterialStateProperty.all<
+                                        RoundedRectangleBorder>(
+                                    RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(4.0),
+                                        side: const BorderSide(
+                                            color: Colors.red)))),
+                            onPressed: () {
+                              Helpers.showAlert(context,
+                                  title:
+                                      "Are you sure you want to reject this job ?",
+                                  child: Column(children: [
+                                    SizedBox(
+                                      height:
+                                          MediaQuery.of(context).size.height *
+                                              .03,
+                                    ),
+                                    Container(
+                                        child: DropdownButtonFormField<String>(
+                                      isExpanded: true,
+                                      items: rejectReasons?.map((Reason value) {
+                                        return DropdownMenuItem<String>(
+                                          value: value.reason,
+                                          child: Text(value.reason ?? ""),
+                                        );
+                                      }).toList(),
+                                      onChanged: (element) async {
+                                        if (isErrorRejectReason) {
+                                          setState(() {
+                                            isErrorRejectReason = false;
+                                          });
+                                        }
+
+                                        var index = rejectReasons
+                                            ?.map((e) => e.reason)
+                                            .toList()
+                                            .indexOf(element.toString());
+
+                                        setState(() {
+                                          selectedRejectReason =
+                                              rejectReasons?[index ?? 0].id;
+                                        });
+                                      },
+                                      decoration: InputDecoration(
+                                          contentPadding: EdgeInsets.symmetric(
+                                              vertical: 7, horizontal: 3),
+                                          border: OutlineInputBorder(
+                                            borderRadius:
+                                                const BorderRadius.all(
+                                              const Radius.circular(5.0),
+                                            ),
+                                          ),
+                                          filled: true,
+                                          hintStyle: TextStyle(
+                                              color: Colors.grey[800]),
+                                          hintText: "Please Select a Reason",
+                                          fillColor: Colors.white),
+                                      //value: dropDownValue,
+                                    )),
+                                    SizedBox(height: 5),
+                                  ]),
+                                  hasAction: true,
+                                  okTitle: "Yes",
+                                  noTitle: "No",
+                                  customImage: Image(
+                                      image:
+                                          AssetImage('assets/images/info.png'),
+                                      width: 50,
+                                      height: 50),
+                                  hasCancel: true, onPressed: () async {
+                                if (selectedRejectReason != null) {
+                                  List<String> list = selectedJobsToReject
+                                      .map((e) => e.serviceRequestid ?? "")
+                                      .toList();
+                                  var res = await Repositories.rejectJobBulk(
+                                      list, selectedRejectReason);
+
+                                  if (res) {
+                                    Navigator.pop(context);
+                                  } else {
+                                    Navigator.pop(context);
+                                  }
+                                } else {
+                                  Helpers.showAlert(context,
+                                      hasAction: true,
+                                      type: "error",
+                                      title: "A Reason should be selected",
+                                      onPressed: () async {
+                                    Navigator.pop(context);
+                                  });
+                                }
+
+                                // var result =
+                                //     await Repositories.cancelJob(
+                                //         selectedJob!
+                                //                 .serviceRequestid ??
+                                //             "0");
+                                //
+
+                                //result
+                                // true  ? Helpers.showAlert(context,
+                                //       hasAction: true,
+                                //       title:
+                                //           "Job has been successfully cancelled ",
+                                //       onPressed: () async {
+                                //       await refreshJobDetails();
+                                //
+                                //     })
+                                //   : Helpers.showAlert(context,
+                                //       hasAction: true,
+                                //       title:
+                                //           "Could not cancel the job",
+                                //       onPressed: () async {
+                                //       await refreshJobDetails();
+                                //
+                                //     });
+                              });
+                            }),
+                      ),
+                      SizedBox(
+                        width: 5,
+                      ),
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width * 0.14,
+                        height: MediaQuery.of(context).size.width * 0.05,
+                        child: ElevatedButton(
+                            child: Padding(
+                                padding: const EdgeInsets.all(0.0),
+                                child: Text(
+                                  'Cancel',
+                                  style: TextStyle(
+                                      fontSize: 15, color: Colors.black),
+                                )),
+                            style: ButtonStyle(
+                                foregroundColor:
+                                    MaterialStateProperty.all<Color>(
+                                        Colors.white),
+                                backgroundColor:
+                                    MaterialStateProperty.all<Color>(
+                                        Colors.white),
+                                shape: MaterialStateProperty.all<
+                                        RoundedRectangleBorder>(
+                                    RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(4.0),
+                                        side: BorderSide(
+                                            color: Colors.black54)))),
+                            onPressed: () async {
+                              setState(() {
+                                isBulkRejectEnabled = false;
+                                selectedJobsToReject = [];
+                              });
+                              await _fetchJobs();
+                            }),
+                      )
+                    ]),
+              Container(
+                width: MediaQuery.of(context).size.width * 0.15,
+                height: MediaQuery.of(context).size.width * 0.05,
+                padding: EdgeInsets.only(left: 20),
                 child: ElevatedButton(
                     child: Padding(
                         padding: const EdgeInsets.all(0.0),
-                        child: Text(
-                          'Filter',
-                          style: TextStyle(fontSize: 15, color: Colors.black54),
-                        )),
+                        child: Row(children: [
+                          Icon(
+                            Icons.filter_list_outlined,
+                            color: Colors.black54,
+                          ),
+                          SizedBox(
+                            width: 5,
+                          ),
+                          Text(
+                            'Filter',
+                            style:
+                                TextStyle(fontSize: 15, color: Colors.black54),
+                          )
+                        ])),
                     style: ButtonStyle(
                         foregroundColor:
                             MaterialStateProperty.all<Color>(Colors.white),
@@ -651,7 +891,7 @@ class _JobListState extends State<JobList>
           (inProgressJobs != null && inProgressJobs.length > 0)
               ? ConstrainedBox(
                   constraints: BoxConstraints(
-                      maxHeight: MediaQuery.of(context).size.height * .58,
+                      maxHeight: MediaQuery.of(context).size.height * .48,
                       minHeight: MediaQuery.of(context).size.height * .1),
                   child: ReorderableListView.builder(
                     onReorder: ((oldIndex, newIndex) async {
@@ -670,8 +910,23 @@ class _JobListState extends State<JobList>
                     itemBuilder: (BuildContext context, int index) {
                       return GestureDetector(
                         child: JobItem(
+                            key: ValueKey(index),
                             width: MediaQuery.of(context).size.width,
-                            job: Helpers.inProgressJobs[index],
+                            job: inProgressJobs[index],
+                            inProgressJobs: inProgressJobs,
+                            isBulkRejectEnabled: isBulkRejectEnabled,
+                            selectedJobsToReject: selectedJobsToReject,
+                            isSelectedItemForReject: (isAdd, job) {
+                              if (isAdd) {
+                                setState(() {
+                                  selectedJobsToReject.add(job);
+                                });
+                              } else {
+                                setState(() {
+                                  selectedJobsToReject.remove(job);
+                                });
+                              }
+                            },
                             index: index),
                         onTap: () async {
                           Helpers.selectedJobIndex = index;
@@ -681,10 +936,30 @@ class _JobListState extends State<JobList>
                           Navigator.pop(context);
                           // if (job != null) {
                           Helpers.selectedJob = job;
-                          Navigator.pushNamed(context, 'jobDetails',
-                                  arguments:
-                                      inProgressJobs[index].serviceRequestid)
-                              .then((value) async {});
+                          if (!isBulkRejectEnabled) {
+                            Navigator.pushNamed(context, 'jobDetails',
+                                    arguments:
+                                        inProgressJobs[index].serviceRequestid)
+                                .then((value) async {});
+                          } else {
+                            bool isAdd = selectedJobsToReject
+                                    .where((element) =>
+                                        element.serviceRequestid ==
+                                        inProgressJobs[index].serviceRequestid)
+                                    ?.isEmpty ??
+                                false;
+                            if (isAdd) {
+                              setState(() {
+                                selectedJobsToReject.add(inProgressJobs[index]);
+                              });
+                            } else {
+                              setState(() {
+                                selectedJobsToReject
+                                    .remove(inProgressJobs[index]);
+                              });
+                            }
+                          }
+
                           // }
                         },
                         key: ValueKey(index),
@@ -1229,19 +1504,28 @@ class _JobListState extends State<JobList>
                   ));
             },
             body: CustomPaint(
-                child: SingleChildScrollView(
-                    physics: AlwaysScrollableScrollPhysics(),
-                    child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 10),
-                        decoration: new BoxDecoration(
-                            color: Colors.white.withOpacity(0.0)),
-                        child: Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              errorMsg != "" ? _renderError() : Container(),
-                              _renderForm(),
-                            ])))),
+                child: Stack(children: [
+              SingleChildScrollView(
+                  physics: AlwaysScrollableScrollPhysics(),
+                  child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 10),
+                      decoration: new BoxDecoration(
+                          color: Colors.white.withOpacity(0.0)),
+                      child: Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            errorMsg != "" ? _renderError() : Container(),
+                            _renderForm(),
+                          ]))),
+              Positioned(
+                  right: 1,
+                  left: 1,
+                  bottom: 25,
+                  child: Container(
+                    width: MediaQuery.of(context).size.width,
+                  ))
+            ])),
           ),
         ));
   }
@@ -1251,222 +1535,300 @@ class JobItem extends StatefulWidget {
   final double width;
   final Job job;
   final int index;
+  List<Job> inProgressJobs;
+  final bool isBulkRejectEnabled;
+  Function isSelectedItemForReject;
+  List<Job> selectedJobsToReject;
 
-  JobItem({required this.width, required this.job, required this.index});
+  JobItem(
+      {Key? key,
+      required this.width,
+      required this.isBulkRejectEnabled,
+      required this.isSelectedItemForReject,
+      required this.job,
+      required this.inProgressJobs,
+      required this.selectedJobsToReject,
+      required this.index})
+      : super(key: key);
 
   @override
   _JobItemState createState() => new _JobItemState();
 }
 
 class _JobItemState extends State<JobItem> {
-  Job? job;
   int? index;
   double? width;
+
+  bool isSelected = false;
+  List<Job>? inProgressJobs;
 
   @override
   void initState() {
     super.initState();
-    job = widget.job;
     index = widget.index;
     width = widget.width;
+    inProgressJobs = widget.inProgressJobs;
   }
 
   final defaultUrl =
       "https://www.pngitem.com/pimgs/m/30-307416_profile-icon-png-image-free-download-searchpng-employee.png";
 
-  Color getColor() {
-    if (job?.serviceJobStatus?.toLowerCase() == "completed" ||
-        job?.serviceJobStatus?.toLowerCase() == "closed") {
-      return Colors.green;
-    } else {
-      return Colors.red;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Opacity(
+        opacity:
+            widget.job.serviceJobStatus?.toLowerCase() != "pending job start" &&
+                    widget.isBulkRejectEnabled
+                ? 0.5
+                : 1,
         child: Container(
-      width: double.infinity,
-      margin: EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        border: Border.all(width: 0.1),
-        color: getColor(),
-        boxShadow: [
-          BoxShadow(
-              blurRadius: 5, color: Colors.grey[200]!, offset: Offset(0, 10)),
-        ],
-        borderRadius: BorderRadius.circular(7.5),
-      ),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(15, 0, 0, 0),
-        child: Container(
-          color: Colors.white,
-          child: Column(
-            children: [
-              SizedBox(
-                height: 15,
-              ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(20, 0, 20, 0),
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            RichText(
-                              text: TextSpan(
-                                style: const TextStyle(
-                                  fontSize: 20.0,
-                                  color: Colors.blue,
-                                ),
-                                children: <TextSpan>[
-                                  TextSpan(
-                                      text: job != null
-                                          ? '# ${job?.serviceJobNo}'.toString()
-                                          : '#-',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold)),
-                                ],
-                              ),
-                            ),
-                            SizedBox(
-                              width: 20,
-                            ),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Color(0xFF56C568),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Padding(
-                                padding: EdgeInsets.all(10),
-                                child: Center(
-                                  child: Text(
-                                    'Paid',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              width: 20,
-                            ),
-                            Container(
-                              width: MediaQuery.of(context).size.width * 0.2,
-                              height: MediaQuery.of(context).size.height * 0.03,
-                              child: Stack(
-                                children: List.generate(
-                                    job?.secondaryEngineers?.length ?? 0,
-                                    (index) {
-                                  double position = index.toDouble() *
-                                      25; // Adjust the overlapping position
-                                  return Positioned(
-                                    left: position,
-                                    child: Container(
-                                        decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            border: Border.all(
-                                                color: Colors.white,
-                                                width: 2.0)),
-                                        child: CircleAvatar(
-                                          radius: 15.0,
-                                          backgroundImage:
-                                              CachedNetworkImageProvider(job
-                                                      ?.secondaryEngineers?[
-                                                          index]
-                                                      .profileImage
-                                                      .toString() ??
-                                                  defaultUrl),
-                                        )),
-                                  );
-                                }),
-                              ),
-                            )
-                          ]),
-                      Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Color(0xFF323F4B),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Padding(
-                                padding: EdgeInsets.fromLTRB(8, 8, 8, 8),
-                                child: Center(
-                                  child: Text(
-                                    '${job != null ? job?.serviceType : ""}',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              width: 10,
-                            ),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Color(0xFF56C568),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Padding(
-                                padding: EdgeInsets.fromLTRB(8, 8, 8, 8),
-                                child: Center(
-                                  child: Text(
-                                    '${job?.serviceJobStatus}',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ])
-                    ]),
-              ),
-              SizedBox(
-                height: 15,
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Container(
+          width: double.infinity,
+          margin: EdgeInsets.only(bottom: 10),
+          decoration: BoxDecoration(
+            border: Border.all(width: 0.1),
+            color: Helpers.getForegroundColorByJobStatus(
+                widget.job.serviceJobStatus ?? ""),
+            boxShadow: [
+              BoxShadow(
+                  blurRadius: 5,
+                  color: Colors.grey[200]!,
+                  offset: Offset(0, 10)),
+            ],
+            borderRadius: BorderRadius.circular(7.5),
+          ),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(15, 0, 0, 0),
+            child: Container(
+              color: Colors.white,
+              child: Column(
                 children: [
-                  Container(
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(20.0, 0, 0, 0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  SizedBox(
+                    height: 15,
+                  ),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(20, 0, 20, 0),
+                    child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Row(
-                            children: [
-                              RichText(
-                                text: TextSpan(
-                                  // Note: Styles for TextSpans must be explicitly defined.
-                                  // Child text spans will inherit styles from parent
-                                  style: const TextStyle(
-                                    fontSize: 14.0,
-                                    color: Colors.black87,
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                RichText(
+                                  text: TextSpan(
+                                    style: const TextStyle(
+                                      fontSize: 20.0,
+                                      color: Colors.blue,
+                                    ),
+                                    children: <TextSpan>[
+                                      TextSpan(
+                                          text: widget.job != null
+                                              ? '# ${widget.job?.serviceJobNo}'
+                                                  .toString()
+                                              : '#-',
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold)),
+                                    ],
                                   ),
-                                  children: <TextSpan>[
-                                    TextSpan(
-                                        text: job?.serviceDate != null
-                                            ? job?.serviceDate
-                                            : '-',
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold)),
-                                  ],
                                 ),
+                                SizedBox(
+                                  width: 20,
+                                ),
+                                (widget.job?.isPaid ?? false)
+                                    ? Container(
+                                        decoration: BoxDecoration(
+                                          color: Color(0xFF56C568),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: Padding(
+                                          padding: EdgeInsets.all(10),
+                                          child: Center(
+                                            child: Text(
+                                              'Paid',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    : new Container(),
+                                SizedBox(
+                                  width: 20,
+                                ),
+                                Container(
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.2,
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.03,
+                                  child: Stack(
+                                    children: List.generate(
+                                        widget.job?.secondaryEngineers
+                                                ?.length ??
+                                            0, (index) {
+                                      double position = index.toDouble() *
+                                          25; // Adjust the overlapping position
+                                      return Positioned(
+                                        left: position,
+                                        child: Container(
+                                            decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                    color: Colors.white,
+                                                    width: 2.0)),
+                                            child: CircleAvatar(
+                                              radius: 15.0,
+                                              backgroundImage:
+                                                  CachedNetworkImageProvider(widget
+                                                          .job
+                                                          ?.secondaryEngineers?[
+                                                              index]
+                                                          .profileImage
+                                                          .toString() ??
+                                                      defaultUrl),
+                                            )),
+                                      );
+                                    }),
+                                  ),
+                                )
+                              ]),
+                          Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Color(0xFF323F4B),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Padding(
+                                    padding: EdgeInsets.fromLTRB(12, 8, 12, 8),
+                                    child: Center(
+                                      child: Text(
+                                        '${widget.job != null ? widget.job?.serviceType : ""}',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 10,
+                                ),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color:
+                                        Helpers.getForegroundColorByJobStatus(
+                                            '${widget.job.serviceJobStatus}'),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Padding(
+                                    padding: EdgeInsets.fromLTRB(12, 8, 12, 8),
+                                    child: Center(
+                                      child: Text(
+                                        '${widget.job?.serviceJobStatus}',
+                                        style: TextStyle(
+                                          color: Helpers.getTextColorByJobStatus(
+                                              '${widget.job.serviceJobStatus}'),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ])
+                        ]),
+                  ),
+                  SizedBox(
+                    height: 15,
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(20.0, 0, 0, 0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  RichText(
+                                    text: TextSpan(
+                                      // Note: Styles for TextSpans must be explicitly defined.
+                                      // Child text spans will inherit styles from parent
+                                      style: const TextStyle(
+                                        fontSize: 14.0,
+                                        color: Colors.black87,
+                                      ),
+                                      children: <TextSpan>[
+                                        TextSpan(
+                                            text:
+                                                widget.job?.serviceDate != null
+                                                    ? widget.job?.serviceDate
+                                                    : '-',
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold)),
+                                      ],
+                                    ),
+                                  ),
+                                  // RichText(
+                                  //   text: TextSpan(
+                                  //     // Note: Styles for TextSpans must be explicitly defined.
+                                  //     // Child text spans will inherit styles from parent
+                                  //     style: const TextStyle(
+                                  //       fontSize: 14.0,
+                                  //       color: Colors.red,
+                                  //     ),
+                                  //     children: <TextSpan>[
+                                  //       TextSpan(
+                                  //           text: job.serviceTime != null
+                                  //               ? job.serviceTime
+                                  //               : '10:00 AM TO 02:00PM',
+                                  //           style: const TextStyle(
+                                  //               fontWeight: FontWeight.bold)),
+                                  //     ],
+                                  //   ),
+                                  // ),
+                                ],
+                              ),
+                              SizedBox(
+                                height: 5,
+                              ),
+                              Container(
+                                width: MediaQuery.of(context).size.width * 0.25,
+                                child: RichText(
+                                  text: TextSpan(
+                                    // Note: Styles for TextSpans must be explicitly defined.
+                                    // Child text spans will inherit styles from parent
+                                    style: const TextStyle(
+                                      fontSize: 14.0,
+                                      color: Colors.black45,
+                                    ),
+                                    children: <TextSpan>[
+                                      TextSpan(
+                                          // text:
+                                          //     "3517 W. Gray St. Utica, Pennsylvania 57867",
+
+                                          text: widget.job != null
+                                              ? '${widget.job?.serviceAddressStreet},${widget.job?.serviceAddressCity},${widget.job?.serviceAddressPostcode},${widget.job?.serviceAddressState}, '
+                                              : '',
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                              SizedBox(
+                                height: 10,
                               ),
                               // RichText(
                               //   text: TextSpan(
@@ -1474,273 +1836,160 @@ class _JobItemState extends State<JobItem> {
                               //     // Child text spans will inherit styles from parent
                               //     style: const TextStyle(
                               //       fontSize: 14.0,
-                              //       color: Colors.red,
+                              //       color: Colors.black87,
                               //     ),
                               //     children: <TextSpan>[
                               //       TextSpan(
-                              //           text: job.serviceTime != null
-                              //               ? job.serviceTime
-                              //               : '10:00 AM TO 02:00PM',
+                              //           text: job != null
+                              //               ? job.postcode
+                              //                   .toString()
+                              //                   .replaceAll("\n", " ")
+                              //               : '',
                               //           style: const TextStyle(
                               //               fontWeight: FontWeight.bold)),
                               //     ],
                               //   ),
                               // ),
+                              SizedBox(
+                                height: 15,
+                              ),
                             ],
                           ),
+                        ),
+                      ),
+                      Container(
+                          child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
                           SizedBox(
-                            height: 5,
-                          ),
-                          Container(
-                            width: MediaQuery.of(context).size.width * 0.25,
+                            width: MediaQuery.of(context).size.width * 0.3,
                             child: RichText(
+                              textAlign: TextAlign.center,
                               text: TextSpan(
                                 // Note: Styles for TextSpans must be explicitly defined.
                                 // Child text spans will inherit styles from parent
                                 style: const TextStyle(
-                                  fontSize: 14.0,
-                                  color: Colors.black45,
+                                  fontSize: 16.0,
+                                  color: Colors.black54,
                                 ),
                                 children: <TextSpan>[
                                   TextSpan(
-                                      // text:
-                                      //     "3517 W. Gray St. Utica, Pennsylvania 57867",
-
-                                      text: job != null
-                                          ? '${job?.serviceAddressStreet},${job?.serviceAddressCity},${job?.serviceAddressPostcode},${job?.serviceAddressState}, '
-                                          : '',
+                                      text: widget.job != null
+                                          ? '${widget.job?.customerName} (${widget.job?.customerTelephone})'
+                                          : '-',
                                       style: const TextStyle(
                                           fontWeight: FontWeight.bold)),
                                 ],
                               ),
                             ),
                           ),
-
                           SizedBox(
-                            height: 10,
+                            height: 5,
                           ),
-                          // RichText(
-                          //   text: TextSpan(
-                          //     // Note: Styles for TextSpans must be explicitly defined.
-                          //     // Child text spans will inherit styles from parent
-                          //     style: const TextStyle(
-                          //       fontSize: 14.0,
-                          //       color: Colors.black87,
-                          //     ),
-                          //     children: <TextSpan>[
-                          //       TextSpan(
-                          //           text: job != null
-                          //               ? job.postcode
-                          //                   .toString()
-                          //                   .replaceAll("\n", " ")
-                          //               : '',
-                          //           style: const TextStyle(
-                          //               fontWeight: FontWeight.bold)),
-                          //     ],
-                          //   ),
-                          // ),
-                          SizedBox(
-                            height: 15,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Container(
-                      child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      RichText(
-                        textAlign: TextAlign.start,
-                        text: TextSpan(
-                          // Note: Styles for TextSpans must be explicitly defined.
-                          // Child text spans will inherit styles from parent
-                          style: const TextStyle(
-                            fontSize: 16.0,
-                            color: Colors.black54,
-                          ),
-                          children: <TextSpan>[
-                            TextSpan(
-                                text: job != null
-                                    ? '${job?.customerName} (${job?.customerTelephone})'
-                                    : '-',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-                      SizedBox(
-                        height: 5,
-                      ),
-                      RichText(
-                        textAlign: TextAlign.center,
-                        text: TextSpan(
-                          // Note: Styles for TextSpans must be explicitly defined.
-                          // Child text spans will inherit styles from parent
-                          style: const TextStyle(
-                            fontSize: 14.0,
-                            color: Colors.black45,
-                          ),
-                          children: <TextSpan>[
-                            TextSpan(
-                                text:
-                                    job != null ? job?.productDescription : '-',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-                      RichText(
-                        textAlign: TextAlign.center,
-                        text: TextSpan(
-                          // Note: Styles for TextSpans must be explicitly defined.
-                          // Child text spans will inherit styles from parent
-                          style: const TextStyle(
-                            fontSize: 14.0,
-                            color: Colors.black45,
-                          ),
-                          children: <TextSpan>[
-                            TextSpan(
-                                text: job != null ? job?.productCode : '',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  )),
-                  Container(
-                      alignment: Alignment.topRight,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: EdgeInsets.fromLTRB(0.0, 0.0, 0,
-                                MediaQuery.of(context).size.height * 0.03),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                this.job?.serviceAddressStreet != ""
-                                    ? GestureDetector(
-                                        onTap: () async {
-                                          var address = this
-                                              .job
-                                              ?.serviceAddressStreet
-                                              ?.replaceAll("\n", "");
-                                          launch(
-                                              "https://www.google.com/maps/search/?api=1&query=${'${job?.serviceAddressStreet},${job?.serviceAddressCity},${job?.serviceAddressPostcode},${job?.serviceAddressState},'}");
-                                        },
-                                        child: Icon(
-                                          // <-- Icon
-                                          Icons.location_pin,
-                                          color: Colors.black54,
-                                          size: 25.0,
-                                        ),
-                                      )
-                                    : new Container(),
-                                SizedBox(
-                                  width: 10,
-                                ),
-                                Icon(
-                                  Icons.navigate_next_outlined,
-                                  color: Colors.black54,
-                                  size: 25.0,
-                                ),
+                          RichText(
+                            textAlign: TextAlign.center,
+                            text: TextSpan(
+                              // Note: Styles for TextSpans must be explicitly defined.
+                              // Child text spans will inherit styles from parent
+                              style: const TextStyle(
+                                fontSize: 14.0,
+                                color: Colors.black45,
+                              ),
+                              children: <TextSpan>[
+                                TextSpan(
+                                    text: widget.job != null
+                                        ? widget.job?.productDescription
+                                        : '-',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold)),
                               ],
                             ),
-                          )
+                          ),
+                          RichText(
+                            textAlign: TextAlign.center,
+                            text: TextSpan(
+                              // Note: Styles for TextSpans must be explicitly defined.
+                              // Child text spans will inherit styles from parent
+                              style: const TextStyle(
+                                fontSize: 14.0,
+                                color: Colors.black45,
+                              ),
+                              children: <TextSpan>[
+                                TextSpan(
+                                    text: widget.job != null
+                                        ? widget.job?.productCode
+                                        : '',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
                         ],
                       )),
-                ],
-              ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
-                child: Container(
-                  alignment: Alignment.centerLeft,
-                  child: ReadMoreText(
-                    job != null
-                        ? job?.remarks
-                                .toString()
-                                .toLowerCase()
-                                .replaceAll("\n", " ") ??
-                            "-"
-                        : '-',
-                    trimLines: 2,
-                    colorClickableText: Colors.black54,
-                    trimMode: TrimMode.Line,
-                    style: const TextStyle(
-                      fontSize: 14.0,
-                      color: Colors.black54,
-                    ),
-                    trimCollapsedText: 'Show more',
-                    trimExpandedText: 'Show less',
-                    moreStyle:
-                        TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      Container(
+                          alignment: Alignment.topRight,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: EdgeInsets.fromLTRB(0.0, 0.0, 0,
+                                    MediaQuery.of(context).size.height * 0.03),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    widget.job?.serviceAddressStreet != ""
+                                        ? GestureDetector(
+                                            onTap: () async {
+                                              var address = widget
+                                                  .job?.serviceAddressStreet
+                                                  ?.replaceAll("\n", "");
+                                              launch(
+                                                  "https://www.google.com/maps/search/?api=1&query=${'${widget.job?.serviceAddressStreet},${widget.job?.serviceAddressCity},${widget.job?.serviceAddressPostcode},${widget.job?.serviceAddressState},'}");
+                                            },
+                                            child: Icon(
+                                              // <-- Icon
+                                              Icons.location_pin,
+                                              color: Colors.black54,
+                                              size: 25.0,
+                                            ),
+                                          )
+                                        : new Container(),
+                                    SizedBox(
+                                      width: 10,
+                                    ),
+                                    Icon(
+                                      Icons.navigate_next_outlined,
+                                      color: Colors.black54,
+                                      size: 25.0,
+                                    ),
+                                  ],
+                                ),
+                              )
+                            ],
+                          )),
+                    ],
                   ),
-                  // RichText(
-                  //   text: TextSpan(
-                  //     // Note: Styles for TextSpans must be explicitly defined.
-                  //     // Child text spans will inherit styles from parent
-                  //     style: const TextStyle(
-                  //       fontSize: 14.0,
-                  //       color: Colors.black54,
-                  //     ),
-                  //     children: <TextSpan>[
-                  //       TextSpan(
-                  //           text: job != null
-                  //               ? job.problem
-                  //                   .toString()
-                  //                   .toLowerCase()
-                  //                   .replaceAll("\n", " ")
-                  //               : 'Changed order missed by pro',
-                  //           style: const TextStyle(
-                  //               fontWeight: FontWeight.bold)),
-                  //     ],
-                  //   ),
-                  // ),
-                ),
-              ),
-              SizedBox(
-                height: 10,
-              ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
-                child: Row(
-                  children: [
-                    Icon(
-                      // <-- Icon
-                      Icons.chat_outlined,
-                      color: Colors.black54,
-                      size: 19.0,
-                    ),
-                    SizedBox(
-                      width: 5,
-                    ),
-                    Container(
-                      width: 500,
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
+                    child: Container(
+                      alignment: Alignment.centerLeft,
                       child: ReadMoreText(
-                        (job?.actualProblemCode != null
-                            ? job?.actualProblemDescription != null
-                                ? (job?.actualProblemDescription
-                                        .toString()
-                                        .toLowerCase() ??
-                                    "")
-                                : (job?.reportedProblemCode != null
-                                    ? job?.reportedProblemCode
-                                            .toString()
-                                            .toLowerCase() ??
-                                        ""
-                                    : "-")
-                            : ""),
+                        widget.job != null
+                            ? widget.job?.remarks
+                                    .toString()
+                                    .toLowerCase()
+                                    .replaceAll("\n", " ") ??
+                                "-"
+                            : '-',
                         trimLines: 2,
                         colorClickableText: Colors.black54,
                         trimMode: TrimMode.Line,
                         style: const TextStyle(
                           fontSize: 14.0,
-                          color: Colors.red,
+                          color: Colors.black54,
                         ),
                         trimCollapsedText: 'Show more',
                         trimExpandedText: 'Show less',
@@ -1748,35 +1997,173 @@ class _JobItemState extends State<JobItem> {
                             fontSize: 14, fontWeight: FontWeight.bold),
                       ),
                       // RichText(
-                      //   maxLines: 5,
                       //   text: TextSpan(
                       //     // Note: Styles for TextSpans must be explicitly defined.
                       //     // Child text spans will inherit styles from parent
                       //     style: const TextStyle(
                       //       fontSize: 14.0,
-                      //       color: Colors.red,
+                      //       color: Colors.black54,
                       //     ),
                       //     children: <TextSpan>[
                       //       TextSpan(
-                      //           text: job.comment != null
-                      //               ? job.comment.toString().toLowerCase()
-                      //               : '-',
+                      //           text: job != null
+                      //               ? job.problem
+                      //                   .toString()
+                      //                   .toLowerCase()
+                      //                   .replaceAll("\n", " ")
+                      //               : 'Changed order missed by pro',
                       //           style: const TextStyle(
                       //               fontWeight: FontWeight.bold)),
                       //     ],
                       //   ),
                       // ),
-                    )
-                  ],
-                ),
+                    ),
+                  ),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
+                    child: Row(
+                      children: [
+                        Icon(
+                          // <-- Icon
+                          Icons.chat_outlined,
+                          color: Colors.black54,
+                          size: 19.0,
+                        ),
+                        SizedBox(
+                          width: 5,
+                        ),
+                        Container(
+                          width: 450,
+                          child: ReadMoreText(
+                            (widget.job?.actualProblemCode != null
+                                ? widget.job?.actualProblemDescription != null
+                                    ? (widget.job?.actualProblemDescription
+                                            .toString()
+                                            .toLowerCase() ??
+                                        "")
+                                    : (widget.job?.reportedProblemCode != null
+                                        ? widget.job?.reportedProblemCode
+                                                .toString()
+                                                .toLowerCase() ??
+                                            ""
+                                        : "-")
+                                : ""),
+                            trimLines: 2,
+                            colorClickableText: Colors.black54,
+                            trimMode: TrimMode.Line,
+                            style: const TextStyle(
+                              fontSize: 14.0,
+                              color: Colors.red,
+                            ),
+                            trimCollapsedText: 'Show more',
+                            trimExpandedText: 'Show less',
+                            moreStyle: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                          // RichText(
+                          //   maxLines: 5,
+                          //   text: TextSpan(
+                          //     // Note: Styles for TextSpans must be explicitly defined.
+                          //     // Child text spans will inherit styles from parent
+                          //     style: const TextStyle(
+                          //       fontSize: 14.0,
+                          //       color: Colors.red,
+                          //     ),
+                          //     children: <TextSpan>[
+                          //       TextSpan(
+                          //           text: job.comment != null
+                          //               ? job.comment.toString().toLowerCase()
+                          //               : '-',
+                          //           style: const TextStyle(
+                          //               fontWeight: FontWeight.bold)),
+                          //     ],
+                          //   ),
+                          // ),
+                        ),
+                        Spacer(),
+                        widget.isBulkRejectEnabled
+                            ? widget.job?.serviceJobStatus?.toLowerCase() ==
+                                    "pending job start"
+                                ? Theme(
+                                    data: ThemeData(
+                                      checkboxTheme: CheckboxThemeData(
+                                        visualDensity: VisualDensity(
+                                            horizontal: 3.0, vertical: -3.0),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                              2.0), // Adjust the border radius
+                                        ),
+                                        side: BorderSide(
+                                          width:
+                                              3.0, // Adjust the border thickness
+                                        ),
+                                      ),
+                                    ),
+                                    child: Checkbox(
+                                        overlayColor:
+                                            MaterialStateColor.resolveWith(
+                                                (Set<MaterialState> states) {
+                                          if (states.contains(
+                                              MaterialState.selected)) {
+                                            return Colors.red;
+                                          }
+                                          return Colors.white;
+                                        }),
+                                        value: widget.selectedJobsToReject
+                                            .contains(widget.job),
+                                        fillColor:
+                                            MaterialStateColor.resolveWith(
+                                                (Set<MaterialState> states) {
+                                          if (states.contains(
+                                              MaterialState.selected)) {
+                                            return Colors.red;
+                                          }
+                                          return Colors.white;
+                                        }),
+                                        onChanged: (val) async {
+                                          if (val ?? false) {
+                                            await widget
+                                                .isSelectedItemForReject(
+                                                    true, widget.job);
+                                          } else {
+                                            await widget
+                                                .isSelectedItemForReject(
+                                                    false, widget.job);
+                                          }
+                                        }))
+                                : Container(
+                                    padding: EdgeInsets.only(right: 10),
+                                    child: RichText(
+                                      text: TextSpan(
+                                        // Note: Styles for TextSpans must be explicitly defined.
+                                        // Child text spans will inherit styles from parent
+                                        style: const TextStyle(
+                                          fontSize: 14.0,
+                                          color: Colors.red,
+                                        ),
+                                        children: <TextSpan>[
+                                          TextSpan(
+                                              text: "Cannot Reject Job",
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold)),
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                            : new Container()
+                      ],
+                    ),
+                  ),
+                  SizedBox(
+                    height: 15,
+                  ),
+                ],
               ),
-              SizedBox(
-                height: 15,
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
-    ));
+        )));
   }
 }

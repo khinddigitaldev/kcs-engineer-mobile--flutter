@@ -89,6 +89,7 @@ class _CalendarViewState extends State<CalendarView>
                                               isSelected:
                                                   index == selectedIndex,
                                               onSelectedDate: (index) async {
+                                                var abc = widget.dateSelected;
                                                 setState(() {
                                                   selectedIndex = index;
                                                 });

@@ -60,6 +60,10 @@ class Job {
   int? productModelId;
   String? productDescription;
   String? serialNo;
+  bool? isPaid;
+  bool? isRTOOrder;
+  String? purchaseDate;
+  String? paymentMethods;
   TransportCharge? transportCharge;
   PickupCharge? pickupCharge;
 
@@ -108,10 +112,12 @@ class Job {
       this.actualSolutionIndoorCharges,
       this.actualSolutionOutdoorCharges,
       this.remarks,
+      this.paymentMethods,
       this.adminRemarks,
       this.productCode,
       this.productDescription,
       this.serialNo,
+      this.purchaseDate,
       this.productId,
       this.serviceTypeId,
       this.picklist,
@@ -121,6 +127,8 @@ class Job {
       this.aggregatedSpareparts,
       this.miscCharges,
       this.transportCharge,
+      this.isPaid,
+      this.isRTOOrder,
       this.pickupCharge,
       this.secondaryEngineers,
       this.productModelId,
@@ -168,6 +176,12 @@ class Job {
     this.productCode = json["product"]?["code"];
     this.productDescription = json["product"]?["description"];
     this.serialNo = json["warranty_info"]?["serial_no"];
+    this.purchaseDate = json["warranty_info"]?["purchase_date"];
+    this.isPaid = json["payment"] != null;
+    // this.paymentMethods = json["payment"] != null
+    //     ? (json["payment"]?["payment_method"] as List<dynamic>).join(",")
+    //     : null;
+    this.isRTOOrder = json["has_sales_order_connection"];
     this.productId = json["product"]?["id"];
     this.serviceTypeId = json["service_type_id"];
     this.productModelId = json["product"]?["model_id"];

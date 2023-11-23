@@ -497,14 +497,14 @@ class _FeedbackState extends State<FeedbackUI> {
                       )),
                   style: ButtonStyle(
                       foregroundColor: MaterialStateProperty.all<Color>(
-                          Colors.red.withOpacity(0.7)),
+                          Color(0xFFFFB700).withOpacity(0.7)),
                       backgroundColor: MaterialStateProperty.all<Color>(
-                          Colors.red.withOpacity(0.7)),
+                          Color(0xFFFFB700).withOpacity(0.7)),
                       shape: MaterialStateProperty.all<RoundedRectangleBorder>(
                           RoundedRectangleBorder(
                               borderRadius: BorderRadius.zero,
                               side: BorderSide(
-                                  color: Colors.red.withOpacity(0.7))))),
+                                  color: Color(0xFFFFB700).withOpacity(0.7))))),
                   onPressed: () async {
                     if (payment == null) {
                       Widget okButton = TextButton(
@@ -541,7 +541,7 @@ class _FeedbackState extends State<FeedbackUI> {
                       Navigator.pop(context);
                       if (res) {
                         Navigator.pushNamed(context, 'feedback_confirmation',
-                            arguments: Helpers.selectedJob);
+                            arguments: widget.data);
                       }
                     }
                   }),

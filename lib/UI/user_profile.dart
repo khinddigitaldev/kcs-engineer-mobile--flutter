@@ -284,24 +284,24 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
             SizedBox(
               height: 10,
             ),
-            Container(
-              alignment: Alignment.centerLeft,
-              width: 80,
-              child: ElevatedButton(
-                  style: ButtonStyle(
-                      backgroundColor: MaterialStateProperty.all(Colors.black),
-                      shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-                          RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20.0),
-                              side: BorderSide(color: Colors.black45)))),
-                  onPressed: () {},
-                  child: Icon(
-                    // <-- Icon
-                    Icons.qr_code,
-                    color: Colors.white,
-                    size: 30.0,
-                  )),
-            ),
+            // Container(
+            //   alignment: Alignment.centerLeft,
+            //   width: 80,
+            //   child: ElevatedButton(
+            //       style: ButtonStyle(
+            //           backgroundColor: MaterialStateProperty.all(Colors.black),
+            //           shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+            //               RoundedRectangleBorder(
+            //                   borderRadius: BorderRadius.circular(20.0),
+            //                   side: BorderSide(color: Colors.black45)))),
+            //       onPressed: () {},
+            //       child: Icon(
+            //         // <-- Icon
+            //         Icons.qr_code,
+            //         color: Colors.white,
+            //         size: 30.0,
+            //       )),
+            // ),
 
             SizedBox(height: 40),
             Container(
@@ -444,26 +444,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                                     ]),
                               ),
                             ),
-                            SizedBox(
-                              height: 10,
-                            ),
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: RichText(
-                                text: TextSpan(
-                                    // Note: Styles for TextSpans must be explicitly defined.
-                                    // Child text spans will inherit styles from parent
-                                    style: const TextStyle(
-                                      fontSize: 20.0,
-                                      color: Colors.black,
-                                    ),
-                                    children: <TextSpan>[
-                                      TextSpan(
-                                        text: engineer?.operatingHours,
-                                      ),
-                                    ]),
-                              ),
-                            )
                           ],
                         ),
                         SizedBox(height: 10),
@@ -546,190 +526,24 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                               ]),
                         ),
                         SizedBox(height: 5),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.all(0.0),
-                                child: Column(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    SizedBox(
-                                      height: 5,
-                                    ),
-                                    RichText(
-                                      text: TextSpan(
-                                          // Note: Styles for TextSpans must be explicitly defined.
-                                          // Child text spans will inherit styles from parent
-                                          style: const TextStyle(
-                                            fontSize: 20.0,
-                                            color: Colors.black,
-                                          ),
-                                          children: <TextSpan>[
-                                            TextSpan(
-                                              text: 'Weekday',
-                                            ),
-                                          ]),
-                                    ),
-                                  ],
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: RichText(
+                            text: TextSpan(
+                                // Note: Styles for TextSpans must be explicitly defined.
+                                // Child text spans will inherit styles from parent
+                                style: const TextStyle(
+                                  fontSize: 20.0,
+                                  color: Colors.black,
                                 ),
-                              ),
-                            ),
-                            Flexible(
-                              fit: FlexFit.tight,
-                              child: Padding(
-                                padding: const EdgeInsets.all(0.0),
-                                child: Column(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    RichText(
-                                      text: TextSpan(
-                                          // Note: Styles for TextSpans must be explicitly defined.
-                                          // Child text spans will inherit styles from parent
-                                          style: const TextStyle(
-                                            fontSize: 20.0,
-                                            color: Colors.black,
-                                          ),
-                                          children: <TextSpan>[
-                                            TextSpan(
-                                              text: '9:00am - 6:00pm',
-                                            ),
-                                          ]),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
+                                children: <TextSpan>[
+                                  TextSpan(
+                                    text: engineer?.operatingHours,
+                                  ),
+                                ]),
+                          ),
                         ),
                         SizedBox(height: 5),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.all(0.0),
-                                child: Column(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    RichText(
-                                      text: TextSpan(
-                                          // Note: Styles for TextSpans must be explicitly defined.
-                                          // Child text spans will inherit styles from parent
-                                          style: const TextStyle(
-                                            fontSize: 20.0,
-                                            color: Colors.black,
-                                          ),
-                                          children: <TextSpan>[
-                                            TextSpan(
-                                              text: 'Saturday',
-                                            ),
-                                          ]),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            Flexible(
-                              fit: FlexFit.tight,
-                              child: Padding(
-                                padding: const EdgeInsets.all(0.0),
-                                child: Column(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    RichText(
-                                      text: TextSpan(
-                                          // Note: Styles for TextSpans must be explicitly defined.
-                                          // Child text spans will inherit styles from parent
-                                          style: const TextStyle(
-                                            fontSize: 20.0,
-                                            color: Colors.black,
-                                          ),
-                                          children: <TextSpan>[
-                                            TextSpan(
-                                              text: '9:00am - 12:00pm',
-                                            ),
-                                          ]),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.all(0.0),
-                                child: Column(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    RichText(
-                                      text: TextSpan(
-                                          // Note: Styles for TextSpans must be explicitly defined.
-                                          // Child text spans will inherit styles from parent
-                                          style: const TextStyle(
-                                            fontSize: 20.0,
-                                            color: Colors.black,
-                                          ),
-                                          children: <TextSpan>[
-                                            TextSpan(
-                                              text: 'Sunday & Public Holiday',
-                                            ),
-                                          ]),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            Flexible(
-                              fit: FlexFit.tight,
-                              child: Padding(
-                                padding: const EdgeInsets.all(0.0),
-                                child: Column(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    RichText(
-                                      text: TextSpan(
-                                          // Note: Styles for TextSpans must be explicitly defined.
-                                          // Child text spans will inherit styles from parent
-                                          style: const TextStyle(
-                                            fontSize: 20.0,
-                                            color: Colors.black,
-                                          ),
-                                          children: <TextSpan>[
-                                            TextSpan(
-                                              text: '-',
-                                            ),
-                                          ]),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
                       ],
                     ),
                   ),
@@ -836,6 +650,7 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       key: _scaffoldKey,
       //resizeToAvoidBottomInset: false,
       body: CustomPaint(

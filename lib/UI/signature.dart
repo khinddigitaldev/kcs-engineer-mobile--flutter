@@ -8,6 +8,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kcs_engineer/model/job.dart';
 import 'package:kcs_engineer/model/payment_method.dart';
 import 'package:kcs_engineer/model/payment_request.dart';
+import 'package:kcs_engineer/model/rcpCost.dart';
 import 'package:kcs_engineer/payment_method_icons.dart' as PaymentMethodIcons;
 import 'package:kcs_engineer/themes/text_styles.dart';
 import 'package:kcs_engineer/util/helpers.dart';
@@ -18,7 +19,8 @@ import 'package:signature/signature.dart';
 
 class SignatureUI extends StatefulWidget {
   Job? data;
-  SignatureUI({this.data});
+  RCPCost? rcpCost;
+  SignatureUI({this.data, this.rcpCost});
 
   @override
   _SignatureState createState() => _SignatureState();
@@ -169,7 +171,7 @@ class _SignatureState extends State<SignatureUI> {
                       children: <TextSpan>[
                         TextSpan(
                           text:
-                              'I $consumerName hereby acknowledge the receipt of the product and service promised from Mayer.',
+                              'I $consumerName hereby acknowledge the receipt of the product and service promised from KHIND.',
                         ),
                       ],
                     ),
@@ -309,7 +311,10 @@ class _SignatureState extends State<SignatureUI> {
                                   ),
                                   children: <TextSpan>[
                                     TextSpan(
-                                      text: 'MYR 250.00',
+                                      text: (widget.rcpCost?.isDiscountValid ??
+                                              false)
+                                          ? widget.rcpCost?.totalRCP
+                                          : widget.rcpCost?.total,
                                     ),
                                   ]),
                             ),
@@ -594,7 +599,7 @@ class _SignatureState extends State<SignatureUI> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              "Pay Now",
+                              "DuitNow",
                               style: TextStyle(
                                 fontSize: 19.0,
                                 color: payNow ? Colors.white : Colors.black87,
@@ -1182,65 +1187,74 @@ class _SignatureState extends State<SignatureUI> {
                                   color: Color(0xFFFFB700).withOpacity(0.7))))),
                   onPressed: () async {
                     var res = await _processPayment();
-
+                    Uint8List? bodyBytes =
+                        await paymentDTO.signatureController?.toPngBytes();
+                    File signature = await _convertImageToFile(bodyBytes!);
                     if (res) {
-                      Uint8List? bodyBytes =
-                          await paymentDTO.signatureController?.toPngBytes();
-                      File signature = await _convertImageToFile(bodyBytes!);
-                      var val = await Repositories.confirmAcknowledgement(
-                          selectedJob?.serviceRequestid ?? "",
+                      if (payNow) {
+                        Navigator.pushNamed(context, 'payment', arguments: [
+                          selectedJob,
+                          paymentDTO,
+                          widget.rcpCost,
                           signature,
                           isWantInvoice,
+                          payByCash,
                           emailCT.text.toString(),
-                          payByCash
-                              ? paymentMethods
-                                  .where((element) =>
-                                      element.method?.toLowerCase() == "cash")
-                                  .toList()[0]
-                                  .id
-                                  .toString()
-                              : paymentMethods
-                                  .where((element) =>
-                                      element.method?.toLowerCase() ==
-                                      "scanned")
-                                  .toList()[0]
-                                  .id
-                                  .toString());
+                          paymentMethods
+                        ]);
+                      } else {
+                        var val = await Repositories.confirmAcknowledgement(
+                            selectedJob?.serviceRequestid ?? "",
+                            signature,
+                            isWantInvoice,
+                            emailCT.text.toString(),
+                            payByCash
+                                ? paymentMethods
+                                    .where((element) =>
+                                        element.method?.toLowerCase() == "cash")
+                                    .toList()[0]
+                                    .id
+                                    .toString()
+                                : paymentMethods
+                                    .where((element) =>
+                                        element.method?.toLowerCase() ==
+                                        "scanned")
+                                    .toList()[0]
+                                    .id
+                                    .toString());
 
-                      if (val) {
-                        if (!signatureErr && !errorEmail) {
-                          //if (res) {
-                          if (payNow) {
-                            Navigator.pushNamed(context, 'payment',
-                                arguments: [selectedJob, paymentDTO]);
+                        if (val) {
+                          if (!signatureErr && !errorEmail) {
+                            //if (res) {
+
+                            Navigator.pushNamed(
+                                context, 'feedback_confirmation',
+                                arguments: selectedJob);
                           } else {
-                            Navigator.pushNamed(context, 'feedback',
-                                arguments: [selectedJob, paymentDTO]);
+                            Widget okButton = TextButton(
+                              child: Text("OK"),
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                            );
+
+                            // set up the AlertDialog
+                            AlertDialog alert = AlertDialog(
+                              title: Text("Error"),
+                              content: Text("Payment Could not be completed."),
+                              actions: [
+                                okButton,
+                              ],
+                            );
+
+                            // show the dialog
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return alert;
+                              },
+                            );
                           }
-                        } else {
-                          Widget okButton = TextButton(
-                            child: Text("OK"),
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                          );
-
-                          // set up the AlertDialog
-                          AlertDialog alert = AlertDialog(
-                            title: Text("Error"),
-                            content: Text("Payment Could not be completed."),
-                            actions: [
-                              okButton,
-                            ],
-                          );
-
-                          // show the dialog
-                          showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return alert;
-                            },
-                          );
                         }
                       }
                     }

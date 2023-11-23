@@ -77,11 +77,9 @@ class RCPCost {
         ? '- MYR ${((num.parse(json["meta"]?["total_sum"]?["amount"].toString() ?? "0") - num.parse(json["meta"]?["total_sum_rcp"]?["amount"].toString() ?? "0")) / 100).toStringAsFixed(2)}'
         : "MYR 0.00";
 
-    this.solutionCost = convertToCurrency(json["solution"] != null
-        ? ((this.isDiscountValid ?? false)
-            ? (json["solution"]?["rcp_amount"]?["amount"].toString())
-            : json["solution"]?["amount"]?["amount"].toString())
-        : null);
+    this.solutionCost = convertToCurrency((json["solution"] != null)
+        ? (json["solution"]?["amount"]?["amount"].toString())
+        : "0");
   }
 
   String convertToCurrency(String? input) {
