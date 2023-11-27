@@ -5,11 +5,13 @@ import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_config/flutter_config.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:kcs_engineer/model/engineer.dart';
 import 'package:kcs_engineer/model/user.dart';
+import 'package:kcs_engineer/themes/text_styles.dart';
 import 'package:kcs_engineer/util/api.dart';
 import 'package:kcs_engineer/util/helpers.dart';
 import 'package:kcs_engineer/util/repositories.dart';
@@ -35,6 +37,7 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
   bool showPassword = false;
   String errorMsg = "";
   String version = "";
+  String buildNo = "";
   final storage = new FlutterSecureStorage();
   String? token;
   Engineer? engineer;
@@ -103,9 +106,10 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
   _loadVersion() async {
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
     String pkgVersion = packageInfo.version;
-
+    String pkgBuild = packageInfo.buildNumber;
     setState(() {
       version = pkgVersion;
+      buildNo = pkgBuild;
     });
   }
 
@@ -550,7 +554,22 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                 ),
               ],
             ),
-            SizedBox(height: 20),
+            SizedBox(height: MediaQuery.of(context).size.height * 0.25),
+            Row(children: [
+              InkWell(
+                  onTap: () => {},
+                  child: _renderLabel("App Version",
+                      textStyle: TextStyles.textGrey,
+                      padding: EdgeInsets.only(top: 10))),
+              Spacer(),
+              Text(
+                '$version ($buildNo)' +
+                    (FlutterConfig.get("ENVIRONMENT") == "STAGING"
+                        ? " (STAGING)"
+                        : ""),
+                style: TextStyles.textDefault,
+              )
+            ]),
             // Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
             //   Container(
             //       width: MediaQuery.of(context).size.width * 0.15,
@@ -640,6 +659,16 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
       // SizedBox(height: 10),
       SizedBox(height: 20),
     ]);
+  }
+
+  Widget _renderLabel(title,
+      {width, padding, TextAlign? textAlign, textStyle}) {
+    return Container(
+        padding: padding != null ? padding : EdgeInsets.all(0),
+        width: width != null ? width : MediaQuery.of(context).size.width * 0.25,
+        child: Text(title,
+            textAlign: textAlign != null ? textAlign : TextAlign.start,
+            style: textStyle != null ? textStyle : TextStyles.textDefault));
   }
 
   Future<bool> _onWillPop() async {

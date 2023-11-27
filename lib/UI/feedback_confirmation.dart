@@ -96,7 +96,7 @@ class _FeedBackConfirmationState extends State<FeedBackConfirmation> {
                 ),
                 children: <TextSpan>[
                   TextSpan(
-                    text: 'Thank you for your feedback',
+                    text: 'Job Successfull!',
                   ),
                 ],
               ),
@@ -109,7 +109,7 @@ class _FeedBackConfirmationState extends State<FeedBackConfirmation> {
                 style: const TextStyle(fontSize: 25.0, color: Colors.grey),
                 children: <TextSpan>[
                   TextSpan(
-                    text: 'Your feedback was successfully submitted!',
+                    text: 'This job has successfully completed ',
                   ),
                 ],
               ),

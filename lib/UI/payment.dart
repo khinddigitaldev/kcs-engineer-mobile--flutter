@@ -167,36 +167,36 @@ class _PaymentState extends State<Payment> {
                 size: 300.0,
               ),
             ),
-            Container(
-              height: 100,
-              width: 300,
-              alignment: Alignment.center,
-              child: Image(
-                  image: AssetImage('assets/images/paynowlogo.png'),
-                  height: MediaQuery.of(context).size.width * 0.2,
-                  width: MediaQuery.of(context).size.width * 0.4),
-            ),
+            // Container(
+            //   height: 100,
+            //   width: 300,
+            //   alignment: Alignment.center,
+            //   child: Image(
+            //       image: AssetImage('assets/images/paynowlogo.png'),
+            //       height: MediaQuery.of(context).size.width * 0.2,
+            //       width: MediaQuery.of(context).size.width * 0.4),
+            // ),
             SizedBox(height: 30),
-            Container(
-              alignment: Alignment.center,
-              decoration:
-                  new BoxDecoration(color: Colors.white.withOpacity(0.0)),
-              child: RichText(
-                text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
-                  style: const TextStyle(
-                    fontSize: 20.0,
-                    color: Colors.black,
-                  ),
-                  children: <TextSpan>[
-                    TextSpan(
-                      text: 'UEN : 198701251D',
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            // Container(
+            //   alignment: Alignment.center,
+            //   decoration:
+            //       new BoxDecoration(color: Colors.white.withOpacity(0.0)),
+            //   child: RichText(
+            //     text: TextSpan(
+            //       // Note: Styles for TextSpans must be explicitly defined.
+            //       // Child text spans will inherit styles from parent
+            //       style: const TextStyle(
+            //         fontSize: 20.0,
+            //         color: Colors.black,
+            //       ),
+            //       children: <TextSpan>[
+            //         TextSpan(
+            //           text: 'UEN : 198701251D',
+            //         ),
+            //       ],
+            //     ),
+            //   ),
+            // ),
             SizedBox(height: 30),
             Container(
               alignment: Alignment.center,

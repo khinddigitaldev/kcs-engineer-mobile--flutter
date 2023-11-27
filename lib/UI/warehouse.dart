@@ -84,7 +84,7 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
   FutureOr<void> afterFirstLayout(BuildContext context) async {
     await fetchJobDetails();
     _loadVersion();
-    await _fetchSpareParts(true, false);
+    await _fetchSpareParts(true, true);
     // _fetchGeneralCodes(true);
   }
 
@@ -122,7 +122,7 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
 
       if (!isTop) {
         sparePartsCurrentPage = sparePartsCurrentPage + 1;
-        var SpareParts = await _fetchSpareParts(false, false);
+        var SpareParts = await _fetchSpareParts(false, true);
       }
     }
   }
@@ -139,7 +139,7 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
           if (currentSearchText != value) {
             currentSearchText = value;
             sparePartsCurrentPage = 1;
-            await _fetchSpareParts(true, false);
+            await _fetchSpareParts(true, true);
           }
         }));
   }
@@ -959,18 +959,24 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                 ? '&q=' + warehouseSearchCT.text.toString()
                 : ""));
     final response = await Api.bearerGet('general/spareparts?per_page=20' +
-        '&page=$sparePartsCurrentPage' +
-        (warehouseSearchCT.text != ""
-            ? '&q=' + warehouseSearchCT.text.toString()
-            : "") +
-        (searchByCode ? '&search_only_by_code=1' : '&search_only_by_code=0') +
-        (!searchByCode ? '&product_id=${selectedJob?.productId}' : '') +
-        '&service_request_id=${jobId}' +
-        (searchByCode
-            ? '&q=${codeSearchCT.text.toString()}'
-            : (warehouseSearchCT.text != ""
+            '&page=$sparePartsCurrentPage' +
+            (warehouseSearchCT.text != ""
                 ? '&q=' + warehouseSearchCT.text.toString()
-                : "")));
+                : "") +
+            (searchByCode
+                ? '&search_only_by_code=1'
+                : '&search_only_by_code=0') +
+            (!searchByCode ? '&product_id=${selectedJob?.productId}' : '') +
+            '&service_request_id=${jobId}'
+        // +
+        // (searchByCode
+        //     ? '&q=${codeSearchCT.text.toString()}'
+        //     : (warehouseSearchCT.text != ""
+        //         ? '&q=' + warehouseSearchCT.text.toString()
+        //         : "")
+        // )
+
+        );
     Navigator.pop(context);
 
     print("#Resp: ${jsonEncode(response)}");
@@ -1009,25 +1015,27 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
-      backgroundColor: Colors.white,
-      //resizeToAvoidBottomInset: false,
-      body: CustomPaint(
-          child: SingleChildScrollView(
-              child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  decoration: new BoxDecoration(color: Colors.white),
-                  child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        errorMsg != "" ? _renderError() : Container(),
-                        _renderForm(),
-                        SizedBox(height: 10),
-                        //Expanded(child: _renderBottom()),
-                        //version != "" ? _renderVersion() : Container()
-                      ])))),
-    );
+    return WillPopScope(
+        onWillPop: _onWillPop,
+        child: Scaffold(
+          key: _scaffoldKey,
+          backgroundColor: Colors.white,
+          //resizeToAvoidBottomInset: false,
+          body: CustomPaint(
+              child: SingleChildScrollView(
+                  child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 10),
+                      decoration: new BoxDecoration(color: Colors.white),
+                      child: Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            errorMsg != "" ? _renderError() : Container(),
+                            _renderForm(),
+                            SizedBox(height: 10),
+                            //Expanded(child: _renderBottom()),
+                            //version != "" ? _renderVersion() : Container()
+                          ])))),
+        ));
   }
 }

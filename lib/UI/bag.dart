@@ -1,71 +1,46 @@
+import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
-import 'dart:ui';
+
+import 'package:after_layout/after_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kcs_engineer/model/part.dart';
+import 'package:kcs_engineer/model/bag.dart';
+import 'package:kcs_engineer/model/general_code.dart';
+import 'package:kcs_engineer/model/job.dart';
+import 'package:kcs_engineer/model/pick_list_Items.dart';
+import 'package:kcs_engineer/model/sparepart.dart';
 import 'package:kcs_engineer/themes/text_styles.dart';
+import 'package:kcs_engineer/util/api.dart';
+import 'package:kcs_engineer/util/helpers.dart';
+import 'package:kcs_engineer/util/repositories.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:flutter_config/flutter_config.dart';
-import 'package:http/http.dart' as http;
 
-class Bag extends StatefulWidget {
-  int? data;
-  Bag({this.data});
+class UserBag extends StatefulWidget {
+  String? jobId;
+  UserBag({this.jobId});
 
   @override
-  _BagState createState() => _BagState();
+  _UserBagState createState() => _UserBagState();
 }
 
-class _BagState extends State<Bag> {
+class _UserBagState extends State<UserBag> with AfterLayoutMixin {
   GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  GlobalKey<FormState> _formKeyBottom = GlobalKey<FormState>();
+  TextEditingController codeSearchCT = new TextEditingController();
 
-  TextEditingController emailCT = new TextEditingController();
-  TextEditingController passwordCT = new TextEditingController();
-  FocusNode focusEmail = new FocusNode();
-  FocusNode focusPwd = new FocusNode();
+  FocusNode focusWarehouseSearch = new FocusNode();
   bool isLoading = false;
   bool showPassword = false;
   String errorMsg = "";
   String version = "";
   final storage = new FlutterSecureStorage();
-  String? token;
 
-  final List<Part> parts = [
-    new Part(
-        name: '25W Refrigerator Evaporator Fan Motor',
-        model: 'SKU #762828',
-        noOfUnits: '5'),
-    new Part(
-        name: '25W Refrigerator Evaporator Fan Motor',
-        model: 'SKU #762828',
-        noOfUnits: '5'),
-    new Part(
-        name: '25W Refrigerator Evaporator Fan Motor',
-        model: 'SKU #762828',
-        noOfUnits: '5'),
-    new Part(
-        name: '25W Refrigerator Evaporator Fan Motor',
-        model: 'SKU #762828',
-        noOfUnits: '5'),
-  ];
+  Timer? searchOnStoppedTyping;
+  String currentSearchText = "";
 
-  final List<Part> addParts = [
-    new Part(
-        name: '25W Refrigerator Evaporator Fan Motor',
-        model: 'SKU #762828',
-        noOfUnits: '5'),
-    new Part(
-        name: '25W Refrigerator Evaporator Fan Motor',
-        model: 'SKU #762828',
-        noOfUnits: '5'),
-    new Part(
-        name: '25W Refrigerator Evaporator Fan Motor',
-        model: 'SKU #762828',
-        noOfUnits: '5'),
-  ];
+  PickListItems? picklistItems;
+
+  List<SparePart>? items;
 
   @override
   void initState() {
@@ -75,15 +50,29 @@ class _BagState extends State<Bag> {
     // passwordCT.text = 'Khindanshin118';
 
     super.initState();
-    _loadVersion();
-    //_loadToken();
+
+    Future.delayed(Duration.zero, () {});
     //_checkPermisions();
   }
 
   @override
+  FutureOr<void> afterFirstLayout(BuildContext context) async {
+    // await fetchJobDetails();
+    _loadVersion();
+    await _fetchBag();
+    // _fetchGeneralCodes(true);
+  }
+
+  // fetchJobDetails() async {
+  //   var job = await Repositories.fetchJobDetails(jobId: jobId);
+  //   setState(() {
+  //     selectedJob = job;
+  //   });
+  // }
+
+  @override
   void dispose() {
-    emailCT.dispose();
-    passwordCT.dispose();
+    codeSearchCT.dispose();
     super.dispose();
   }
 
@@ -96,21 +85,26 @@ class _BagState extends State<Bag> {
     });
   }
 
-  // _loadToken() async {
-  //   final accessToken = await storage.read(key: TOKEN);
+  _onChangeHandler(value) {
+    const duration = Duration(
+        milliseconds:
+            2000); // set the duration tat you want call search() after that.
 
-  //   setState(() {
-  //     token = accessToken;
-  //   });
-  // }
-
-  void _handleSignIn() async {}
+    if (searchOnStoppedTyping != null) {
+      setState(() => searchOnStoppedTyping!.cancel()); // clear timer
+    }
+    setState(() => searchOnStoppedTyping = new Timer(duration, () async {
+          if (currentSearchText != value) {
+            currentSearchText = value;
+            // sparePartsCurrentPage = 1;
+            await _fetchBag();
+          }
+        }));
+  }
 
   Widget _renderForm() {
-    double width = MediaQuery.of(context).size.width;
-    double height = MediaQuery.of(context).size.height;
     return Container(
-      padding: EdgeInsets.all(20),
+      padding: EdgeInsets.all(15),
       decoration: BoxDecoration(
           color: Colors.white, borderRadius: BorderRadius.circular(10)),
       child: Form(
@@ -129,7 +123,7 @@ class _BagState extends State<Bag> {
                 ),
                 children: <TextSpan>[
                   TextSpan(
-                      text: 'Bag',
+                      text: 'My Bag',
                       style: const TextStyle(fontWeight: FontWeight.bold)),
                 ],
               ),
@@ -137,223 +131,315 @@ class _BagState extends State<Bag> {
           ),
           SizedBox(height: 10),
           Divider(color: Colors.grey),
-          SizedBox(height: 30),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(0.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      RichText(
-                        text: TextSpan(
-                            // Note: Styles for TextSpans must be explicitly defined.
-                            // Child text spans will inherit styles from parent
-                            style: const TextStyle(
-                              fontSize: 25.0,
-                              color: Colors.black,
-                            ),
-                            children: <TextSpan>[
-                              TextSpan(
-                                text: 'ALL PARTS',
-                              ),
-                            ]),
-                      ),
-                      SizedBox(height: 10),
-                    ],
-                  ),
-                ),
-              ),
-              Flexible(
-                fit: FlexFit.tight,
-                child: Padding(
-                  padding: const EdgeInsets.all(0.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          SizedBox(
-                            width: MediaQuery.of(context).size.width *
-                                0.15, // <-- match_parent
-                            height: MediaQuery.of(context).size.width *
-                                0.05, // <-- match-parent
-                            child: ElevatedButton(
-                                child: Padding(
-                                    padding: const EdgeInsets.all(0.0),
-                                    child: Text(
-                                      'Edit',
-                                      style: TextStyle(
-                                          fontSize: 15, color: Colors.white),
-                                    )),
-                                style: ButtonStyle(
-                                    foregroundColor:
-                                        MaterialStateProperty.all<Color>(
-                                            Colors.black87),
-                                    backgroundColor:
-                                        MaterialStateProperty.all<Color>(
-                                            Colors.black87),
-                                    shape: MaterialStateProperty.all<
-                                            RoundedRectangleBorder>(
-                                        RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(4.0),
-                                            side: BorderSide(
-                                                color: Colors.black87)))),
-                                onPressed: () => null),
-                          ),
-                          SizedBox(
-                            width: 10,
-                          ),
-                          SizedBox(
-                            width: MediaQuery.of(context).size.width *
-                                0.15, // <-- match_parent
-                            height: MediaQuery.of(context).size.width *
-                                0.05, // <-- match-parent
-                            child: ElevatedButton(
-                                child: Padding(
-                                    padding: const EdgeInsets.all(0.0),
-                                    child: Text(
-                                      'Confirm',
-                                      style: TextStyle(
-                                          fontSize: 15, color: Colors.white),
-                                    )),
-                                style: ButtonStyle(
-                                    foregroundColor:
-                                        MaterialStateProperty.all<Color>(
-                                            Colors.black87),
-                                    backgroundColor:
-                                        MaterialStateProperty.all<Color>(
-                                            Colors.black87),
-                                    shape: MaterialStateProperty.all<
-                                            RoundedRectangleBorder>(
-                                        RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(4.0),
-                                            side: BorderSide(
-                                                color: Colors.black54)))),
-                                onPressed: () => null),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(
-            height: 50,
-          ),
-          Container(
-            alignment: Alignment.centerLeft,
-            child: RichText(
-              text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
-                  style: const TextStyle(
-                    fontSize: 20.0,
-                    color: Colors.black,
-                  ),
-                  children: <TextSpan>[
-                    TextSpan(
-                      text: 'Parts List',
-                    ),
-                  ]),
-            ),
-          ),
-          Container(
-            width: double.infinity,
-            //padding: EdgeInsets.symmetric(horizontal: 10),
-            height: height * 0.75,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10),
-                  height: height * 0.3,
-                  child: ListView.builder(
-                    // physics: NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    // shrinkWrap: false,
-                    itemCount: parts.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      return PartItem(
-                          width: width, part: parts[index], index: index);
-                    },
-                  ),
-                ),
-                Divider(color: Colors.grey),
-                SizedBox(height: 30),
-                Container(
+          SizedBox(height: 20),
+          // Row(
+          //   crossAxisAlignment: CrossAxisAlignment.center,
+          //   children: [
+          //     Expanded(
+          //       child: Padding(
+          //         padding: const EdgeInsets.all(0.0),
+          //         child: Column(
+          //           mainAxisAlignment: MainAxisAlignment.spaceAround,
+          //           crossAxisAlignment: CrossAxisAlignment.start,
+          //           mainAxisSize: MainAxisSize.min,
+          //           children: [
+          //             TextFormField(
+          //                 focusNode: focusWarehouseSearch,
+          //                 keyboardType: TextInputType.text,
+          //                 validator: (value) {
+          //                   if (value!.isEmpty) {
+          //                     return 'Please enter email';
+          //                   }
+          //                   return null;
+          //                 },
+          //                 onChanged: _onChangeHandler,
+          //                 controller: codeSearchCT,
+          //                 onFieldSubmitted: (val) {
+          //                   FocusScope.of(context)
+          //                       .requestFocus(new FocusNode());
+          //                 },
+          //                 style: TextStyles.textDefaultBold,
+          //                 decoration: const InputDecoration(
+          //                   contentPadding: EdgeInsets.symmetric(
+          //                       vertical: 10.0, horizontal: 10),
+          //                   border: OutlineInputBorder(),
+          //                   hintText: 'Search',
+          //                 )),
+          //             SizedBox(height: 10),
+          //           ],
+          //         ),
+          //       ),
+          //     ),
+          //     Flexible(
+          //       fit: FlexFit.tight,
+          //       child: Padding(
+          //         padding: const EdgeInsets.all(0.0),
+          //         child: Column(
+          //           mainAxisAlignment: MainAxisAlignment.spaceAround,
+          //           crossAxisAlignment: CrossAxisAlignment.end,
+          //           mainAxisSize: MainAxisSize.min,
+          //           children: [],
+          //         ),
+          //       ),
+          //     ),
+          //   ],
+          // ),
+          SizedBox(height: 20),
+
+          (items?.length ?? 0) > 0
+              ? SizedBox(
+                  height: 30,
+                )
+              : new Container(),
+          (items?.length ?? 0) > 0
+              ? Container(
+                  width: MediaQuery.of(context).size.width * .9,
                   alignment: Alignment.centerLeft,
-                  child: RichText(
-                    text: TextSpan(
-                      // Note: Styles for TextSpans must be explicitly defined.
-                      // Child text spans will inherit styles from parent
-                      style: const TextStyle(
-                        fontSize: 25.0,
-                        color: Colors.black,
-                      ),
-                      children: <TextSpan>[
-                        TextSpan(text: 'Add Parts'),
+                  child: DataTable(
+                      headingRowHeight: 70.0,
+                      dataRowHeight: 70.0,
+                      headingRowColor: MaterialStateColor.resolveWith(
+                          (states) => Colors.black87),
+                      columns: [
+                        DataColumn(
+                            label: Container(
+                          width: MediaQuery.of(context).size.width * .2,
+                          child: Padding(
+                              padding: EdgeInsets.fromLTRB(30, 0, 0, 0),
+                              child: Text('Code',
+                                  style: TextStyle(color: Colors.white))),
+                        )),
+                        DataColumn(
+                            label: Container(
+                          width: MediaQuery.of(context).size.width * .3,
+                          child: Padding(
+                              padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
+                              child: Text('Part Name',
+                                  style: TextStyle(color: Colors.white))),
+                        )),
+                        DataColumn(
+                            label: Container(
+                          width: MediaQuery.of(context).size.width * .1,
+                          child: Padding(
+                              padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
+                              child: Text('Quantity',
+                                  style: TextStyle(color: Colors.white))),
+                        )),
                       ],
-                    ),
-                  ),
-                ),
-                SizedBox(height: 25),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10),
-                  height: height * 0.3,
-                  child: ListView.builder(
-                    // physics: NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    // shrinkWrap: false,
-                    itemCount: addParts.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      return AddPartItem(
-                          width: width, part: addParts[index], index: index);
-                    },
-                  ),
-                ),
-                // Container(
-                //   alignment: Alignment.centerRight,
-                //   decoration:
-                //       new BoxDecoration(color: Colors.white.withOpacity(0.0)),
-                //   child: TextFormField(
-                //       focusNode: focusEmail,
-                //       keyboardType: TextInputType.text,
-                //       validator: (value) {
-                //         if (value!.isEmpty) {
-                //           return 'Please enter email';
-                //         }
-                //         return null;
-                //       },
-                //       controller: emailCT,
-                //       onFieldSubmitted: (val) {
-                //         FocusScope.of(context).requestFocus(new FocusNode());
-                //       },
-                //       style: TextStyles.textDefaultBold,
-                //       decoration: const InputDecoration(
-                //         contentPadding: EdgeInsets.symmetric(
-                //             vertical: 10.0, horizontal: 10),
-                //         border: OutlineInputBorder(),
-                //       )),
-                // ),
-                SizedBox(height: 30),
-              ],
-            ),
-          ),
+                      rows: (items ?? [])
+                          .map(
+                            ((element) => DataRow(
+                                  cells: <DataCell>[
+                                    DataCell(Text(
+                                      element.code ?? "",
+                                      style: TextStyle(fontSize: 15.0),
+                                    )), //Extracting from Map element the value
+                                    DataCell(Text(
+                                      element.description ?? "",
+                                      style: TextStyle(fontSize: 15.0),
+                                    )),
+                                    DataCell(
+                                      Container(
+                                        alignment: Alignment.centerLeft,
+                                        //color: Colors.white,
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            RichText(
+                                              textAlign: TextAlign.center,
+                                              text: TextSpan(
+                                                // Note: Styles for TextSpans must be explicitly defined.
+                                                // Child text spans will inherit styles from parent
+                                                style: const TextStyle(
+                                                  fontSize: 15.0,
+                                                  color: Colors.black,
+                                                ),
+                                                children: <TextSpan>[
+                                                  TextSpan(
+                                                      text: element.quantity
+                                                          .toString(),
+                                                      style: const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold)),
+                                                ],
+                                              ),
+                                            )
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )),
+                          )
+                          .toList()),
+                )
+              : new Container(),
+          // notCollected.length > 0
+          //     ? SizedBox(
+          //         height: MediaQuery.of(context).size.height * .1,
+          //       )
+          //     : new Container(),
+          // notCollected.length > 0
+          //     ? Container(
+          //         alignment: Alignment.centerLeft,
+          //         child: RichText(
+          //           text: TextSpan(
+          //             // Note: Styles for TextSpans must be explicitly defined.
+          //             // Child text spans will inherit styles from parent
+          //             style: const TextStyle(
+          //               fontSize: 18.0,
+          //               color: Colors.black87,
+          //             ),
+          //             children: <TextSpan>[
+          //               TextSpan(
+          //                   text: 'Collected',
+          //                   style:
+          //                       const TextStyle(fontWeight: FontWeight.bold)),
+          //             ],
+          //           ),
+          //         ),
+          //       )
+          //     : new Container(),
+          // notCollected.length > 0 ? SizedBox(height: 30) : new Container(),
+          // notCollected.length > 0
+          //     ? Container(
+          //         width: MediaQuery.of(context).size.width * .9,
+          //         alignment: Alignment.centerLeft,
+          //         child: DataTable(
+          //             headingRowHeight: 70.0,
+          //             dataRowHeight: 70.0,
+          //             headingRowColor: MaterialStateColor.resolveWith(
+          //                 (states) => Colors.black87),
+          //             columns: [
+          //               DataColumn(
+          //                   label: Container(
+          //                 width: MediaQuery.of(context).size.width * .2,
+          //                 child: Padding(
+          //                     padding: EdgeInsets.fromLTRB(30, 0, 0, 0),
+          //                     child: Text('Code',
+          //                         style: TextStyle(color: Colors.white))),
+          //               )),
+          //               DataColumn(
+          //                   label: Container(
+          //                 width: MediaQuery.of(context).size.width * .3,
+          //                 child: Padding(
+          //                     padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
+          //                     child: Text('Part Name',
+          //                         style: TextStyle(color: Colors.white))),
+          //               )),
+          //               DataColumn(
+          //                   label: Container(
+          //                 width: MediaQuery.of(context).size.width * .1,
+          //                 child: Padding(
+          //                     padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
+          //                     child: Text('Quantity',
+          //                         style: TextStyle(color: Colors.white))),
+          //               )),
+          //             ],
+          //             rows:
+          //                 notCollected // Loops through dataColumnText, each iteration assigning the value to element
+          //                     .map(
+          //                       ((element) => DataRow(
+          //                             cells: <DataCell>[
+          //                               DataCell(Text(
+          //                                 element.sparePartCode ?? "",
+          //                                 style: TextStyle(fontSize: 15.0),
+          //                               )), //Extracting from Map element the value
+          //                               DataCell(Text(
+          //                                 element.sparePartsDescription ?? "",
+          //                                 style: TextStyle(fontSize: 15.0),
+          //                               )),
+          //                               DataCell(
+          //                                 Container(
+          //                                   alignment: Alignment.centerLeft,
+          //                                   //color: Colors.white,
+          //                                   child: Row(
+          //                                     mainAxisAlignment:
+          //                                         MainAxisAlignment.center,
+          //                                     crossAxisAlignment:
+          //                                         CrossAxisAlignment.center,
+          //                                     children: [
+          //                                       RichText(
+          //                                         textAlign: TextAlign.center,
+          //                                         text: TextSpan(
+          //                                           // Note: Styles for TextSpans must be explicitly defined.
+          //                                           // Child text spans will inherit styles from parent
+          //                                           style: const TextStyle(
+          //                                             fontSize: 15.0,
+          //                                             color: Colors.black,
+          //                                           ),
+          //                                           children: <TextSpan>[
+          //                                             TextSpan(
+          //                                                 text: element
+          //                                                     .quantityTaken
+          //                                                     .toString(),
+          //                                                 style: const TextStyle(
+          //                                                     fontWeight:
+          //                                                         FontWeight
+          //                                                             .bold)),
+          //                                           ],
+          //                                         ),
+          //                                       )
+          //                                     ],
+          //                                   ),
+          //                                 ),
+          //                               ),
+          //                             ],
+          //                           )),
+          //                     )
+          //                     .toList()),
+          //       )
+          //     : new Container(),
+          // ConstrainedBox(
+          //     constraints: BoxConstraints(maxHeight: 900, minHeight: 200),
+          //     child: Container(
+          //         child: Scrollbar(
+          //             child: ListView(shrinkWrap: true, children: [
+          //       collected.length > 0
+          //           ? DataTable(
+          //               dataRowHeight: 70.0,
+          //               headingRowHeight: 0.0,
+          //               columns: [
+          //                   DataColumn(
+          //                       label: Container(
+          //                     child: Padding(
+          //                         padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
+          //                         child: new Container()),
+          //                   )),
+          //                   DataColumn(
+          //                       label: Container(
+          //                     child: Padding(
+          //                       padding: EdgeInsets.fromLTRB(10, 0, 0, 0),
+          //                       child: new Container(),
+          //                     ),
+          //                   )),
+          //                   DataColumn(
+          //                       label: Container(
+          //                     child: Padding(
+          //                       padding: EdgeInsets.fromLTRB(10, 0, 0, 0),
+          //                       child: new Container(),
+          //                     ),
+          //                   )),
+          //                 ],
+          //               rows: [])
+          //           : new Container()
+          //     ]))))
         ]),
       ),
     );
+  }
+
+  _fetchBag() async {
+    Helpers.showAlert(context);
+    var response = await Repositories.fetchUserBagWithoutFilters();
+    Navigator.pop(context);
+
+    setState(() {
+      items = response;
+    });
   }
 
   _renderError() {
@@ -370,194 +456,25 @@ class _BagState extends State<Bag> {
 
   @override
   Widget build(BuildContext context) {
-    double width = MediaQuery.of(context).size.width;
-    double height = MediaQuery.of(context).size.height;
     return Scaffold(
-        key: _scaffoldKey,
-        //resizeToAvoidBottomInset: false,
-        body: SingleChildScrollView(
-            // physics: ClampingScrollPhysics(parent: NeverScrollableScrollPhysics()),
-            child:
-                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-          _renderForm(),
-
-          //Expanded(child: _renderBottom()),
-          //version != "" ? _renderVersion() : Container()
-        ])));
-  }
-
-  Widget _renderBottom() {
-    return Column(children: []);
-  }
-}
-
-class PartItem extends StatelessWidget {
-  const PartItem(
-      {Key? key, required this.width, required this.part, required this.index})
-      : super(key: key);
-
-  final double width;
-  final Part part;
-  final int index;
-
-  @override
-  Widget build(BuildContext context) {
-    var units = this.part.noOfUnits;
-    var name = this.part.name;
-    var model = this.part.model;
-
-    return GestureDetector(
-      onTap: () async {
-        Navigator.pushNamed(context, 'productModel');
-      },
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              RichText(
-                text: TextSpan(
-                    // Note: Styles for TextSpans must be explicitly defined.
-                    // Child text spans will inherit styles from parent
-                    style: const TextStyle(
-                      fontSize: 18.0,
-                      color: Colors.black,
-                    ),
-                    children: <TextSpan>[
-                      TextSpan(
-                        text: '$name',
-                      ),
-                    ]),
-              ),
-              RichText(
-                text: TextSpan(
-                    // Note: Styles for TextSpans must be explicitly defined.
-                    // Child text spans will inherit styles from parent
-                    style: const TextStyle(
-                      fontSize: 18.0,
-                      color: Colors.black54,
-                    ),
-                    children: <TextSpan>[
-                      TextSpan(
-                        text: '$model',
-                      ),
-                    ]),
-              ),
-              SizedBox(height: 30),
-            ],
-          ),
-          Spacer(),
-          Container(
-            color: Colors.white,
-            padding: EdgeInsets.only(bottom: 50.0, right: 50.0),
-            child: RichText(
-              text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
-                  style: const TextStyle(
-                    fontSize: 18.0,
-                    color: Colors.black54,
-                  ),
-                  children: <TextSpan>[
-                    TextSpan(
-                      text: '$units units',
-                    ),
-                  ]),
-            ),
-          ),
-          SizedBox(height: 30),
-        ],
-      ),
-    );
-  }
-}
-
-class AddPartItem extends StatelessWidget {
-  const AddPartItem(
-      {Key? key, required this.width, required this.part, required this.index})
-      : super(key: key);
-
-  final double width;
-  final Part part;
-  final int index;
-
-  @override
-  Widget build(BuildContext context) {
-    var units = this.part.noOfUnits;
-    var name = this.part.name;
-    var model = this.part.model;
-
-    return GestureDetector(
-      onTap: () async {
-        Navigator.pushNamed(context, 'productModel');
-      },
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              RichText(
-                text: TextSpan(
-                    // Note: Styles for TextSpans must be explicitly defined.
-                    // Child text spans will inherit styles from parent
-                    style: const TextStyle(
-                      fontSize: 18.0,
-                      color: Colors.black,
-                    ),
-                    children: <TextSpan>[
-                      TextSpan(
-                        text: '$name',
-                      ),
-                    ]),
-              ),
-              RichText(
-                text: TextSpan(
-                    // Note: Styles for TextSpans must be explicitly defined.
-                    // Child text spans will inherit styles from parent
-                    style: const TextStyle(
-                      fontSize: 18.0,
-                      color: Colors.black54,
-                    ),
-                    children: <TextSpan>[
-                      TextSpan(
-                        text: '$model',
-                      ),
-                    ]),
-              ),
-              SizedBox(height: 30),
-            ],
-          ),
-          Spacer(),
-          Container(
-            color: Colors.white,
-            padding: EdgeInsets.only(bottom: 50.0),
-            child: Row(
-              children: <Widget>[
-                new IconButton(
-                    icon: new Icon(Icons.remove), onPressed: () => {}),
-                new Text('0'),
-                new IconButton(icon: new Icon(Icons.add), onPressed: () => {}),
-              ],
-            ),
-          ),
-          Spacer(),
-          Container(
-            color: Colors.white,
-            padding: EdgeInsets.only(bottom: 50.0, right: 30.0),
-            child: Icon(
-              // <-- Icon
-              Icons.highlight_remove_sharp,
-              color: Colors.red,
-              size: 40.0,
-            ),
-          ),
-          SizedBox(height: 30),
-        ],
-      ),
+      key: _scaffoldKey,
+      //resizeToAvoidBottomInset: false,
+      body: CustomPaint(
+          child: SingleChildScrollView(
+              child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration:
+                      new BoxDecoration(color: Colors.white.withOpacity(0.0)),
+                  child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        errorMsg != "" ? _renderError() : Container(),
+                        _renderForm(),
+                        SizedBox(height: 10),
+                        //Expanded(child: _renderBottom()),
+                        //version != "" ? _renderVersion() : Container()
+                      ])))),
     );
   }
 }

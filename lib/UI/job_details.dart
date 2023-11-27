@@ -132,7 +132,7 @@ class _JobDetailsState extends State<JobDetails>
 
   TabController? tabController;
   bool isDiscountApplied = false;
-
+  bool isRCPValid = false;
   @override
   FutureOr<void> afterFirstLayout(BuildContext context) async {
     jobId = widget.id ?? "";
@@ -165,7 +165,7 @@ class _JobDetailsState extends State<JobDetails>
     }
   }
 
-  fetchCancellationReasons() async {
+  Future<void> fetchCancellationReasons() async {
     isLoading = true;
     var reasons = await Repositories.fetchCancellationReasons();
     isLoading = false;
@@ -920,6 +920,131 @@ class _JobDetailsState extends State<JobDetails>
                         child: new Container()),
                   ],
                 ),
+                const SizedBox(
+                  height: 30,
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: <Widget>[
+                    Container(
+                      width: MediaQuery.of(context).size.width * 0.25,
+                      child: Row(
+                        children: [
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              RichText(
+                                text: const TextSpan(
+                                    style: TextStyle(
+                                      fontSize: 15.0,
+                                      color: Colors.black54,
+                                    ),
+                                    children: <TextSpan>[
+                                      const TextSpan(
+                                        text: 'WARRANTY INFO',
+                                      ),
+                                    ]),
+                              ),
+                              Row(
+                                children: [
+                                  selectedJob != null
+                                      ? (selectedJob!.isUnderWarranty ?? false
+                                          ? Icon(
+                                              // <-- Icon
+                                              Icons.check_circle,
+                                              color: Colors.green,
+                                              size: 25.0,
+                                            )
+                                          : Icon(
+                                              // <-- Icon
+                                              Icons.cancel,
+                                              color: Colors.red,
+                                              size: 25.0,
+                                            ))
+                                      : new Container(),
+                                  SizedBox(
+                                    width: 5,
+                                  ),
+                                  (selectedJob?.isUnderWarranty ?? false)
+                                      ? RichText(
+                                          text: const TextSpan(
+                                              // Note: Styles for TextSpans must be explicitly defined.
+                                              // Child text spans will inherit styles from parent
+                                              style: TextStyle(
+                                                fontSize: 15.0,
+                                                color: Colors.black,
+                                              ),
+                                              children: <TextSpan>[
+                                                TextSpan(
+                                                  text: 'Under warranty',
+                                                ),
+                                              ]),
+                                        )
+                                      : RichText(
+                                          text: const TextSpan(
+                                              // Note: Styles for TextSpans must be explicitly defined.
+                                              // Child text spans will inherit styles from parent
+                                              style: TextStyle(
+                                                fontSize: 15.0,
+                                                color: Colors.black,
+                                              ),
+                                              children: <TextSpan>[
+                                                TextSpan(
+                                                  text: 'Not under warranty',
+                                                ),
+                                              ]),
+                                        )
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      width: MediaQuery.of(context).size.width * 0.32,
+                      child: selectedJob?.warrantyAdditionalInfo != null
+                          ? Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                RichText(
+                                  text: const TextSpan(
+                                      style: TextStyle(
+                                        fontSize: 15.0,
+                                        color: Colors.black54,
+                                      ),
+                                      children: <TextSpan>[
+                                        const TextSpan(
+                                          text: 'WARRANTY ADDITIONAL INFO',
+                                        ),
+                                      ]),
+                                ),
+                                RichText(
+                                  text: TextSpan(
+                                      // Note: Styles for TextSpans must be explicitly defined.
+                                      // Child text spans will inherit styles from parent
+                                      style: const TextStyle(
+                                        fontSize: 15.0,
+                                        color: Colors.black,
+                                      ),
+                                      children: <TextSpan>[
+                                        TextSpan(
+                                          text:
+                                              '${selectedJob?.warrantyAdditionalInfo}',
+                                        ),
+                                      ]),
+                                )
+                              ],
+                            )
+                          : new Container(),
+                    ),
+                    Container(
+                        width: MediaQuery.of(context).size.width * 0.2,
+                        child: new Container()),
+                  ],
+                ),
               ],
             ),
           ),
@@ -1161,7 +1286,8 @@ class _JobDetailsState extends State<JobDetails>
                                     color: Colors.black54,
                                   ),
                                   children: <TextSpan>[
-                                    TextSpan(text: "Payment method")
+                                    TextSpan(
+                                        text: '${selectedJob?.paymentMethods}')
 
                                     //  ((selectedJob
                                     //                 ?.paymentMethod !=
@@ -1203,7 +1329,7 @@ class _JobDetailsState extends State<JobDetails>
                               ),
                               children: <TextSpan>[
                                 TextSpan(
-                                  text: 'REPORTED ISSUE',
+                                  text: 'REPORTED PROBLEM',
                                 ),
                               ]),
                         ),
@@ -1247,7 +1373,7 @@ class _JobDetailsState extends State<JobDetails>
                               ),
                               children: <TextSpan>[
                                 TextSpan(
-                                  text: 'ACTUAL ISSUE',
+                                  text: 'ACTUAL PROBLEM',
                                 ),
                               ]),
                         ),
@@ -1291,7 +1417,7 @@ class _JobDetailsState extends State<JobDetails>
                                 ),
                                 children: <TextSpan>[
                                   const TextSpan(
-                                    text: 'REMARKS',
+                                    text: 'CUSTOMER REMARKS',
                                   ),
                                 ]),
                           ),
@@ -1305,6 +1431,7 @@ class _JobDetailsState extends State<JobDetails>
                                 textInputAction: TextInputAction.newline,
                                 minLines: 1,
                                 maxLines: 5,
+                                enabled: false,
                                 keyboardType: TextInputType.multiline,
                                 onChanged: (str) {
                                   setState(() {
@@ -1328,43 +1455,43 @@ class _JobDetailsState extends State<JobDetails>
                       const SizedBox(
                         width: 5,
                       ),
-                      Helpers.checkIfEditableByJobStatus(selectedJob)
-                          ? GestureDetector(
-                              onTap: () async {
-                                if (isRemarksEditable) {
-                                  var res = await Repositories.updateRemarks(
-                                      selectedJob!.serviceRequestid ?? "0",
-                                      remarksController.text.toString());
-                                  //TODO
-                                  await refreshJobDetails();
-                                  setState(() {
-                                    isRemarksEditable = false;
-                                  });
-                                  FocusManager.instance.primaryFocus?.unfocus();
-                                } else {
-                                  setState(() {
-                                    isRemarksEditable = true;
-                                  });
+                      // Helpers.checkIfEditableByJobStatus(selectedJob)
+                      //     ? GestureDetector(
+                      //         onTap: () async {
+                      //           if (isRemarksEditable) {
+                      //             var res = await Repositories.updateRemarks(
+                      //                 selectedJob!.serviceRequestid ?? "0",
+                      //                 remarksController.text.toString());
+                      //             //TODO
+                      //             await refreshJobDetails();
+                      //             setState(() {
+                      //               isRemarksEditable = false;
+                      //             });
+                      //             FocusManager.instance.primaryFocus?.unfocus();
+                      //           } else {
+                      //             setState(() {
+                      //               isRemarksEditable = true;
+                      //             });
 
-                                  Future.delayed(Duration.zero, () {
-                                    remarksFocusNode.requestFocus();
-                                  });
-                                }
-                              },
-                              child: isRemarksEditable
-                                  ? Icon(
-                                      // <-- Icon
-                                      Icons.check,
-                                      color: Colors.black54,
-                                      size: 25.0,
-                                    )
-                                  : Icon(
-                                      // <-- Icon
-                                      Icons.edit,
-                                      color: Colors.black54,
-                                      size: 25.0,
-                                    ))
-                          : new Container()
+                      //             Future.delayed(Duration.zero, () {
+                      //               remarksFocusNode.requestFocus();
+                      //             });
+                      //           }
+                      //         },
+                      //         child: isRemarksEditable
+                      //             ? Icon(
+                      //                 // <-- Icon
+                      //                 Icons.check,
+                      //                 color: Colors.black54,
+                      //                 size: 25.0,
+                      //               )
+                      //             : Icon(
+                      //                 // <-- Icon
+                      //                 Icons.edit,
+                      //                 color: Colors.black54,
+                      //                 size: 25.0,
+                      //               ))
+                      //     : new Container()
                     ],
                   ),
                   Row(
@@ -1394,6 +1521,7 @@ class _JobDetailsState extends State<JobDetails>
                               width: 100,
                               height: 40,
                               child: TextFormField(
+                                enabled: false,
                                 textInputAction: TextInputAction.newline,
                                 minLines: 1,
                                 maxLines: 5,
@@ -1420,45 +1548,45 @@ class _JobDetailsState extends State<JobDetails>
                       const SizedBox(
                         width: 5,
                       ),
-                      Helpers.checkIfEditableByJobStatus(selectedJob)
-                          ? GestureDetector(
-                              onTap: () async {
-                                if (isAdminRemarksEditable) {
-                                  var res =
-                                      await Repositories.updateAdminRemarks(
-                                          selectedJob!.serviceRequestid ?? "0",
-                                          adminRemarksController.text
-                                              .toString());
+                      // Helpers.checkIfEditableByJobStatus(selectedJob)
+                      //     ? GestureDetector(
+                      //         onTap: () async {
+                      //           if (isAdminRemarksEditable) {
+                      //             var res =
+                      //                 await Repositories.updateAdminRemarks(
+                      //                     selectedJob!.serviceRequestid ?? "0",
+                      //                     adminRemarksController.text
+                      //                         .toString());
 
-                                  setState(() {
-                                    isAdminRemarksEditable = false;
-                                  });
-                                  FocusManager.instance.primaryFocus?.unfocus();
-                                  await refreshJobDetails();
-                                } else {
-                                  setState(() {
-                                    isAdminRemarksEditable = true;
-                                  });
+                      //             setState(() {
+                      //               isAdminRemarksEditable = false;
+                      //             });
+                      //             FocusManager.instance.primaryFocus?.unfocus();
+                      //             await refreshJobDetails();
+                      //           } else {
+                      //             setState(() {
+                      //               isAdminRemarksEditable = true;
+                      //             });
 
-                                  Future.delayed(Duration.zero, () {
-                                    adminRemarksFocusNode.requestFocus();
-                                  });
-                                }
-                              },
-                              child: isAdminRemarksEditable
-                                  ? Icon(
-                                      // <-- Icon
-                                      Icons.check,
-                                      color: Colors.black54,
-                                      size: 25.0,
-                                    )
-                                  : Icon(
-                                      // <-- Icon
-                                      Icons.edit,
-                                      color: Colors.black54,
-                                      size: 25.0,
-                                    ))
-                          : new Container()
+                      //             Future.delayed(Duration.zero, () {
+                      //               adminRemarksFocusNode.requestFocus();
+                      //             });
+                      //           }
+                      //         },
+                      //         child: isAdminRemarksEditable
+                      //             ? Icon(
+                      //                 // <-- Icon
+                      //                 Icons.check,
+                      //                 color: Colors.black54,
+                      //                 size: 25.0,
+                      //               )
+                      //             : Icon(
+                      //                 // <-- Icon
+                      //                 Icons.edit,
+                      //                 color: Colors.black54,
+                      //                 size: 25.0,
+                      //               ))
+                      //     : new Container()
                     ],
                   ),
                   // Row(
@@ -2020,6 +2148,59 @@ class _JobDetailsState extends State<JobDetails>
                                             // });
                                           });
                                         }
+                                      }))
+                              : new Container(),
+                          checkActionsEnabled("payment") &&
+                                  (selectedJob?.serviceType?.toLowerCase() ==
+                                      "home visit")
+                              ? SizedBox(
+                                  width: MediaQuery.of(context).size.width *
+                                      0.2, // <-- match_parent
+                                  height: MediaQuery.of(context).size.width *
+                                      0.05, // <-- match-parent
+                                  child: ElevatedButton(
+                                      child: Padding(
+                                          padding: const EdgeInsets.all(0.0),
+                                          child: Row(
+                                            children: [
+                                              const Icon(
+                                                // <-- Icon
+                                                Icons.check,
+                                                color: Colors.white,
+                                                size: 18.0,
+                                              ),
+                                              const SizedBox(
+                                                width: 10,
+                                              ),
+                                              const Text(
+                                                'Payment',
+                                                style: TextStyle(
+                                                    fontSize: 15,
+                                                    color: Colors.white),
+                                              )
+                                            ],
+                                          )),
+                                      style: ButtonStyle(
+                                          foregroundColor:
+                                              MaterialStateProperty.all<Color>(
+                                                  Colors.green),
+                                          backgroundColor:
+                                              MaterialStateProperty.all<Color>(
+                                                  Colors.green),
+                                          shape: MaterialStateProperty.all<
+                                                  RoundedRectangleBorder>(
+                                              RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(4.0),
+                                                  side: const BorderSide(color: Colors.green)))),
+                                      onPressed: () async {
+                                        Navigator.pushNamed(
+                                            context, 'signature', arguments: [
+                                          selectedJob,
+                                          rcpCost
+                                        ]).then((val) async {
+                                          if ((val as bool)) {}
+                                        });
                                       }))
                               : new Container(),
                           checkActionsEnabled("complete")
@@ -2760,7 +2941,7 @@ class _JobDetailsState extends State<JobDetails>
                     (rcpCost != null && rcpCost?.total != "MYR 0.00")
                         ? const SizedBox(height: 20)
                         : new Container(),
-                    (rcpCost?.total != "MYR 0.00")
+                    (rcpCost != null && rcpCost?.total != "MYR 0.00")
                         ? _renderCost(false)
                         : new Container(),
                     (rcpCost != null && rcpCost?.total != "MYR 0.00")
@@ -3743,7 +3924,43 @@ class _JobDetailsState extends State<JobDetails>
                 ],
               ),
             ),
-            const SizedBox(width: 20),
+            Spacer(),
+            Helpers.checkIfEditableByJobStatus(selectedJob) &&
+                    !isStepper &&
+                    (selectedJob?.picklist?.length ?? 0) == 0
+                ? ElevatedButton(
+                    child: const Padding(
+                        padding: EdgeInsets.all(0.0),
+                        child: Text(
+                          'Add Parts',
+                          style: TextStyle(fontSize: 15, color: Colors.white),
+                        )),
+                    style: ButtonStyle(
+                        foregroundColor:
+                            MaterialStateProperty.all<Color>(Color(0xFF242A38)),
+                        backgroundColor:
+                            MaterialStateProperty.all<Color>(Color(0xFF242A38)),
+                        shape:
+                            MaterialStateProperty.all<RoundedRectangleBorder>(
+                                RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4.0),
+                                    side: const BorderSide(
+                                        color: Color(0xFF242A38))))),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AddItemsFromBagDialog(
+                              bag: userBag,
+                              existingJobSpareParts: [],
+                              ticketNo: selectedJob?.serviceJobNo,
+                              jobId: (selectedJob?.serviceRequestid ?? ""));
+                        },
+                      ).then((value) async {
+                        await refreshJobDetails();
+                      });
+                    })
+                : new Container(),
           ],
         ),
         SizedBox(
@@ -3751,8 +3968,7 @@ class _JobDetailsState extends State<JobDetails>
         ),
         (selectedJob?.picklist != null &&
                     (selectedJob?.picklist!.length ?? 0) > 0) &&
-                Helpers.checkIfEditableByJobStatus(selectedJob) &&
-                !isStepper
+                Helpers.checkIfEditableByJobStatus(selectedJob)
             ? Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -3994,49 +4210,6 @@ class _JobDetailsState extends State<JobDetails>
                             SizedBox(
                               height: 10,
                             ),
-                            Helpers.checkIfEditableByJobStatus(selectedJob) &&
-                                    !isStepper
-                                ? ElevatedButton(
-                                    child: const Padding(
-                                        padding: EdgeInsets.all(0.0),
-                                        child: Text(
-                                          'Add Parts',
-                                          style: TextStyle(
-                                              fontSize: 15,
-                                              color: Colors.white),
-                                        )),
-                                    style: ButtonStyle(
-                                        foregroundColor:
-                                            MaterialStateProperty.all<Color>(
-                                                Color(0xFF242A38)),
-                                        backgroundColor:
-                                            MaterialStateProperty.all<Color>(
-                                                Color(0xFF242A38)),
-                                        shape: MaterialStateProperty.all<
-                                                RoundedRectangleBorder>(
-                                            RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(4.0),
-                                                side: const BorderSide(
-                                                    color: Color(0xFF242A38))))),
-                                    onPressed: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (BuildContext context) {
-                                          return AddItemsFromBagDialog(
-                                              bag: userBag,
-                                              existingJobSpareParts: [],
-                                              ticketNo:
-                                                  selectedJob?.serviceJobNo,
-                                              jobId: (selectedJob
-                                                      ?.serviceRequestid ??
-                                                  ""));
-                                        },
-                                      ).then((value) async {
-                                        await refreshJobDetails();
-                                      });
-                                    })
-                                : new Container(),
                           ],
                         ))
                   ],
@@ -4066,41 +4239,44 @@ class _JobDetailsState extends State<JobDetails>
                 ),
               ),
               Spacer(),
-              FlutterSwitch(
-                activeColor: Helpers.checkIfEditableByJobStatus(selectedJob) &&
-                        !isStepper
-                    ? Colors.green
-                    : Colors.grey,
-                inactiveColor:
-                    Helpers.checkIfEditableByJobStatus(selectedJob) &&
-                            !isStepper
-                        ? Colors.red
-                        : Colors.grey,
-                activeTextColor: Colors.white,
-                inactiveTextColor: Colors.white,
-                activeText: "Discount added",
-                inactiveText: "Discount removed",
-                value: isDiscountApplied,
-                valueFontSize: 14.0,
-                width: MediaQuery.of(context).size.width * 0.225,
-                borderRadius: 30.0,
-                showOnOff: true,
-                onToggle: (val) async {
-                  if (Helpers.checkIfEditableByJobStatus(selectedJob) &&
-                      !isStepper) {
-                    var result = await Repositories.updateChargeable(
-                        selectedJob!.serviceRequestid ?? "0",
-                        isChargeablePickupCharges,
-                        isChargeableTransportCharges,
-                        isChargeableSolutionCharges,
-                        isChargeableMiscellaneousCharges,
-                        !isDiscountApplied,
-                        (selectedJob?.chargeableSparepartIds ?? []));
+              (rcpCost?.isRCPValid ?? false)
+                  ? FlutterSwitch(
+                      activeColor:
+                          Helpers.checkIfEditableByJobStatus(selectedJob) &&
+                                  !isStepper
+                              ? Colors.green
+                              : Colors.grey,
+                      inactiveColor:
+                          Helpers.checkIfEditableByJobStatus(selectedJob) &&
+                                  !isStepper
+                              ? Colors.red
+                              : Colors.grey,
+                      activeTextColor: Colors.white,
+                      inactiveTextColor: Colors.white,
+                      activeText: "Discount added",
+                      inactiveText: "Discount removed",
+                      value: isDiscountApplied,
+                      valueFontSize: 14.0,
+                      width: MediaQuery.of(context).size.width * 0.225,
+                      borderRadius: 30.0,
+                      showOnOff: true,
+                      onToggle: (val) async {
+                        if (Helpers.checkIfEditableByJobStatus(selectedJob) &&
+                            !isStepper) {
+                          var result = await Repositories.updateChargeable(
+                              selectedJob!.serviceRequestid ?? "0",
+                              isChargeablePickupCharges,
+                              isChargeableTransportCharges,
+                              isChargeableSolutionCharges,
+                              isChargeableMiscellaneousCharges,
+                              !isDiscountApplied,
+                              (selectedJob?.chargeableSparepartIds ?? []));
 
-                    await refreshJobDetails();
-                  }
-                },
-              ),
+                          await refreshJobDetails();
+                        }
+                      },
+                    )
+                  : new Container(),
             ],
           ),
           const SizedBox(height: 40),
@@ -4381,8 +4557,8 @@ class _JobDetailsState extends State<JobDetails>
                                         isChargeablePickupCharges,
                                         isChargeableTransportCharges,
                                         isChargeableSolutionCharges,
-                                        isDiscountApplied,
                                         isChargeableMiscellaneousCharges,
+                                        isDiscountApplied,
                                         ids);
 
                                 await refreshJobDetails();
@@ -4400,8 +4576,9 @@ class _JobDetailsState extends State<JobDetails>
 
                                 await removeItemsBasedOnPriority(
                                     Helpers.editableJobSpareParts);
-                                await refreshJobDetails();
                                 Navigator.pop(context);
+                                await refreshJobDetails();
+
                                 setState(() {
                                   isPartsEditable = false;
                                 });
@@ -5813,15 +5990,11 @@ class _JobDetailsState extends State<JobDetails>
         if (value != null && value) {
           if (selectedJob?.serviceType?.toLowerCase() == "home visit") {
             Navigator.pushNamed(context, 'signature',
-                arguments: [selectedJob, rcpCost]).then((val) async {
-              if ((val as bool)) {}
-            });
+                arguments: [selectedJob, rcpCost]).then((val) async {});
           } else {
             Navigator.pushNamed(context, 'feedback_confirmation',
                     arguments: selectedJob)
-                .then((val) async {
-              if ((val as bool)) {}
-            });
+                .then((value) => null);
             await refreshJobDetails();
           }
         } else {
@@ -5965,458 +6138,470 @@ class _JobDetailsState extends State<JobDetails>
               await this.refreshJobDetails();
             },
             child: Scaffold(
-              backgroundColor: Colors.white,
-              key: _scaffoldKey,
-              appBar: Helpers.customAppBar(context, _scaffoldKey,
-                  title: "Job Details",
-                  isBack: true,
-                  isAppBarTranparent: true,
-                  hasActions: false, handleBackPressed: () {
-                Navigator.pop(context);
-                // var res = validateIfEditedValuesAreSaved();
-                // if (res) {
-                // }
-              }),
-              body: ExpandableBottomSheet(
-                //use the key to get access to expand(), contract() and expansionStatus
-                key: key,
+                backgroundColor: Colors.white,
+                key: _scaffoldKey,
+                appBar: Helpers.customAppBar(context, _scaffoldKey,
+                    title: "Job Details",
+                    isBack: true,
+                    isAppBarTranparent: true,
+                    hasActions: false, handleBackPressed: () {
+                  Navigator.pop(context);
+                  // var res = validateIfEditedValuesAreSaved();
+                  // if (res) {
+                  // }
+                }),
+                body: ExpandableBottomSheet(
+                  //use the key to get access to expand(), contract() and expansionStatus
+                  key: key,
 
-                onIsContractedCallback: () => print('contracted'),
-                onIsExtendedCallback: () => print('extended'),
-                animationDurationExtend: Duration(milliseconds: 500),
-                animationDurationContract: Duration(milliseconds: 250),
-                // animationCurveExpand: Curves.bounceOut,
-                animationCurveContract: Curves.ease,
-                persistentContentHeight:
-                    isExpanded ? MediaQuery.of(context).size.height * .8 : 0,
-                background: Stack(children: [
-                  CustomPaint(
-                      child: Stack(children: [
-                    SingleChildScrollView(
-                        physics: AlwaysScrollableScrollPhysics(),
-                        child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 30, vertical: 10),
-                            decoration: new BoxDecoration(color: Colors.white),
-                            child: Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  errorMsg != "" ? _renderError() : Container(),
-                                  _renderForm(),
-                                  const SizedBox(height: 10),
-                                  //Expanded(child: _renderBottom()),
-                                  //version != "" ? _renderVersion() : Container()
-                                ]))),
-                    // Positioned(
-                    //     left: 5,
-                    //     right: 5,
-                    //     bottom: 5,
-                    //     child: GestureDetector(
-                    //       onTap: () {
-                    //         setState(() {
-                    //           isExpandedTotal = !isExpandedTotal;
-                    //         });
-                    //       },
-                    //       child: Container(
-                    //           padding: const EdgeInsets.symmetric(
-                    //               horizontal: 20, vertical: 10),
-                    //           decoration:
-                    //               new BoxDecoration(color: Colors.white),
-                    //           child: isExpandedTotal
-                    //               ? _renderCost()
-                    //               : ListTile(
-                    //                   title: Text('Total'),
-                    //                   trailing: Text('RM 140.00'),
-                    //                 )),
-                    //     )),
-                  ])),
-                  isExpanded
-                      ? GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              isExpanded = false;
-                            });
-                          },
-                          child: IgnorePointer(
-                            child: BackdropFilter(
-                              filter:
-                                  ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-                              child: Container(
-                                width: 200.0,
-                                height: 200.0,
-                                color: Colors.transparent,
-                                child: Center(
-                                  child: Text(
-                                    'Blurred Content',
-                                    style: TextStyle(
-                                      fontSize: 20.0,
-                                      color: Colors.white,
+                  onIsContractedCallback: () => print('contracted'),
+                  onIsExtendedCallback: () => print('extended'),
+                  animationDurationExtend: Duration(milliseconds: 500),
+                  animationDurationContract: Duration(milliseconds: 250),
+                  // animationCurveExpand: Curves.bounceOut,
+                  animationCurveContract: Curves.ease,
+                  persistentContentHeight:
+                      isExpanded ? MediaQuery.of(context).size.height * .8 : 0,
+                  background: Stack(children: [
+                    CustomPaint(
+                        child: Stack(children: [
+                      SingleChildScrollView(
+                          physics: AlwaysScrollableScrollPhysics(),
+                          child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 30, vertical: 10),
+                              decoration:
+                                  new BoxDecoration(color: Colors.white),
+                              child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    errorMsg != ""
+                                        ? _renderError()
+                                        : Container(),
+                                    _renderForm(),
+                                    const SizedBox(height: 10),
+                                    //Expanded(child: _renderBottom()),
+                                    //version != "" ? _renderVersion() : Container()
+                                  ]))),
+                      // Positioned(
+                      //     left: 5,
+                      //     right: 5,
+                      //     bottom: 5,
+                      //     child: GestureDetector(
+                      //       onTap: () {
+                      //         setState(() {
+                      //           isExpandedTotal = !isExpandedTotal;
+                      //         });
+                      //       },
+                      //       child: Container(
+                      //           padding: const EdgeInsets.symmetric(
+                      //               horizontal: 20, vertical: 10),
+                      //           decoration:
+                      //               new BoxDecoration(color: Colors.white),
+                      //           child: isExpandedTotal
+                      //               ? _renderCost()
+                      //               : ListTile(
+                      //                   title: Text('Total'),
+                      //                   trailing: Text('RM 140.00'),
+                      //                 )),
+                      //     )),
+                    ])),
+                    isExpanded
+                        ? GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                isExpanded = false;
+                              });
+                            },
+                            child: IgnorePointer(
+                              child: BackdropFilter(
+                                filter:
+                                    ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                                child: Container(
+                                  width: 200.0,
+                                  height: 200.0,
+                                  color: Colors.transparent,
+                                  child: Center(
+                                    child: Text(
+                                      'Blurred Content',
+                                      style: TextStyle(
+                                        fontSize: 20.0,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ))
-                      : new Container(),
-                ]),
-                expandableContent: isExpanded
-                    ? Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10.0),
-                          border:
-                              Border.all(color: Colors.grey[400]!, width: 1),
-                          color: Colors.white,
-                        ),
-                        width: MediaQuery.of(context).size.width * 1,
-                        child: SingleChildScrollView(
-                          child: Container(
-                            alignment: Alignment.centerLeft,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 40, vertical: 30),
-                            child: Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  checklistAttachments != null &&
-                                          checklistAttachments.length > 0
-                                      ? Container(
-                                          alignment: Alignment.centerLeft,
-                                          child: RichText(
-                                            text: TextSpan(
-                                                style: const TextStyle(
-                                                  fontSize: 20.0,
-                                                  color: Colors.black,
-                                                ),
-                                                children: <TextSpan>[
-                                                  TextSpan(
-                                                      text:
-                                                          'Checklist Attachment',
-                                                      style: const TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.bold)),
-                                                ]),
-                                          ),
-                                        )
-                                      : new Container(),
-                                  checklistAttachments != null &&
-                                          checklistAttachments.length > 0
-                                      ? SizedBox(
-                                          height: 25,
-                                        )
-                                      : new Container(),
-                                  Container(
-                                      alignment: Alignment.centerLeft,
-                                      child: checklistAttachments != null &&
-                                              checklistAttachments.length > 0
-                                          ? DataTable(
-                                              headingRowHeight: 50.0,
-                                              dataRowHeight: 80,
-                                              headingRowColor:
-                                                  MaterialStateColor
-                                                      .resolveWith((states) =>
-                                                          Colors.black87),
-                                              columns: [
-                                                DataColumn(
-                                                    label: Container(
-                                                  width: MediaQuery.of(context)
-                                                          .size
-                                                          .width *
-                                                      .05,
-                                                  child: Padding(
-                                                      padding:
-                                                          EdgeInsets.fromLTRB(
-                                                              10, 0, 0, 0),
-                                                      child: Text('#',
-                                                          style: TextStyle(
-                                                              color: Colors
-                                                                  .white))),
-                                                )),
-                                                DataColumn(
-                                                    label: Container(
-                                                  width: MediaQuery.of(context)
-                                                          .size
-                                                          .width *
-                                                      .4,
-                                                  child: Padding(
-                                                      padding:
-                                                          EdgeInsets.fromLTRB(
-                                                              10, 0, 0, 0),
-                                                      child: Text('Question',
-                                                          style: TextStyle(
-                                                              color: Colors
-                                                                  .white))),
-                                                )),
-                                                DataColumn(
-                                                    label: Container(
-                                                  width: MediaQuery.of(context)
-                                                          .size
-                                                          .width *
-                                                      .3,
-                                                  child: Padding(
-                                                    padding:
-                                                        EdgeInsets.fromLTRB(
-                                                            10, 0, 0, 0),
-                                                    child: Text('Answer',
-                                                        style: TextStyle(
-                                                            color:
-                                                                Colors.white)),
-                                                  ),
-                                                )),
-                                              ],
-                                              rows:
-                                                  checklistAttachments // Loops through dataColumnText, each iteration assigning the value to element
-                                                      .map(
-                                                        ((element) => DataRow(
-                                                              cells: <DataCell>[
-                                                                DataCell(Text((checklistAttachments.indexOf(element) +
-                                                                            1)
-                                                                        .toString() ??
-                                                                    "1")), //Extracting from Map element the value
-                                                                DataCell(Text(
-                                                                    element.question ??
-                                                                        "")),
-                                                                DataCell(Text(
-                                                                    (element.answer ??
-                                                                        "")))
-                                                              ],
-                                                            )),
-                                                      )
-                                                      .toList())
-                                          : new Container()),
-                                  SizedBox(
-                                    height: 20,
-                                  ),
-                                  Container(
-                                    alignment: Alignment.centerLeft,
-                                    child: RichText(
-                                      textAlign: TextAlign.left,
-                                      text: TextSpan(
-                                          style: const TextStyle(
-                                            fontSize: 20.0,
-                                            color: Colors.black,
-                                          ),
-                                          children: <TextSpan>[
-                                            TextSpan(
-                                                text: 'Comments',
-                                                style: const TextStyle(
-                                                    fontWeight:
-                                                        FontWeight.bold)),
-                                          ]),
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    height: 20,
-                                  ),
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(10.0),
-                                      border: Border.all(
-                                          color: Colors.grey[400]!, width: 1),
-                                      color: Colors.white,
-                                    ),
-                                    alignment: Alignment.centerLeft,
-                                    child: Column(children: [
-                                      Container(
-                                          padding:
-                                              EdgeInsets.fromLTRB(20, 0, 20, 0),
-                                          child: TextFormField(
-                                            controller: commentTextController,
-                                            maxLines: 5,
-                                            textInputAction:
-                                                TextInputAction.newline,
-                                            // focusNode: focusEmail,
-                                            keyboardType:
-                                                TextInputType.multiline,
-                                            validator: (value) {},
-                                            // controller: emailCT,
-                                            onFieldSubmitted: (val) {
-                                              FocusScope.of(context)
-                                                  .requestFocus(
-                                                      new FocusNode());
-                                            },
-                                            style: TextStyle(fontSize: 15),
-                                          )),
-                                      Padding(
-                                          padding: EdgeInsets.symmetric(
-                                              horizontal: 10, vertical: 10),
-                                          child: Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.end,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.end,
-                                              children: [
-                                                Container(
-                                                  color: Colors.white,
-                                                  height: 40,
-                                                  width: MediaQuery.of(context)
-                                                          .size
-                                                          .width *
-                                                      0.1,
-                                                  child: ElevatedButton(
-                                                      child: Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(5.0),
-                                                          child: Text(
-                                                            'Send',
-                                                            style: TextStyle(
-                                                                fontSize: 11,
-                                                                color: Colors
-                                                                    .white),
-                                                          )),
-                                                      style: ButtonStyle(
-                                                          foregroundColor:
-                                                              MaterialStateProperty
-                                                                  .all<Color>(
-                                                        Color(0xFF),
-                                                      )),
-                                                      onPressed: () async {
-                                                        await Repositories
-                                                            .addComment(
-                                                                jobId,
-                                                                commentTextController
-                                                                    .text
-                                                                    .toString());
-                                                        setState(() {
-                                                          commentTextController
-                                                              .text = "";
-                                                        });
-                                                        await fetchComments();
-                                                      }),
-                                                )
-                                              ])),
-                                    ]),
-                                  ),
-                                  SizedBox(
-                                    height: 20,
-                                  ),
-                                  comments != null && comments.length > 0
-                                      ? SizedBox(
-                                          width: double.infinity,
-                                          height: 50.0,
-                                          child: ElevatedButton(
-                                              child: Padding(
-                                                  padding: EdgeInsets.all(0.0),
-                                                  child: Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .center,
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .center,
-                                                      children: [
-                                                        Icon(
-                                                          Icons.refresh,
-                                                          size: 25,
-                                                          color:
-                                                              Color(0xFFE18549),
-                                                        ),
-                                                        SizedBox(
-                                                          width: 10,
-                                                        ),
-                                                        Text(
-                                                          'Refresh Comments',
-                                                          style: TextStyle(
-                                                              fontSize: 18,
-                                                              color: Color(
-                                                                  0xFFE18549)),
-                                                        )
-                                                      ])),
-                                              style: ButtonStyle(
-                                                  foregroundColor:
-                                                      MaterialStateProperty.all<Color>(
-                                                          Color(0xFFF5DFD0)),
-                                                  backgroundColor:
-                                                      MaterialStateProperty.all<Color>(
-                                                          Color(0xFFF5DFD0)),
-                                                  shape: MaterialStateProperty.all<
-                                                          RoundedRectangleBorder>(
-                                                      RoundedRectangleBorder(
-                                                          borderRadius: BorderRadius.circular(4.0),
-                                                          side: const BorderSide(color: Color(0xFFF5DFD0))))),
-                                              onPressed: () async {}),
-                                        )
-                                      : new Container(),
-                                  comments != null && comments.length > 0
-                                      ? Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 10),
-                                          height: MediaQuery.of(context)
-                                                  .size
-                                                  .height *
-                                              0.8,
-                                          child: ListView.builder(
-                                            shrinkWrap: false,
-                                            // shrinkWrap: false,
-                                            itemCount: comments.length,
-                                            itemBuilder: (BuildContext context,
-                                                int index) {
-                                              return CommentItem(
-                                                focusNodes: commentFocusNodes,
-                                                ctx: context,
-                                                // textEditingControllers:
-                                                //     commentTextEditingControllers,
-                                                comments: comments,
-                                                loggedInUserId:
-                                                    loggedInUserId ?? "",
-                                                index: index,
-                                                isCurrentSelectedindex:
-                                                    currentlyEditingCommentIndex,
-                                                onDeletePressed: (index) async {
-                                                  var res = await Repositories
-                                                      .deleteComment(
-                                                          comments[index].id ??
-                                                              0);
-                                                  await fetchComments();
-                                                },
-                                                onUpdate: (index) async {
-                                                  setState(() {
-                                                    commentFocusNodes
-                                                        .forEach((element) {
-                                                      element.unfocus();
-                                                    });
-                                                    currentlyEditingCommentIndex =
-                                                        null;
-                                                  });
-                                                  await fetchComments();
-                                                },
-                                                onEditPressed: (index) {
-                                                  setState(() {
-                                                    commentFocusNodes
-                                                        .forEach((element) {
-                                                      element.unfocus();
-                                                    });
-                                                    currentlyEditingCommentIndex =
-                                                        index;
-                                                    commentFocusNodes[index]
-                                                        .requestFocus();
-                                                  });
-                                                },
-                                              );
-                                            },
-                                          ),
-                                        )
-                                      : new Container(),
-                                ]),
+                            ))
+                        : new Container(),
+                  ]),
+                  expandableContent: isExpanded
+                      ? Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10.0),
+                            border:
+                                Border.all(color: Colors.grey[400]!, width: 1),
+                            color: Colors.white,
                           ),
-                        ),
-                      )
-                    : new Container(),
-              ),
-              floatingActionButton: (selectedJob?.isRTOOrder ?? false)
-                  ? (!isExpanded
-                      ? FloatingActionButton.large(
-                          onPressed: () {
-                            setState(() {
-                              isExpanded = true;
-                            });
-                          },
-                          foregroundColor: Color(0xFF005FF5),
-                          backgroundColor: Color(0xFFFDFDFD),
-                          child: const Icon(Icons.chat_outlined),
+                          width: MediaQuery.of(context).size.width * 1,
+                          child: SingleChildScrollView(
+                            child: Container(
+                              alignment: Alignment.centerLeft,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 40, vertical: 30),
+                              child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    checklistAttachments != null &&
+                                            checklistAttachments.length > 0
+                                        ? Container(
+                                            alignment: Alignment.centerLeft,
+                                            child: RichText(
+                                              text: TextSpan(
+                                                  style: const TextStyle(
+                                                    fontSize: 20.0,
+                                                    color: Colors.black,
+                                                  ),
+                                                  children: <TextSpan>[
+                                                    TextSpan(
+                                                        text:
+                                                            'Checklist Attachment',
+                                                        style: const TextStyle(
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .bold)),
+                                                  ]),
+                                            ),
+                                          )
+                                        : new Container(),
+                                    checklistAttachments != null &&
+                                            checklistAttachments.length > 0
+                                        ? SizedBox(
+                                            height: 25,
+                                          )
+                                        : new Container(),
+                                    Container(
+                                        alignment: Alignment.centerLeft,
+                                        child: checklistAttachments != null &&
+                                                checklistAttachments.length > 0
+                                            ? DataTable(
+                                                headingRowHeight: 50.0,
+                                                dataRowHeight: 80,
+                                                headingRowColor:
+                                                    MaterialStateColor
+                                                        .resolveWith((states) =>
+                                                            Colors.black87),
+                                                columns: [
+                                                  DataColumn(
+                                                      label: Container(
+                                                    width:
+                                                        MediaQuery.of(context)
+                                                                .size
+                                                                .width *
+                                                            .05,
+                                                    child: Padding(
+                                                        padding:
+                                                            EdgeInsets.fromLTRB(
+                                                                10, 0, 0, 0),
+                                                        child: Text('#',
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .white))),
+                                                  )),
+                                                  DataColumn(
+                                                      label: Container(
+                                                    width:
+                                                        MediaQuery.of(context)
+                                                                .size
+                                                                .width *
+                                                            .4,
+                                                    child: Padding(
+                                                        padding:
+                                                            EdgeInsets.fromLTRB(
+                                                                10, 0, 0, 0),
+                                                        child: Text('Question',
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .white))),
+                                                  )),
+                                                  DataColumn(
+                                                      label: Container(
+                                                    width:
+                                                        MediaQuery.of(context)
+                                                                .size
+                                                                .width *
+                                                            .3,
+                                                    child: Padding(
+                                                      padding:
+                                                          EdgeInsets.fromLTRB(
+                                                              10, 0, 0, 0),
+                                                      child: Text('Answer',
+                                                          style: TextStyle(
+                                                              color: Colors
+                                                                  .white)),
+                                                    ),
+                                                  )),
+                                                ],
+                                                rows:
+                                                    checklistAttachments // Loops through dataColumnText, each iteration assigning the value to element
+                                                        .map(
+                                                          ((element) => DataRow(
+                                                                cells: <
+                                                                    DataCell>[
+                                                                  DataCell(Text((checklistAttachments.indexOf(element) +
+                                                                              1)
+                                                                          .toString() ??
+                                                                      "1")), //Extracting from Map element the value
+                                                                  DataCell(Text(
+                                                                      element.question ??
+                                                                          "")),
+                                                                  DataCell(Text(
+                                                                      (element.answer ??
+                                                                          "")))
+                                                                ],
+                                                              )),
+                                                        )
+                                                        .toList())
+                                            : new Container()),
+                                    SizedBox(
+                                      height: 20,
+                                    ),
+                                    Container(
+                                      alignment: Alignment.centerLeft,
+                                      child: RichText(
+                                        textAlign: TextAlign.left,
+                                        text: TextSpan(
+                                            style: const TextStyle(
+                                              fontSize: 20.0,
+                                              color: Colors.black,
+                                            ),
+                                            children: <TextSpan>[
+                                              TextSpan(
+                                                  text: 'Comments',
+                                                  style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold)),
+                                            ]),
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      height: 20,
+                                    ),
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius:
+                                            BorderRadius.circular(10.0),
+                                        border: Border.all(
+                                            color: Colors.grey[400]!, width: 1),
+                                        color: Colors.white,
+                                      ),
+                                      alignment: Alignment.centerLeft,
+                                      child: Column(children: [
+                                        Container(
+                                            padding: EdgeInsets.fromLTRB(
+                                                20, 0, 20, 0),
+                                            child: TextFormField(
+                                              controller: commentTextController,
+                                              maxLines: 5,
+                                              textInputAction:
+                                                  TextInputAction.newline,
+                                              // focusNode: focusEmail,
+                                              keyboardType:
+                                                  TextInputType.multiline,
+                                              validator: (value) {},
+                                              // controller: emailCT,
+                                              onFieldSubmitted: (val) {
+                                                FocusScope.of(context)
+                                                    .requestFocus(
+                                                        new FocusNode());
+                                              },
+                                              style: TextStyle(fontSize: 15),
+                                            )),
+                                        Padding(
+                                            padding: EdgeInsets.symmetric(
+                                                horizontal: 10, vertical: 10),
+                                            child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.end,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.end,
+                                                children: [
+                                                  Container(
+                                                    color: Colors.white,
+                                                    height: 40,
+                                                    width:
+                                                        MediaQuery.of(context)
+                                                                .size
+                                                                .width *
+                                                            0.1,
+                                                    child: ElevatedButton(
+                                                        child: Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .all(5.0),
+                                                            child: Text(
+                                                              'Send',
+                                                              style: TextStyle(
+                                                                  fontSize: 11,
+                                                                  color: Colors
+                                                                      .white),
+                                                            )),
+                                                        style: ButtonStyle(
+                                                            foregroundColor:
+                                                                MaterialStateProperty
+                                                                    .all<Color>(
+                                                          Color(0xFF),
+                                                        )),
+                                                        onPressed: () async {
+                                                          await Repositories
+                                                              .addComment(
+                                                                  jobId,
+                                                                  commentTextController
+                                                                      .text
+                                                                      .toString());
+                                                          setState(() {
+                                                            commentTextController
+                                                                .text = "";
+                                                          });
+                                                          await fetchComments();
+                                                        }),
+                                                  )
+                                                ])),
+                                      ]),
+                                    ),
+                                    SizedBox(
+                                      height: 20,
+                                    ),
+                                    comments != null && comments.length > 0
+                                        ? SizedBox(
+                                            width: double.infinity,
+                                            height: 50.0,
+                                            child: ElevatedButton(
+                                                child: Padding(
+                                                    padding:
+                                                        EdgeInsets.all(0.0),
+                                                    child: Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .center,
+                                                        children: [
+                                                          Icon(
+                                                            Icons.refresh,
+                                                            size: 25,
+                                                            color: Color(
+                                                                0xFFE18549),
+                                                          ),
+                                                          SizedBox(
+                                                            width: 10,
+                                                          ),
+                                                          Text(
+                                                            'Refresh Comments',
+                                                            style: TextStyle(
+                                                                fontSize: 18,
+                                                                color: Color(
+                                                                    0xFFE18549)),
+                                                          )
+                                                        ])),
+                                                style: ButtonStyle(
+                                                    foregroundColor:
+                                                        MaterialStateProperty.all<Color>(
+                                                            Color(0xFFF5DFD0)),
+                                                    backgroundColor:
+                                                        MaterialStateProperty.all<Color>(
+                                                            Color(0xFFF5DFD0)),
+                                                    shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                                                        RoundedRectangleBorder(
+                                                            borderRadius:
+                                                                BorderRadius.circular(4.0),
+                                                            side: const BorderSide(color: Color(0xFFF5DFD0))))),
+                                                onPressed: () async {}),
+                                          )
+                                        : new Container(),
+                                    comments != null && comments.length > 0
+                                        ? Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 10),
+                                            height: MediaQuery.of(context)
+                                                    .size
+                                                    .height *
+                                                0.8,
+                                            child: ListView.builder(
+                                              shrinkWrap: false,
+                                              // shrinkWrap: false,
+                                              itemCount: comments.length,
+                                              itemBuilder:
+                                                  (BuildContext context,
+                                                      int index) {
+                                                return CommentItem(
+                                                  focusNodes: commentFocusNodes,
+                                                  ctx: context,
+                                                  // textEditingControllers:
+                                                  //     commentTextEditingControllers,
+                                                  comments: comments,
+                                                  loggedInUserId:
+                                                      loggedInUserId ?? "",
+                                                  index: index,
+                                                  isCurrentSelectedindex:
+                                                      currentlyEditingCommentIndex,
+                                                  onDeletePressed:
+                                                      (index) async {
+                                                    var res = await Repositories
+                                                        .deleteComment(
+                                                            comments[index]
+                                                                    .id ??
+                                                                0);
+                                                    await fetchComments();
+                                                  },
+                                                  onUpdate: (index) async {
+                                                    setState(() {
+                                                      commentFocusNodes
+                                                          .forEach((element) {
+                                                        element.unfocus();
+                                                      });
+                                                      currentlyEditingCommentIndex =
+                                                          null;
+                                                    });
+                                                    await fetchComments();
+                                                  },
+                                                  onEditPressed: (index) {
+                                                    setState(() {
+                                                      commentFocusNodes
+                                                          .forEach((element) {
+                                                        element.unfocus();
+                                                      });
+                                                      currentlyEditingCommentIndex =
+                                                          index;
+                                                      commentFocusNodes[index]
+                                                          .requestFocus();
+                                                    });
+                                                  },
+                                                );
+                                              },
+                                            ),
+                                          )
+                                        : new Container(),
+                                  ]),
+                            ),
+                          ),
                         )
-                      : new Container())
-                  : new Container(),
-            )));
+                      : new Container(),
+                ),
+                floatingActionButton:
+                    (!isExpanded && (selectedJob?.isRTOOrder ?? false)
+                        ? FloatingActionButton.large(
+                            onPressed: () {
+                              setState(() {
+                                isExpanded = true;
+                              });
+                            },
+                            foregroundColor: Color(0xFF005FF5),
+                            backgroundColor: Color(0xFFFDFDFD),
+                            child: const Icon(Icons.chat_outlined),
+                          )
+                        : new Container()))));
   }
 }
 
@@ -8643,9 +8828,9 @@ class _AddMiscItemsPopupState extends State<AddMiscItemsPopup> {
                       ),
                       child: Text("RM")),
                   Container(
-                    width: MediaQuery.of(context).size.width * 0.2,
-                    padding: EdgeInsets.only(bottom: 50, left: 20),
-                    child: TextFormField(
+                      width: MediaQuery.of(context).size.width * 0.2,
+                      padding: EdgeInsets.only(bottom: 50, left: 20),
+                      child: TextFormField(
                         controller: priceController,
                         keyboardType: TextInputType.number,
                         onChanged: (str) {},
@@ -8655,7 +8840,8 @@ class _AddMiscItemsPopupState extends State<AddMiscItemsPopup> {
                         },
                         inputFormatters: <TextInputFormatter>[
                           FilteringTextInputFormatter.allow(
-                              RegExp("[0-9a-zA-Z]")),
+                            RegExp(r'[0-9a-zA-Z.]'),
+                          ),
                         ],
                         style: TextStyle(
                           fontSize: 18.0,
@@ -8667,8 +8853,8 @@ class _AddMiscItemsPopupState extends State<AddMiscItemsPopup> {
                           hintStyle:
                               TextStyle(color: Colors.grey.withOpacity(0.7)),
                           contentPadding: EdgeInsets.fromLTRB(15, 5, 5, 5),
-                        )),
-                  ),
+                        ),
+                      )),
                 ])
               ])
         ],

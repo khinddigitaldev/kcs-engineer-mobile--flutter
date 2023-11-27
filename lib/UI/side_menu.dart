@@ -1,8 +1,10 @@
 import 'package:easy_sidemenu/easy_sidemenu.dart';
 import 'package:flutter/material.dart';
+import 'package:kcs_engineer/UI/bag.dart';
 import 'package:kcs_engineer/UI/pick_list.dart';
 import 'package:kcs_engineer/UI/jobs.dart';
 import 'package:kcs_engineer/UI/user_profile.dart';
+import 'package:kcs_engineer/bag_icons.dart';
 import 'package:kcs_engineer/history_icons_icons.dart';
 import 'package:kcs_engineer/kcs_icons_icons.dart';
 import 'package:kcs_engineer/side_menu_icons_icons.dart';
@@ -62,6 +64,12 @@ class _MyHomePageState extends State<MyHomePage> {
                 Container(
                   color: Colors.white,
                   child: Center(child: PickList()
+                      // child: JobHistory(),
+                      ),
+                ),
+                Container(
+                  color: Colors.white,
+                  child: Center(child: UserBag()
                       // child: JobHistory(),
                       ),
                 ),
@@ -134,6 +142,14 @@ class _MyHomePageState extends State<MyHomePage> {
             page.jumpToPage(index);
           },
           icon: const Icon(KcsIcons.picklist),
+        ),
+        SideMenuItem(
+          priority: 2,
+          onTap: (index, controller) {
+            sidemenuController.changePage(index);
+            page.jumpToPage(index);
+          },
+          icon: const Icon(Bag.bag),
         ),
         // SideMenuItem(
         //   priority: 2,

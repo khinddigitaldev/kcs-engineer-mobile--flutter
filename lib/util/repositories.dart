@@ -194,6 +194,19 @@ class Repositories {
     return bag;
   }
 
+  static Future<List<SparePart>?> fetchUserBagWithoutFilters() async {
+    List<SparePart>? list;
+
+    final response = await Api.bearerGet('general/spareparts-from-bag');
+    print("#Resp: ${jsonEncode(response)}");
+    // Navigator.pop(context);
+    if (response["success"] && response['data'] != null) {
+      list =
+          (response['data'] as List).map((i) => SparePart.fromJson(i)).toList();
+    }
+    return list;
+  }
+
   static Future<JobFilterOptions?> fetchJobStatus() async {
     JobFilterOptions? data;
 
@@ -237,6 +250,26 @@ class Repositories {
       'service_request_id': salesOrdefId,
     };
     final response = await Api.bearerPost('job/comments/create', params: map);
+    print("#Resp: ${jsonEncode(response)}");
+    // Navigator.pop(context);
+    if (response["success"]) {
+      return true;
+    }
+    return false;
+  }
+
+  static Future<bool> changeSequence(
+      String serviceRequestId, String position) async {
+    final Map<String, dynamic> map = {
+      "service_requests": [
+        {
+          'service_request_id': serviceRequestId,
+          'job_sequence': position,
+        }
+      ]
+    };
+
+    final response = await Api.bearerPost('job/update-sequence', params: map);
     print("#Resp: ${jsonEncode(response)}");
     // Navigator.pop(context);
     if (response["success"]) {
@@ -577,7 +610,7 @@ class Repositories {
   static Future<PickListItems?> fetchDailyPickList() async {
     PickListItems? pickListItems = null;
 
-    var map = {"get_only_today": false};
+    var map = {"get_only_today": true};
     final response =
         await Api.bearerPost('job/get-pick-list-for-day', params: map);
     print("#Resp: ${jsonEncode(response)}");
@@ -884,9 +917,9 @@ class Repositories {
     }
 
     var url =
-        'job/fetch-payment-rcp?service_request_id=${jobId}&is_chargeable[spareparts]=${ids.length > 0 ? "1" : "0"}&is_chargeable[solution]=${isChargeableSolution ? "1" : "0"}&is_discount_applied=${isDiscountApplied ? "1" : "0"}&is_chargeable[transport]=${isChargeableTransport ? "1" : "0"}&is_chargeable[pickup]=${isChargeablePickup ? "1" : "0"}&is_chargeable[misc]=${isChargeableMisc ? "1" : "0"}${query}';
+        'job/fetch-payment-rcp?service_request_id=${jobId}&is_chargeable[spareparts]=1&is_chargeable[solution]=${isChargeableSolution ? "1" : "0"}&is_discount_applied=${isDiscountApplied ? "1" : "0"}&is_chargeable[transport]=${isChargeableTransport ? "1" : "0"}&is_chargeable[pickup]=${isChargeablePickup ? "1" : "0"}&is_chargeable[misc]=${isChargeableMisc ? "1" : "0"}${query}';
     final response = await Api.bearerGet(
-        'job/fetch-payment-rcp?service_request_id=${jobId}&is_chargeable[spareparts]=${ids.length > 0 ? "1" : "0"}&is_chargeable[solution]=${isChargeableSolution ? "1" : "0"}&is_discount_applied=${isDiscountApplied ? "1" : "0"}&is_chargeable[transport]=${isChargeableTransport ? "1" : "0"}&is_chargeable[pickup]=${isChargeablePickup ? "1" : "0"}&is_chargeable[misc]=${isChargeableMisc ? "1" : "0"}${query}');
+        'job/fetch-payment-rcp?service_request_id=${jobId}&is_chargeable[spareparts]=1&is_chargeable[solution]=${isChargeableSolution ? "1" : "0"}&is_discount_applied=${isDiscountApplied ? "1" : "0"}&is_chargeable[transport]=${isChargeableTransport ? "1" : "0"}&is_chargeable[pickup]=${isChargeablePickup ? "1" : "0"}&is_chargeable[misc]=${isChargeableMisc ? "1" : "0"}${query}');
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null && response["success"]) {
       return RCPCost.fromJson(response["data"]);

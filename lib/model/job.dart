@@ -68,6 +68,8 @@ class Job {
   PickupCharge? pickupCharge;
 
   bool? isChargeableMisc;
+  bool? isUnderWarranty;
+  String? warrantyAdditionalInfo;
   bool? isChargeablePickup;
   bool? isChargeableSolution;
   bool? isChargeableTransport;
@@ -128,6 +130,8 @@ class Job {
       this.miscCharges,
       this.transportCharge,
       this.isPaid,
+      this.isUnderWarranty,
+      this.warrantyAdditionalInfo,
       this.isRTOOrder,
       this.pickupCharge,
       this.secondaryEngineers,
@@ -178,14 +182,20 @@ class Job {
     this.serialNo = json["warranty_info"]?["serial_no"];
     this.purchaseDate = json["warranty_info"]?["purchase_date"];
     this.isPaid = json["payment"] != null;
-    // this.paymentMethods = json["payment"] != null
-    //     ? (json["payment"]?["payment_method"] as List<dynamic>).join(",")
-    //     : null;
+    this.paymentMethods =
+        (json["payment"] != null && json["payment"]?["payment_method"] != null)
+            ? (json["payment"]?["payment_method"] as List<dynamic>).join(",")
+            : null;
     this.isRTOOrder = json["has_sales_order_connection"];
     this.productId = json["product"]?["id"];
     this.serviceTypeId = json["service_type_id"];
     this.productModelId = json["product"]?["model_id"];
-
+    this.isUnderWarranty = json["warranty_info"] != null
+        ? (json["warranty_info"]?["is_warranty_valid"])
+        : null;
+    this.warrantyAdditionalInfo = json["warranty_info"] != null
+        ? (json["warranty_info"]?["additional_warranty_info"])
+        : null;
     this.isChargeableMisc =
         json["saved_states"]?["is_chargeable"]?["misc"] == "1";
     this.isChargeablePickup =

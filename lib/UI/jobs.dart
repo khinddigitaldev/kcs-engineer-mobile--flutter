@@ -150,8 +150,10 @@ class _JobListState extends State<JobList>
 
     var filters = {
       "consecutive_days": consecutiveDays,
-      ...(currentSearchText != null ? {"q": currentSearchText} : {}),
-      "filter": {
+      ...(currentSearchText != null && currentSearchText != ""
+          ? {"q": currentSearchText}
+          : {}),
+      "filters": {
         ...(selectedServiceTypes.length > 0
             ? {
                 "service_type": (fetchedJobFilterOptions?.serviceTypes
@@ -180,9 +182,9 @@ class _JobListState extends State<JobList>
       }
     };
 
-    var filterMap = filters["filter"] as Map<dynamic, dynamic>;
+    var filterMap = filters["filters"] as Map<dynamic, dynamic>;
     if (filterMap.entries.isEmpty) {
-      filters.remove("filter");
+      filters.remove("filters");
     }
 
     Helpers.showAlert(context);
@@ -450,7 +452,7 @@ class _JobListState extends State<JobList>
     }
     setState(
         () => searchOnInProgressStoppedTyping = new Timer(duration, () async {
-              if (currentSearchTextInProgress != value) {
+              if (currentSearchTextInProgress != value || value == "") {
                 currentSearchText = value;
                 await _fetchJobs();
               }
@@ -596,40 +598,37 @@ class _JobListState extends State<JobList>
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              (inProgressJobs != null && inProgressJobs.length > 0)
-                  ? Padding(
-                      padding: EdgeInsets.fromLTRB(0, 0, 0.0, 0),
-                      child: Container(
-                        width: 250,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SizedBox(
-                              height: 40,
-                              child: TextFormField(
-                                  focusNode: focusinProgressSearch,
-                                  keyboardType: TextInputType.text,
-                                  controller: searchCT,
-                                  onChanged: _onChangeHandlerForInprogress,
-                                  onFieldSubmitted: (val) {
-                                    FocusScope.of(context)
-                                        .requestFocus(new FocusNode());
-                                  },
-                                  style: TextStyles.textDefaultBold,
-                                  decoration: const InputDecoration(
-                                    border: OutlineInputBorder(),
-                                    hintText: 'Search',
-                                    contentPadding:
-                                        EdgeInsets.fromLTRB(0, 5, 0, 0),
-                                    prefixIcon: Icon(Icons.search),
-                                  )),
-                            ),
-                          ],
+              Padding(
+                  padding: EdgeInsets.fromLTRB(0, 0, 0.0, 0),
+                  child: Container(
+                    width: 250,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          height: 40,
+                          child: TextFormField(
+                              focusNode: focusinProgressSearch,
+                              keyboardType: TextInputType.text,
+                              controller: searchCT,
+                              onChanged: _onChangeHandlerForInprogress,
+                              onFieldSubmitted: (val) {
+                                FocusScope.of(context)
+                                    .requestFocus(new FocusNode());
+                              },
+                              style: TextStyles.textDefaultBold,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                hintText: 'Search',
+                                contentPadding: EdgeInsets.fromLTRB(0, 5, 0, 0),
+                                prefixIcon: Icon(Icons.search),
+                              )),
                         ),
-                      ))
-                  : new Container(),
+                      ],
+                    ),
+                  )),
               Spacer(),
               !isBulkRejectEnabled
                   ? SizedBox(
@@ -895,13 +894,10 @@ class _JobListState extends State<JobList>
                       minHeight: MediaQuery.of(context).size.height * .1),
                   child: ReorderableListView.builder(
                     onReorder: ((oldIndex, newIndex) async {
-                      // final index =
-                      //     newIndex > oldIndex ? newIndex - 1 : newIndex;
-                      // final job = Helpers.inProgressJobs.removeAt(oldIndex);
-                      // Helpers.inProgressJobs.insert(index, job);
-                      //  Helpers.showAlert(context);
-                      // await updateJobSequence();
-                      //  Navigator.pop(context);
+                      var res = await Repositories.changeSequence(
+                          inProgressJobs[oldIndex].serviceRequestid ?? "",
+                          newIndex.toString());
+                      await _fetchJobs();
                     }),
 
                     shrinkWrap: true,
@@ -1036,7 +1032,7 @@ class _JobListState extends State<JobList>
     return RefreshIndicator(
         key: _refreshKey,
         onRefresh: () async {
-          await this._fetchJobs();
+          await _fetchJobs();
         },
         child: Scaffold(
           key: _scaffoldKey,

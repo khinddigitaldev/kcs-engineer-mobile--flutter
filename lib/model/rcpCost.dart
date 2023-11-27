@@ -10,6 +10,7 @@ class RCPCost {
   String? total;
   String? totalRCP;
   String? discount;
+  bool? isRCPValid;
 
   RCPCost(
       {this.sparePartCost,
@@ -20,6 +21,7 @@ class RCPCost {
       this.isDiscountValid,
       this.total,
       this.discount,
+      this.isRCPValid,
       this.totalRCP});
 
   RCPCost.fromJson(Map<String, dynamic> json) {
@@ -67,6 +69,9 @@ class RCPCost {
     this.totalRCP = convertToCurrency(json["meta"] != null
         ? (json["meta"]?["total_sum_rcp"]?["amount"].toString())
         : "0");
+
+    this.isRCPValid =
+        json["meta"] != null ? (json["meta"]?["is_rcp_valid"]) : null;
 
     this.discount = (num.parse(
                     json["meta"]?["total_sum"]?["amount"].toString() ?? "0") >

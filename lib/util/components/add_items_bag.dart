@@ -416,7 +416,7 @@ class _AddItemsFromBagDialogState extends State<AddItemsFromBagDialog>
                                   children: <TextSpan>[
                                     TextSpan(
                                       text:
-                                          'Currently there are no Spare parts in your bag.',
+                                          'Currently there are no matching parts in the bag.',
                                     ),
                                   ]),
                             ),

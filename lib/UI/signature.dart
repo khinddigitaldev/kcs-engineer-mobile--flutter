@@ -47,7 +47,7 @@ class _SignatureState extends State<SignatureUI> {
   String? token;
   List<String> paymentMethodLabels = [];
   List<PaymentMethod> paymentMethods = [];
-  bool isWantInvoice = true;
+  bool isWantInvoice = false;
   bool payByCash = false;
   bool payNow = false;
   bool pendingPayment = false;
@@ -291,225 +291,228 @@ class _SignatureState extends State<SignatureUI> {
             SizedBox(height: 20),
             Divider(color: Colors.grey),
             SizedBox(height: 20),
-            Row(children: <Widget>[
-              Expanded(
-                child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Container(
-                      color: Color(0xFFE7F3FF),
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(10, 10, 10, 10),
-                        child: Column(
-                          children: [
-                            RichText(
-                              text: TextSpan(
-                                  // Note: Styles for TextSpans must be explicitly defined.
-                                  // Child text spans will inherit styles from parent
-                                  style: TextStyle(
-                                    fontSize: 25.0,
-                                    color: Colors.blue,
-                                  ),
-                                  children: <TextSpan>[
-                                    TextSpan(
-                                      text: (widget.rcpCost?.isDiscountValid ??
-                                              false)
-                                          ? widget.rcpCost?.totalRCP
-                                          : widget.rcpCost?.total,
-                                    ),
-                                  ]),
-                            ),
-                            SizedBox(
-                              height: 5,
-                            ),
-                            RichText(
-                              text: TextSpan(
-                                  // Note: Styles for TextSpans must be explicitly defined.
-                                  // Child text spans will inherit styles from parent
-                                  style: const TextStyle(
-                                    fontSize: 18.0,
-                                    color: Colors.blue,
-                                  ),
-                                  children: <TextSpan>[
-                                    TextSpan(
-                                      text: 'Total Amount Charged',
-                                    ),
-                                  ]),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )),
-              ),
-              Expanded(
-                child: Align(
-                  alignment: Alignment.center,
-                  child: Container(
-                      color: Colors.white,
+            Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    color: Color(0xFFE7F3FF),
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(10, 10, 10, 10),
                       child: Column(
                         children: [
                           RichText(
                             text: TextSpan(
                                 // Note: Styles for TextSpans must be explicitly defined.
                                 // Child text spans will inherit styles from parent
-                                style: const TextStyle(
-                                  fontSize: 18.0,
-                                  color: Colors.black,
+                                style: TextStyle(
+                                  fontSize: 25.0,
+                                  color: Colors.blue,
                                 ),
                                 children: <TextSpan>[
                                   TextSpan(
-                                    text: 'Do you want an invoice?',
+                                    text: (widget.rcpCost?.isDiscountValid ??
+                                            false)
+                                        ? widget.rcpCost?.totalRCP
+                                        : widget.rcpCost?.total,
                                   ),
                                 ]),
                           ),
                           SizedBox(
-                            height: 20,
+                            height: 5,
                           ),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Container(
-                                  height: 40,
-                                  width: 60,
-                                  child: ElevatedButton(
-                                      child: Padding(
-                                          padding: const EdgeInsets.all(5.0),
-                                          child: Text(
-                                            'Yes',
-                                            style: TextStyle(
-                                                fontSize: 20,
-                                                color: isWantInvoice
-                                                    ? Colors.white
-                                                    : Colors.black),
-                                          )),
-                                      style: ButtonStyle(
-                                          foregroundColor: isWantInvoice
-                                              ? MaterialStateProperty.all<Color>(
-                                                  Colors.black87
-                                                      .withOpacity(0.7))
-                                              : MaterialStateProperty.all<Color>(
-                                                  Colors.white
-                                                      .withOpacity(0.7)),
-                                          backgroundColor: isWantInvoice
-                                              ? MaterialStateProperty.all<Color>(
-                                                  Colors.black87
-                                                      .withOpacity(0.7))
-                                              : MaterialStateProperty.all<Color>(
-                                                  Colors.white.withOpacity(0.7)),
-                                          shape: MaterialStateProperty.all<RoundedRectangleBorder>(RoundedRectangleBorder(borderRadius: BorderRadius.zero, side: BorderSide(color: Colors.black87.withOpacity(0.7))))),
-                                      onPressed: () {
-                                        setState(() {
-                                          isWantInvoice = true;
-                                        });
-                                      }),
+                          RichText(
+                            text: TextSpan(
+                                // Note: Styles for TextSpans must be explicitly defined.
+                                // Child text spans will inherit styles from parent
+                                style: const TextStyle(
+                                  fontSize: 18.0,
+                                  color: Colors.blue,
                                 ),
-                              ),
-                              SizedBox(
-                                width: 20,
-                              ),
-                              Expanded(
-                                child: Container(
-                                    height: 40,
-                                    width: 60,
-                                    child: ElevatedButton(
-                                        child: Padding(
-                                            padding: const EdgeInsets.all(5.0),
-                                            child: Text(
-                                              'No',
-                                              style: TextStyle(
-                                                  fontSize: 20,
-                                                  color: isWantInvoice
-                                                      ? Colors.black
-                                                      : Colors.white),
-                                            )),
-                                        style: ButtonStyle(
-                                            foregroundColor: isWantInvoice
-                                                ? MaterialStateProperty.all<Color>(
-                                                    Colors.white
-                                                        .withOpacity(0.7))
-                                                : MaterialStateProperty.all<Color>(
-                                                    Colors.black87
-                                                        .withOpacity(0.7)),
-                                            backgroundColor: isWantInvoice
-                                                ? MaterialStateProperty.all<Color>(
-                                                    Colors.white
-                                                        .withOpacity(0.7))
-                                                : MaterialStateProperty.all<Color>(
-                                                    Colors.black87.withOpacity(0.7)),
-                                            shape: MaterialStateProperty.all<RoundedRectangleBorder>(RoundedRectangleBorder(borderRadius: BorderRadius.zero, side: BorderSide(color: Colors.black87.withOpacity(0.7))))),
-                                        onPressed: () {
-                                          setState(() {
-                                            isWantInvoice = false;
-                                            errorEmail = false;
-                                          });
-                                        })),
-                              )
-                            ],
-                          )
+                                children: <TextSpan>[
+                                  TextSpan(
+                                    text: 'Total Amount Charged',
+                                  ),
+                                ]),
+                          ),
                         ],
-                      )),
-                ),
-              ),
-              Expanded(
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: Container(
-                    width: 200,
-                    //height: 80,
-                    color: Colors.white,
-                    child: isWantInvoice
-                        ? Container(
-                            alignment: Alignment.centerLeft,
-                            decoration: new BoxDecoration(
-                                color: Colors.white.withOpacity(0.0)),
-                            child: Padding(
-                              padding: EdgeInsets.fromLTRB(0, 40, 0, 0),
-                              child: SizedBox(
-                                  height: 80,
-                                  child: TextFormField(
-                                      onChanged: (text) {
-                                        if (errorEmail) {
-                                          setState(() {
-                                            errorEmail = false;
-                                          });
-                                        }
-                                      },
-                                      focusNode: focusEmail,
-                                      keyboardType: TextInputType.text,
-                                      validator: (value) {
-                                        if (value!.isEmpty ||
-                                            !EmailValidator.validate(value)) {
-                                          setState(() {
-                                            errorEmail = true;
-                                          });
-                                          return 'Please enter a valid email';
-                                        }
-                                        return null;
-                                      },
-                                      controller: emailCT,
-                                      onFieldSubmitted: (val) {
-                                        FocusScope.of(context)
-                                            .requestFocus(new FocusNode());
-                                      },
-                                      style: TextStyles.textDefaultBold,
-                                      decoration: const InputDecoration(
-                                        hintText: 'Email',
-                                        //errorStyle: ,
-                                        //errorText: 'This is an error text',
-                                        contentPadding: EdgeInsets.symmetric(
-                                            vertical: 10.0, horizontal: 10.0),
-                                        border: OutlineInputBorder(),
-                                      ))),
-                            ))
-                        : new Container(),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ]),
+
+                  // Expanded(
+                  //   child: Align(
+                  //     alignment: Alignment.center,
+                  //     child: Container(
+                  //         color: Colors.white,
+                  //         child: Column(
+                  //           children: [
+                  // RichText(
+                  //   text: TextSpan(
+                  //       // Note: Styles for TextSpans must be explicitly defined.
+                  //       // Child text spans will inherit styles from parent
+                  //       style: const TextStyle(
+                  //         fontSize: 18.0,
+                  //         color: Colors.black,
+                  //       ),
+                  //       children: <TextSpan>[
+                  //         TextSpan(
+                  //           text: 'Do you want an invoice?',
+                  //         ),
+                  //       ]),
+                  // ),
+                  // SizedBox(
+                  //   height: 20,
+                  // ),
+                  // Row(
+                  //   children: [
+                  //     Expanded(
+                  //       child: Container(
+                  //         height: 40,
+                  //         width: 60,
+                  //         child: ElevatedButton(
+                  //             child: Padding(
+                  //                 padding: const EdgeInsets.all(5.0),
+                  //                 child: Text(
+                  //                   'Yes',
+                  //                   style: TextStyle(
+                  //                       fontSize: 20,
+                  //                       color: isWantInvoice
+                  //                           ? Colors.white
+                  //                           : Colors.black),
+                  //                 )),
+                  //             style: ButtonStyle(
+                  //                 foregroundColor: isWantInvoice
+                  //                     ? MaterialStateProperty.all<Color>(
+                  //                         Colors.black87
+                  //                             .withOpacity(0.7))
+                  //                     : MaterialStateProperty.all<Color>(
+                  //                         Colors.white
+                  //                             .withOpacity(0.7)),
+                  //                 backgroundColor: isWantInvoice
+                  //                     ? MaterialStateProperty.all<Color>(
+                  //                         Colors.black87
+                  //                             .withOpacity(0.7))
+                  //                     : MaterialStateProperty.all<Color>(
+                  //                         Colors.white.withOpacity(0.7)),
+                  //                 shape: MaterialStateProperty.all<RoundedRectangleBorder>(RoundedRectangleBorder(borderRadius: BorderRadius.zero, side: BorderSide(color: Colors.black87.withOpacity(0.7))))),
+                  //             onPressed: () {
+                  //               setState(() {
+                  //                 isWantInvoice = true;
+                  //               });
+                  //             }),
+                  //       ),
+                  //     ),
+                  //     SizedBox(
+                  //       width: 20,
+                  //     ),
+                  //     Expanded(
+                  //       child: Container(
+                  //           height: 40,
+                  //           width: 60,
+                  //           child: ElevatedButton(
+                  //               child: Padding(
+                  //                   padding: const EdgeInsets.all(5.0),
+                  //                   child: Text(
+                  //                     'No',
+                  //                     style: TextStyle(
+                  //                         fontSize: 20,
+                  //                         color: isWantInvoice
+                  //                             ? Colors.black
+                  //                             : Colors.white),
+                  //                   )),
+                  //               style: ButtonStyle(
+                  //                   foregroundColor: isWantInvoice
+                  //                       ? MaterialStateProperty.all<Color>(
+                  //                           Colors.white
+                  //                               .withOpacity(0.7))
+                  //                       : MaterialStateProperty.all<Color>(
+                  //                           Colors.black87
+                  //                               .withOpacity(0.7)),
+                  //                   backgroundColor: isWantInvoice
+                  //                       ? MaterialStateProperty.all<Color>(
+                  //                           Colors.white
+                  //                               .withOpacity(0.7))
+                  //                       : MaterialStateProperty.all<Color>(
+                  //                           Colors.black87.withOpacity(0.7)),
+                  //                   shape: MaterialStateProperty.all<RoundedRectangleBorder>(RoundedRectangleBorder(borderRadius: BorderRadius.zero, side: BorderSide(color: Colors.black87.withOpacity(0.7))))),
+                  //               onPressed: () {
+                  //                 setState(() {
+                  //                   isWantInvoice = false;
+                  //                   errorEmail = false;
+                  //                 });
+                  //               })),
+                  //     )
+                  //   ],
+                  // )
+                  //           ],
+                  //         )),
+                  //   ),
+                  // ),
+                  // Expanded(
+                  //   child: Align(
+                  //     alignment: Alignment.centerRight,
+                  //     child: Container(
+                  //       width: 200,
+                  //       //height: 80,
+                  //       color: Colors.white,
+                  //       child: isWantInvoice
+                  //           ? Container(
+                  //               alignment: Alignment.centerLeft,
+                  //               decoration: new BoxDecoration(
+                  //                   color: Colors.white.withOpacity(0.0)),
+                  //               child: Padding(
+                  //                 padding: EdgeInsets.fromLTRB(0, 40, 0, 0),
+                  //                 child: SizedBox(
+                  //                     height: 80,
+                  //                     child: TextFormField(
+                  //                         onChanged: (text) {
+                  //                           if (errorEmail) {
+                  //                             setState(() {
+                  //                               errorEmail = false;
+                  //                             });
+                  //                           }
+                  //                         },
+                  //                         focusNode: focusEmail,
+                  //                         keyboardType: TextInputType.text,
+                  //                         validator: (value) {
+                  //                           if (value!.isEmpty ||
+                  //                               !EmailValidator.validate(value)) {
+                  //                             setState(() {
+                  //                               errorEmail = true;
+                  //                             });
+                  //                             return 'Please enter a valid email';
+                  //                           }
+                  //                           return null;
+                  //                         },
+                  //                         controller: emailCT,
+                  //                         onFieldSubmitted: (val) {
+                  //                           FocusScope.of(context)
+                  //                               .requestFocus(new FocusNode());
+                  //                         },
+                  //                         style: TextStyles.textDefaultBold,
+                  //                         decoration: const InputDecoration(
+                  //                           hintText: 'Email',
+                  //                           //errorStyle: ,
+                  //                           //errorText: 'This is an error text',
+                  //                           contentPadding: EdgeInsets.symmetric(
+                  //                               vertical: 10.0, horizontal: 10.0),
+                  //                           border: OutlineInputBorder(),
+                  //                         ))),
+                  //               ))
+                  //           : new Container(),
+                  //     ),
+                  //   ),
+                  // ),
+                ]),
             // ((selectedJob!.isChargeable ?? false) && selectedJob!.sumTotal != 0)
             //     ? SizedBox(height: 40)
             //     : new Container(),
             // ((selectedJob!.isChargeable ?? false) && selectedJob!.sumTotal != 0)
             //  ?
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.05,
+            ),
             Row(
               children: [
                 RichText(
@@ -1344,6 +1347,7 @@ class _SignatureState extends State<SignatureUI> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       resizeToAvoidBottomInset: true,
       key: _scaffoldKey,
       appBar: Helpers.customAppBar(context, _scaffoldKey,
