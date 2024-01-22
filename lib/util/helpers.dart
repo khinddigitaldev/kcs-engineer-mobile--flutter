@@ -239,8 +239,12 @@ class Helpers {
     }
   }
 
-  static bool checkIfEditableByJobStatus(Job? job) {
+  static bool checkIfEditableByJobStatus(Job? job, bool isMainEngineer) {
     bool res = false;
+
+    if (!isMainEngineer) {
+      return false;
+    }
 
     switch (job?.serviceJobStatus?.toLowerCase()) {
       case "pending job start":
@@ -269,15 +273,16 @@ class Helpers {
     return res;
   }
 
-  static bool checkIfEditableByJobStatusForSolution(bool isActual, Job? job) {
+  static bool checkIfEditableByJobStatusForSolution(
+      bool isActual, Job? job, bool isMainEngineer) {
     bool res = false;
 
     switch (job?.serviceJobStatus?.toLowerCase()) {
       case "pending job start":
-        res = true;
+        res = isActual ? false : true;
         break;
       case "repairing":
-        res = isActual;
+        res = !isActual ? false : true;
         break;
       case "kiv":
         res = true;

@@ -5,12 +5,14 @@ import 'package:email_validator/email_validator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_switch/flutter_switch.dart';
 import 'package:kcs_engineer/model/job.dart';
 import 'package:kcs_engineer/model/payment_method.dart';
 import 'package:kcs_engineer/model/payment_request.dart';
 import 'package:kcs_engineer/model/rcpCost.dart';
 import 'package:kcs_engineer/payment_method_icons.dart' as PaymentMethodIcons;
 import 'package:kcs_engineer/themes/text_styles.dart';
+import 'package:kcs_engineer/util/components/payment_image_uploader.dart';
 import 'package:kcs_engineer/util/helpers.dart';
 import 'package:kcs_engineer/util/repositories.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -111,6 +113,79 @@ class _SignatureState extends State<SignatureUI> {
 
   void _handleSignIn() async {}
 
+  Widget _renderCost(bool isStepper) {
+    return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(children: [
+          Row(
+            children: [
+              RichText(
+                text: const TextSpan(
+                  style: TextStyle(
+                    fontSize: 18.0,
+                    color: Colors.black,
+                  ),
+                  children: <TextSpan>[
+                    const TextSpan(
+                      text: 'Total Charges',
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 40),
+          ConstrainedBox(
+              constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * .15,
+                  minHeight: MediaQuery.of(context).size.height * .1),
+              child: Container(
+                child: ListView(
+                  children: [
+                    widget.rcpCost?.sparePartCost != "MYR 0.00"
+                        ? _buildChargeItem("Sparepart charges",
+                            widget.rcpCost?.sparePartCost ?? "MYR 0.00", false)
+                        : new Container(),
+                    widget.rcpCost?.solutionCost != "MYR 0.00"
+                        ? _buildChargeItem("Solution charges",
+                            widget.rcpCost?.solutionCost ?? "MYR 0.00", false)
+                        : new Container(),
+                    widget.rcpCost?.miscCost != "MYR 0.00"
+                        ? _buildChargeItem("Miscellaneous charges",
+                            widget.rcpCost?.miscCost ?? "MYR 0.00", false)
+                        : new Container(),
+                    widget.rcpCost?.transportCost != "MYR 0.00"
+                        ? _buildChargeItem("Transport charges",
+                            widget.rcpCost?.transportCost ?? "MYR 0.00", false)
+                        : new Container(),
+                    widget.rcpCost?.pickupCost != "MYR 0.00"
+                        ? _buildChargeItem("Pickup charges",
+                            widget.rcpCost?.pickupCost ?? "MYR 0.00", false)
+                        : new Container(),
+                    SizedBox(
+                      height: 5,
+                    ),
+                    _buildChargeItem(
+                        "Total", widget.rcpCost?.total ?? "MYR 0.00", true),
+                    (widget.rcpCost?.isDiscountValid ?? false)
+                        ? _buildChargeItem(
+                            "${widget.rcpCost?.discountPercentage} Discount applied",
+                            widget.rcpCost?.discount ?? "MYR 0.00",
+                            true)
+                        : new Container(),
+                    (widget.rcpCost?.isDiscountValid ?? false)
+                        ? Divider()
+                        : new Container(),
+                    (widget.rcpCost?.isDiscountValid ?? false)
+                        ? _buildChargeItem("Grand Total",
+                            widget.rcpCost?.totalRCP ?? "MYR 0.00", true)
+                        : new Container(),
+                  ],
+                ),
+              ))
+        ]));
+  }
+
   Widget _renderForm() {
     return Container(
       padding: EdgeInsets.all(20),
@@ -133,6 +208,14 @@ class _SignatureState extends State<SignatureUI> {
                   width: MediaQuery.of(context).size.width * 0.4),
             ),
             SizedBox(height: 20),
+            Divider(),
+            (((widget.rcpCost?.isDiscountValid ?? false)
+                        ? widget.rcpCost?.totalRCP
+                        : widget.rcpCost?.total) !=
+                    "MYR 0.00")
+                ? _renderCost(false)
+                : new Container(),
+            Divider(),
             Container(
               alignment: Alignment.centerLeft,
               padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
@@ -513,26 +596,31 @@ class _SignatureState extends State<SignatureUI> {
             SizedBox(
               height: MediaQuery.of(context).size.height * 0.05,
             ),
-            Row(
-              children: [
-                RichText(
-                  text: TextSpan(
-                    // Note: Styles for TextSpans must be explicitly defined.
-                    // Child text spans will inherit styles from parent
-                    style: const TextStyle(
-                      fontSize: 17.0,
-                      color: Colors.black,
-                    ),
-                    children: <TextSpan>[
-                      TextSpan(
-                        text: 'How do you want to pay ?',
+            (((widget.rcpCost?.isDiscountValid ?? false)
+                        ? widget.rcpCost?.totalRCP
+                        : widget.rcpCost?.total) !=
+                    "MYR 0.00")
+                ? Row(
+                    children: [
+                      RichText(
+                        text: TextSpan(
+                          // Note: Styles for TextSpans must be explicitly defined.
+                          // Child text spans will inherit styles from parent
+                          style: const TextStyle(
+                            fontSize: 17.0,
+                            color: Colors.black,
+                          ),
+                          children: <TextSpan>[
+                            TextSpan(
+                              text: 'How do you want to pay ?',
+                            ),
+                          ],
+                        ),
                       ),
+                      SizedBox(width: 20),
                     ],
-                  ),
-                ),
-                SizedBox(width: 20),
-              ],
-            ),
+                  )
+                : new Container(),
             //  : new Container(),
             // ((selectedJob!.isChargeable ?? false) && selectedJob!.sumTotal != 0)
             //     ? SizedBox(height: 10)
@@ -543,124 +631,134 @@ class _SignatureState extends State<SignatureUI> {
             // ((selectedJob!.isChargeable ?? false) && selectedJob!.sumTotal != 0)
             //?
             SizedBox(height: 30),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                    color: payByCash ? Colors.black87 : Colors.white,
-                    width: MediaQuery.of(context).size.width * 0.27,
-                    height: 100.0,
-                    child: OutlinedButton(
-                        onPressed: () {
-                          setState(() {
-                            payByCash = true;
-                            payNow = false;
-                            pendingPayment = false;
-                            billing = false;
-                            payByCheque = false;
-                            mixedPayment = false;
-                          });
-                        },
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "Pay By Cash",
-                              style: TextStyle(
-                                  fontSize: 19.0,
-                                  color: payByCash
-                                      ? Colors.white
-                                      : Colors.black87),
-                            ),
-                            Icon(
-                              // <-- Icon
-                              Icons.money,
-                              color: payByCash ? Colors.white : Colors.black87,
-                              size: 40.0,
-                            )
-                          ],
-                        ))),
-                SizedBox(
-                  width: 20,
-                ),
-                Container(
-                    color: payNow ? Colors.black87 : Colors.white,
-                    width: MediaQuery.of(context).size.width * 0.27,
-                    height: 100.0,
-                    child: OutlinedButton(
-                        onPressed: () {
-                          setState(() {
-                            payByCash = false;
-                            payNow = true;
-                            pendingPayment = false;
-                            billing = false;
-                            payByCheque = false;
-                            mixedPayment = false;
-                          });
-                        },
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "DuitNow",
-                              style: TextStyle(
-                                fontSize: 19.0,
-                                color: payNow ? Colors.white : Colors.black87,
-                              ),
-                            ),
-                            SizedBox(
-                              width: 10,
-                            ),
-                            Icon(
-                              // <-- Icon
-                              PaymentMethodIcons.PaymentMethod.paynow,
-                              color: payNow ? Colors.white : Colors.black87,
-                              size: 35.0,
-                            )
-                          ],
-                        ))),
-                // Container(
-                //     color: pendingPayment ? Colors.black87 : Colors.white,
-                //     width: MediaQuery.of(context).size.width * 0.27,
-                //     height: 100.0,
-                //     child: OutlinedButton(
-                //         onPressed: () {
-                //           setState(() {
-                //             payByCash = false;
-                //             payNow = false;
-                //             pendingPayment = true;
-                //             billing = false;
-                //             payByCheque = false;
-                //             mixedPayment = false;
-                //           });
-                //         },
-                //         child: Row(
-                //           mainAxisAlignment: MainAxisAlignment.center,
-                //           children: [
-                //             Text(
-                //               "Pending Payment",
-                //               style: TextStyle(
-                //                   fontSize: 17.0,
-                //                   color: pendingPayment
-                //                       ? Colors.white
-                //                       : Colors.black87),
-                //             ),
-                //             SizedBox(
-                //               width: 10,
-                //             ),
-                //             Icon(
-                //               // <-- Icon
-                //               PaymentMethodIcons
-                //                   .PaymentMethod.pending_payment,
-                //               color: pendingPayment
-                //                   ? Colors.white
-                //                   : Colors.black87,
-                //               size: 30.0,
-                //             )
-                //           ],
-                //         ))),
-              ],
-            )
+            (((widget.rcpCost?.isDiscountValid ?? false)
+                        ? widget.rcpCost?.totalRCP
+                        : widget.rcpCost?.total) !=
+                    "MYR 0.00")
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                          color: payByCash ? Colors.black87 : Colors.white,
+                          width: MediaQuery.of(context).size.width * 0.27,
+                          height: 100.0,
+                          child: OutlinedButton(
+                              onPressed: () {
+                                setState(() {
+                                  payByCash = true;
+                                  payNow = false;
+                                  pendingPayment = false;
+                                  billing = false;
+                                  payByCheque = false;
+                                  mixedPayment = false;
+                                });
+                              },
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    "Pay By Cash",
+                                    style: TextStyle(
+                                        fontSize: 19.0,
+                                        color: payByCash
+                                            ? Colors.white
+                                            : Colors.black87),
+                                  ),
+                                  Icon(
+                                    // <-- Icon
+                                    Icons.money,
+                                    color: payByCash
+                                        ? Colors.white
+                                        : Colors.black87,
+                                    size: 40.0,
+                                  )
+                                ],
+                              ))),
+                      SizedBox(
+                        width: 20,
+                      ),
+                      Container(
+                          color: payNow ? Colors.black87 : Colors.white,
+                          width: MediaQuery.of(context).size.width * 0.27,
+                          height: 100.0,
+                          child: OutlinedButton(
+                              onPressed: () {
+                                setState(() {
+                                  payByCash = false;
+                                  payNow = true;
+                                  pendingPayment = false;
+                                  billing = false;
+                                  payByCheque = false;
+                                  mixedPayment = false;
+                                });
+                              },
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    "DuitNow",
+                                    style: TextStyle(
+                                      fontSize: 19.0,
+                                      color: payNow
+                                          ? Colors.white
+                                          : Colors.black87,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 10,
+                                  ),
+                                  Icon(
+                                    // <-- Icon
+                                    PaymentMethodIcons.PaymentMethod.paynow,
+                                    color:
+                                        payNow ? Colors.white : Colors.black87,
+                                    size: 35.0,
+                                  )
+                                ],
+                              ))),
+                      // Container(
+                      //     color: pendingPayment ? Colors.black87 : Colors.white,
+                      //     width: MediaQuery.of(context).size.width * 0.27,
+                      //     height: 100.0,
+                      //     child: OutlinedButton(
+                      //         onPressed: () {
+                      //           setState(() {
+                      //             payByCash = false;
+                      //             payNow = false;
+                      //             pendingPayment = true;
+                      //             billing = false;
+                      //             payByCheque = false;
+                      //             mixedPayment = false;
+                      //           });
+                      //         },
+                      //         child: Row(
+                      //           mainAxisAlignment: MainAxisAlignment.center,
+                      //           children: [
+                      //             Text(
+                      //               "Pending Payment",
+                      //               style: TextStyle(
+                      //                   fontSize: 17.0,
+                      //                   color: pendingPayment
+                      //                       ? Colors.white
+                      //                       : Colors.black87),
+                      //             ),
+                      //             SizedBox(
+                      //               width: 10,
+                      //             ),
+                      //             Icon(
+                      //               // <-- Icon
+                      //               PaymentMethodIcons
+                      //                   .PaymentMethod.pending_payment,
+                      //               color: pendingPayment
+                      //                   ? Colors.white
+                      //                   : Colors.black87,
+                      //               size: 30.0,
+                      //             )
+                      //           ],
+                      //         ))),
+                    ],
+                  )
+                : new Container()
             //   : new Container(),
             // SizedBox(height: 20),
             // ((selectedJob!.isChargeable ?? false) && selectedJob!.sumTotal != 0)
@@ -1209,22 +1307,29 @@ class _SignatureState extends State<SignatureUI> {
                         var val = await Repositories.confirmAcknowledgement(
                             selectedJob?.serviceRequestid ?? "",
                             signature,
+                            null,
                             isWantInvoice,
                             emailCT.text.toString(),
-                            payByCash
-                                ? paymentMethods
-                                    .where((element) =>
-                                        element.method?.toLowerCase() == "cash")
-                                    .toList()[0]
-                                    .id
-                                    .toString()
-                                : paymentMethods
-                                    .where((element) =>
-                                        element.method?.toLowerCase() ==
-                                        "scanned")
-                                    .toList()[0]
-                                    .id
-                                    .toString());
+                            (((widget.rcpCost?.isDiscountValid ?? false)
+                                        ? widget.rcpCost?.totalRCP
+                                        : widget.rcpCost?.total) !=
+                                    "MYR 0.00")
+                                ? payByCash
+                                    ? paymentMethods
+                                        .where((element) =>
+                                            element.method?.toLowerCase() ==
+                                            "cash")
+                                        .toList()[0]
+                                        .id
+                                        .toString()
+                                    : paymentMethods
+                                        .where((element) =>
+                                            element.method?.toLowerCase() ==
+                                            "scanned")
+                                        .toList()[0]
+                                        .id
+                                        .toString()
+                                : "3");
 
                         if (val) {
                           if (!signatureErr && !errorEmail) {
@@ -1259,6 +1364,26 @@ class _SignatureState extends State<SignatureUI> {
                             );
                           }
                         }
+                        // await showMultipleImagesPromptDialog(
+                        //     context,
+                        //     selectedJob?.serviceRequestid ?? "",
+                        //     signature,
+                        //     isWantInvoice,
+                        //     emailCT.text.toString(),
+                        //     payByCash
+                        //         ? paymentMethods
+                        //             .where((element) =>
+                        //                 element.method?.toLowerCase() == "cash")
+                        //             .toList()[0]
+                        //             .id
+                        //             .toString()
+                        //         : paymentMethods
+                        //             .where((element) =>
+                        //                 element.method?.toLowerCase() ==
+                        //                 "scanned")
+                        //             .toList()[0]
+                        //             .id
+                        //             .toString());
                       }
                     }
                     // }
@@ -1272,6 +1397,35 @@ class _SignatureState extends State<SignatureUI> {
         ),
       ),
     );
+  }
+
+  showMultipleImagesPromptDialog(BuildContext context, String jobId, File image,
+      bool isMailInvoice, String mailEmail, String paymentMethodId) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return SignatureMultiImageUploadDialog(
+          jobId: jobId,
+          image: image,
+          isMailInvoice: isMailInvoice,
+          mailEmail: mailEmail,
+          paymentMethodId: paymentMethodId,
+        );
+      },
+    ).then((value) async {
+      if (value != null && value) {
+        Navigator.pushNamed(context, 'feedback_confirmation',
+            arguments: selectedJob);
+      } else {
+        Helpers.showAlert(context,
+            hasAction: true,
+            title: "Payment Could not be completed.",
+            type: "error", onPressed: () async {
+          Navigator.pop(context);
+        });
+      }
+    });
   }
 
   Future<File> _convertImageToFile(Uint8List bytes) async {
@@ -1376,4 +1530,22 @@ class _SignatureState extends State<SignatureUI> {
               ]))),
     );
   }
+}
+
+Widget _buildChargeItem(String chargeType, String cost, bool isTotal) {
+  return Padding(
+      padding: EdgeInsets.only(bottom: 5),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(chargeType,
+              style: TextStyle(
+                  fontSize: 16.0,
+                  color: isTotal ? Colors.black : Colors.black54)),
+          Text(cost,
+              style: TextStyle(
+                  fontSize: 16.0,
+                  color: isTotal ? Colors.black : Colors.black54)),
+        ],
+      ));
 }

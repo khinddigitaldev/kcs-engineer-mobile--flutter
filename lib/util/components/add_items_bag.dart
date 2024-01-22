@@ -95,12 +95,12 @@ class _AddItemsFromBagDialogState extends State<AddItemsFromBagDialog>
       content: Container(
         color: Color(0xFFFAFAFA),
         height: ((bag?.notPartOfBom?.length ?? 0) > 0 ||
-                (bag?.notPartOfBom?.length ?? 0) > 0)
+                (bag?.partOfBom?.length ?? 0) > 0)
             ? MediaQuery.of(context).size.height * 0.6
             : MediaQuery.of(context).size.height * 0.3,
         width: double.maxFinite,
         child: ((bag?.notPartOfBom?.length ?? 0) > 0 ||
-                (bag?.notPartOfBom?.length ?? 0) > 0)
+                (bag?.partOfBom?.length ?? 0) > 0)
             ? Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -457,8 +457,8 @@ class _AddItemsFromBagDialogState extends State<AddItemsFromBagDialog>
                 ],
               ),
       ),
-      actions: ((bag?.notPartOfBom?.length ?? 0) > 0 &&
-              (bag?.notPartOfBom?.length ?? 0) > 0)
+      actions: ((bag?.notPartOfBom?.length ?? 0) > 0 ||
+              (bag?.partOfBom?.length ?? 0) > 0)
           ? <Widget>[
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -634,7 +634,7 @@ class _AddItemsFromBagDialogState extends State<AddItemsFromBagDialog>
 
                     setState(() {
                       list?.removeWhere((element) =>
-                          (element.quantity ?? "0") == 0 &&
+                          (element.quantity ?? 0) == 0 &&
                           element.headingTitle == "");
                       List<SparePart> selectedArr = [];
                       selectedArr.addAll(existingJobSpareParts ?? []);
@@ -750,11 +750,11 @@ class _AddItemsFromBagDialogState extends State<AddItemsFromBagDialog>
                         selectedJobSpareParts = [];
                       });
 
-                      // setState(() {
-                      //   itemList = [];
-                      //   itemList?.addAll(list);
-                      //   itemList = list;
-                      // });
+                      setState(() {
+                        itemList = [];
+                        itemList?.addAll(list);
+                        itemList = list;
+                      });
                     }
                   }
                 },
@@ -786,24 +786,13 @@ class SparePartItem extends StatefulWidget {
 }
 
 class _SparePartItemState extends State<SparePartItem> {
-  List<SparePart>? currentList;
-  int index = 0;
-  List<SparePart>? selectedArray;
-  bool? isLeft;
   int selectedQuantity = 1;
-
-  Function? tappedOnItem;
 
   bool startAnimation = false;
 
   @override
   void initState() {
     super.initState();
-    index = widget.index;
-    isLeft = widget.isLeft;
-    tappedOnItem = widget.tappedOnItem;
-    currentList = widget.currentList;
-    selectedArray = widget.selectedArray;
     Future.delayed(Duration(milliseconds: 50 + (widget.index * 100)), () {
       // Trigger the animation only for the first build
       if (!startAnimation) {
@@ -818,12 +807,13 @@ class _SparePartItemState extends State<SparePartItem> {
   Widget build(BuildContext context) {
     return Container(
         padding: EdgeInsets.all(5),
-        color: ((widget.selectedArray ?? []).contains(currentList?[index]))
+        color: ((widget.selectedArray ?? [])
+                .contains(widget.currentList?[widget.index]))
             ? Color(0xFF242A38)
             : Colors.transparent,
         child: GestureDetector(
-            child: (currentList?[index].isSparePart ?? false)
-                ? (currentList ?? [])[index].quantity != "0"
+            child: (widget.currentList?[widget.index].isSparePart ?? false)
+                ? (widget.currentList ?? [])[widget.index].quantity != "0"
                     ? Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -836,11 +826,13 @@ class _SparePartItemState extends State<SparePartItem> {
                                     width:
                                         MediaQuery.of(context).size.width * .2,
                                     child: Text(
-                                        currentList?[index].description ?? "",
+                                        widget.currentList?[widget.index]
+                                                .description ??
+                                            "",
                                         style: TextStyle(
                                           color: (((widget.selectedArray ?? [])
-                                                  .contains(
-                                                      currentList?[index]))
+                                                  .contains(widget.currentList?[
+                                                      widget.index]))
                                               ? Colors.white
                                               : Colors.black),
                                         )),
@@ -848,24 +840,28 @@ class _SparePartItemState extends State<SparePartItem> {
                                   SizedBox(
                                     height: 5,
                                   ),
-                                  Text(currentList?[index].code ?? "",
+                                  Text(
+                                      widget.currentList?[widget.index].code ??
+                                          "",
                                       style: TextStyle(
                                         color: (((widget.selectedArray ?? [])
-                                                .contains(currentList?[index]))
+                                                .contains(widget.currentList?[
+                                                    widget.index]))
                                             ? Colors.white
                                             : Colors.black54),
                                       )),
                                   Text(
-                                      'stock : ${currentList?[index].quantity}',
+                                      'stock : ${widget.currentList?[widget.index].quantity}',
                                       style: TextStyle(
                                         color: (((widget.selectedArray ?? [])
-                                                .contains(currentList?[index]))
+                                                .contains(widget.currentList?[
+                                                    widget.index]))
                                             ? Colors.white
                                             : Colors.black54),
                                       ))
                                 ]),
-                            (((widget.selectedArray ?? [])
-                                    .contains(currentList?[index]))
+                            (((widget.selectedArray ?? []).contains(
+                                    widget.currentList?[widget.index]))
                                 ? Row(
                                     mainAxisAlignment: MainAxisAlignment.start,
                                     crossAxisAlignment:
@@ -873,12 +869,14 @@ class _SparePartItemState extends State<SparePartItem> {
                                     children: [
                                       IconButton(
                                           icon: new Icon(
-                                            color:
-                                                (currentList?[index].quantity ??
-                                                            0) ==
-                                                        0
-                                                    ? Colors.black54
-                                                    : Colors.white,
+                                            color: (widget
+                                                            .currentList?[
+                                                                widget.index]
+                                                            .quantity ??
+                                                        0) ==
+                                                    0
+                                                ? Colors.black54
+                                                : Colors.white,
                                             Icons.remove,
                                             size: 14.0,
                                           ),
@@ -889,8 +887,10 @@ class _SparePartItemState extends State<SparePartItem> {
                                                     selectedQuantity - 1;
                                               });
                                               await widget?.quantityChanged
-                                                  .call(selectedQuantity,
-                                                      currentList?[index]);
+                                                  .call(
+                                                      selectedQuantity,
+                                                      widget.currentList?[
+                                                          widget.index]);
                                             }
                                           }),
                                       RichText(
@@ -911,24 +911,30 @@ class _SparePartItemState extends State<SparePartItem> {
                                       ),
                                       IconButton(
                                           icon: new Icon(
-                                            color: selectedQuantity
-                                                        .toString() !=
-                                                    currentList?[index].quantity
-                                                ? Colors.white
-                                                : Colors.black54,
+                                            color:
+                                                selectedQuantity.toString() !=
+                                                        widget
+                                                            .currentList?[
+                                                                widget.index]
+                                                            .quantity
+                                                    ? Colors.white
+                                                    : Colors.black54,
                                             Icons.add,
                                             size: 14.0,
                                           ),
                                           onPressed: () async {
-                                            if (selectedQuantity.toString() !=
-                                                currentList?[index].quantity) {
+                                            if (selectedQuantity !=
+                                                widget.currentList[widget.index]
+                                                    .quantity) {
                                               setState(() {
                                                 selectedQuantity =
                                                     selectedQuantity + 1;
                                               });
                                               await widget?.quantityChanged
-                                                  .call(selectedQuantity,
-                                                      currentList?[index]);
+                                                  .call(
+                                                      selectedQuantity,
+                                                      widget.currentList?[
+                                                          widget.index]);
                                             }
                                           }),
                                     ],
@@ -936,8 +942,10 @@ class _SparePartItemState extends State<SparePartItem> {
                                 : new Container()),
                           ])
                     : new Container()
-                : (currentList?[index].headingTitle?.toLowerCase() == "other" &&
-                        (currentList ?? [])
+                : (widget.currentList?[widget.index].headingTitle
+                                ?.toLowerCase() ==
+                            "other" &&
+                        (widget.currentList ?? [])
                                 .where((element) =>
                                     !(element.isBomSpecific ?? true) &&
                                     (element.isSparePart ?? false) &&
@@ -947,12 +955,13 @@ class _SparePartItemState extends State<SparePartItem> {
                             0)
                     ? new Container(
                         child: Text(
-                        currentList?[index].headingTitle ?? "",
+                        widget.currentList?[widget.index].headingTitle ?? "",
                         style: TextStyle(color: Colors.black54),
                       ))
-                    : (currentList?[index].headingTitle?.toLowerCase() ==
+                    : (widget.currentList?[widget.index].headingTitle
+                                    ?.toLowerCase() ==
                                 "part of bom" &&
-                            (currentList ?? [])
+                            (widget.currentList ?? [])
                                     .where((element) =>
                                         (element.isBomSpecific ?? true) &&
                                         (element.isSparePart ?? false) &&
@@ -962,17 +971,18 @@ class _SparePartItemState extends State<SparePartItem> {
                                 0)
                         ? new Container(
                             child: Text(
-                            currentList?[index].headingTitle ?? "",
+                            widget.currentList?[widget.index].headingTitle ??
+                                "",
                             style: TextStyle(color: Colors.black54),
                           ))
                         : new Container(),
             onTap: () async {
-              if (currentList?[index].isSparePart ?? false) {
+              if (widget.currentList?[widget.index].isSparePart ?? false) {
                 setState(() {
                   selectedQuantity = 1;
-                  currentList?[index].selectedQuantity = 1;
+                  widget.currentList?[widget.index].selectedQuantity = 1;
                 });
-                await tappedOnItem?.call(index, isLeft);
+                await widget.tappedOnItem?.call(widget.index, widget.isLeft);
               }
             }));
   }

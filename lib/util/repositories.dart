@@ -14,6 +14,7 @@ import 'package:kcs_engineer/model/jobGeneralCodes.dart';
 import 'package:kcs_engineer/model/job_filter_options.dart';
 import 'package:kcs_engineer/model/job_order_seq.dart';
 import 'package:kcs_engineer/model/miscellaneousItem.dart';
+import 'package:kcs_engineer/model/paymentCollection.dart';
 import 'package:kcs_engineer/model/payment_method.dart';
 import 'package:kcs_engineer/model/pick_list_Items.dart';
 import 'package:kcs_engineer/model/pickup_charges.dart';
@@ -188,7 +189,9 @@ class Repositories {
         'general/spareparts-from-bag?service_request_id=${serviceRequestId}&search_only_by_code=0&include_spareparts_from_bag=1');
     print("#Resp: ${jsonEncode(response)}");
     // Navigator.pop(context);
-    if (response["success"] && response['data'] != null) {
+    if (response["success"] &&
+        response['data'] != null &&
+        !(response['data'] is List)) {
       bag = (BagMetaData.selectedJobFromJson(response['data']));
     }
     return bag;
@@ -614,7 +617,12 @@ class Repositories {
     final response =
         await Api.bearerPost('job/get-pick-list-for-day', params: map);
     print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null && response["success"]) {
+    if (response["success"] != null &&
+        response["success"] &&
+        response["data"] != null &&
+        !(response["data"] is List))
+    //  &&(response["data"] as List<dynamic>).length > 0)
+    {
       pickListItems = PickListItems.fromJson(response["data"]);
     }
 
@@ -750,6 +758,8 @@ class Repositories {
 
     http.StreamedResponse response = await request.send();
 
+    var ll = response.statusCode;
+
     if (response.statusCode == 200) {
       return true;
     } else {
@@ -759,7 +769,7 @@ class Repositories {
 
   static Future<List<Reason>> fetchKIVReasons() async {
     final response = await Api.bearerGet(
-        'general/service-request-cancellation-reason?service_request_status_id=17');
+        'general/service-request-cancellation-reason?service_request_status_id=21');
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null && response["success"]) {
       var reason =
@@ -836,8 +846,13 @@ class Repositories {
     }
   }
 
-  static Future<bool> confirmAcknowledgement(String jobId, File image,
-      bool isMailInvoice, String mailEmail, String paymentMethodId
+  static Future<bool> confirmAcknowledgement(
+      String jobId,
+      File image,
+      File? qrPaymentImgs,
+      bool isMailInvoice,
+      String mailEmail,
+      String paymentMethodId
       // double amount,
       // String currency,
       ) async {
@@ -855,6 +870,21 @@ class Repositories {
     request.files
         .add(await http.MultipartFile.fromPath('signature', image.path));
 
+    if (qrPaymentImgs != null) {
+      request.files.add(await http.MultipartFile.fromPath(
+          'qr_payment', qrPaymentImgs?.path ?? ""));
+    }
+    // List<http.MultipartFile> multipartFiles = [];
+
+    // for (var file in qrPaymentImgs) {
+    //   List<int> fileBytes = await file.readAsBytes();
+    //   http.MultipartFile multipartFile = http.MultipartFile.fromBytes(
+    //     'images[]',
+    //     fileBytes,
+    //     filename: file.path.split('/').last,
+    //   );
+    //   multipartFiles.add(multipartFile);
+    // }
     request.headers.addAll(headers);
     request.fields['service_request_id'] = jobId;
     request.fields['payment_method_id'] = paymentMethodId;
@@ -878,7 +908,7 @@ class Repositories {
       String productModelId, String serviceTypeId) async {
     final response = await Api.bearerGet(
         'general/solutions?product_model_id=${productModelId}&service_type_id=${serviceTypeId}');
-    print("#Resp: ${jsonEncode(response)}");
+    print("#Resp:  ${jsonEncode(response)}");
     if (response["success"] != null && response["success"]) {
       var solutions =
           (response['data'] as List).map((i) => Solution.fromJson(i)).toList();
@@ -888,8 +918,11 @@ class Repositories {
     }
   }
 
-  static Future<List<Problem>> fetchProblems() async {
-    final response = await Api.bearerGet('general/problems');
+  static Future<List<Problem>> fetchProblems(
+    String productGroupId,
+  ) async {
+    final response = await Api.bearerGet(
+        'general/problems?product_group_id=${productGroupId}');
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null && response["success"]) {
       var problems =
@@ -923,6 +956,15 @@ class Repositories {
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null && response["success"]) {
       return RCPCost.fromJson(response["data"]);
+    } else {
+      return null;
+    }
+  }
+
+  static Future<PaymentCollection?> fetchPaymentCollection() async {
+    final response = await Api.bearerGet('user/get-payment-collection');
+    if (response["success"] != null && response["success"]) {
+      return PaymentCollection.fromJson(response['data']);
     } else {
       return null;
     }
@@ -1051,6 +1093,23 @@ class Repositories {
 
     final response =
         await Api.bearerPost('job/update-job-description', params: map);
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  static Future<bool> updateEngineerRemarks(
+      String jobId, String remarks) async {
+    final Map<String, dynamic> map = {
+      'remarks': remarks,
+      'service_request_id': jobId
+    };
+
+    final response =
+        await Api.bearerPost('job/update-engineer-remarks', params: map);
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null && response["success"]) {
       return true;

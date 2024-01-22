@@ -10,6 +10,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kcs_engineer/model/job.dart';
 import 'package:kcs_engineer/model/job_filter_options.dart';
 import 'package:kcs_engineer/model/job_order_seq.dart';
+import 'package:kcs_engineer/model/paymentCollection.dart';
 import 'package:kcs_engineer/model/reason.dart';
 import 'package:kcs_engineer/model/user.dart';
 import 'package:kcs_engineer/themes/text_styles.dart';
@@ -76,6 +77,8 @@ class _JobListState extends State<JobList>
   int? selectedRejectReason = null;
   List<Reason>? rejectReasons = [];
   bool isErrorRejectReason = false;
+  PaymentCollection? paymentCollection;
+  bool isCollectionVisible = false;
 
   String? currentSearchText;
 
@@ -91,6 +94,7 @@ class _JobListState extends State<JobList>
   FutureOr<void> afterFirstLayout(BuildContext context) async {
     await _loadVersion();
     await _fetchJobs();
+    await fetchPaymentCollection();
     await _fetchJobStatuses();
     await fetchRejecReasons();
     _bsbController.addListener(() {
@@ -108,6 +112,14 @@ class _JobListState extends State<JobList>
           isFilterPressed = false;
         });
       }
+    });
+  }
+
+  fetchPaymentCollection() async {
+    var collection = await Repositories.fetchPaymentCollection();
+
+    setState(() {
+      paymentCollection = collection;
     });
   }
 
@@ -491,24 +503,96 @@ class _JobListState extends State<JobList>
         child: Column(children: [
           SizedBox(height: 10),
           Padding(
-            padding: EdgeInsets.fromLTRB(10.0, 0, 0, 0),
-            child: Container(
-              alignment: Alignment.centerLeft,
-              child: RichText(
-                text: TextSpan(
-                  style: const TextStyle(
-                    fontSize: 32.0,
-                    color: Colors.black,
+              padding: EdgeInsets.fromLTRB(10.0, 0, 0, 0),
+              child: Row(children: [
+                Container(
+                  alignment: Alignment.centerLeft,
+                  child: RichText(
+                    text: TextSpan(
+                      style: const TextStyle(
+                        fontSize: 32.0,
+                        color: Colors.black,
+                      ),
+                      children: <TextSpan>[
+                        TextSpan(
+                            text: 'Jobs',
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
                   ),
-                  children: <TextSpan>[
-                    TextSpan(
-                        text: 'Jobs',
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
-                  ],
                 ),
-              ),
-            ),
-          ),
+                Spacer(),
+                GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        isCollectionVisible = !isCollectionVisible;
+                      });
+                    },
+                    child: Column(children: [
+                      RichText(
+                        text: TextSpan(
+                            // Note: Styles for TextSpans must be explicitly defined.
+                            // Child text spans will inherit styles from parent
+                            style: const TextStyle(
+                              fontSize: 15.0,
+                              color: Colors.black,
+                            ),
+                            children: <TextSpan>[
+                              TextSpan(
+                                text: "collected cash :",
+                              ),
+                            ]),
+                      ),
+                      Row(
+                        children: [
+                          !isCollectionVisible
+                              ? RichText(
+                                  text: TextSpan(
+                                      // Note: Styles for TextSpans must be explicitly defined.
+                                      // Child text spans will inherit styles from parent
+                                      style: const TextStyle(
+                                        fontSize: 25.0,
+                                        color: Colors.black,
+                                      ),
+                                      children: <TextSpan>[
+                                        TextSpan(
+                                          text: paymentCollection?.currency,
+                                        ),
+                                      ]),
+                                )
+                              : new Container(),
+                          RichText(
+                            text: TextSpan(
+                              text: '',
+                              style: DefaultTextStyle.of(context).style,
+                              children: <TextSpan>[
+                                isCollectionVisible
+                                    ? TextSpan(
+                                        text: (paymentCollection?.formatted),
+                                        style: TextStyle(
+                                          fontSize: 25,
+                                          color: Colors
+                                              .black, // Set the color you want for the visible text
+                                        ),
+                                      )
+                                    : ObscuringTextSpan(
+                                        text: paymentCollection?.amount,
+                                        obscureText:
+                                            true, // Set to true to obscure the text
+                                        style: TextStyle(
+                                          fontSize: 25,
+                                          color: Colors
+                                              .black, // Set the color for the obscured text
+                                        ),
+                                      ),
+                              ],
+                            ),
+                          )
+                        ],
+                      )
+                    ])),
+              ])),
           SizedBox(height: 10),
           Padding(
             padding: EdgeInsets.fromLTRB(10.0, 0, 0, 0),
@@ -936,7 +1020,9 @@ class _JobListState extends State<JobList>
                             Navigator.pushNamed(context, 'jobDetails',
                                     arguments:
                                         inProgressJobs[index].serviceRequestid)
-                                .then((value) async {});
+                                .then((value) async {
+                              await _fetchJobs();
+                            });
                           } else {
                             bool isAdd = selectedJobsToReject
                                     .where((element) =>
@@ -1525,6 +1611,17 @@ class _JobListState extends State<JobList>
           ),
         ));
   }
+}
+
+class ObscuringTextSpan extends TextSpan {
+  ObscuringTextSpan({
+    String? text,
+    TextStyle? style,
+    bool? obscureText,
+  }) : super(
+          text: '•' * 4, // Customize the character used for obscuring
+          style: style,
+        );
 }
 
 class JobItem extends StatefulWidget {

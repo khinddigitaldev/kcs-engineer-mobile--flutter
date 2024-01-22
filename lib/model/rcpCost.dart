@@ -3,6 +3,7 @@ import 'package:kcs_engineer/model/sparepart.dart';
 class RCPCost {
   bool? isDiscountValid;
   String? sparePartCost;
+  String? pickListCost;
   String? solutionCost;
   String? transportCost;
   String? pickupCost;
@@ -11,21 +12,28 @@ class RCPCost {
   String? totalRCP;
   String? discount;
   bool? isRCPValid;
+  String? discountPercentage;
+  List<RCPSparePart>? spareParts;
+  List<RCPSparePart>? pickListItems;
 
   RCPCost(
       {this.sparePartCost,
       this.solutionCost,
+      this.pickListCost,
       this.transportCost,
       this.pickupCost,
       this.miscCost,
       this.isDiscountValid,
       this.total,
+      this.spareParts,
+      this.pickListItems,
       this.discount,
       this.isRCPValid,
       this.totalRCP});
 
   RCPCost.fromJson(Map<String, dynamic> json) {
     this.isDiscountValid = json["meta"]?["discount_valid"] == "1";
+    this.discountPercentage = json["meta"]?["discount_percentage"];
     // var list1 = (json['spareparts'] as List)
     //     .map((i) => RCPSparePart.fromJson(i))
     //     .toList();
@@ -36,15 +44,39 @@ class RCPCost {
     //     .toList();
 
     // var list3 = list2.reduce((value, element) => value + element);
-    this.sparePartCost =
-        json['spareparts'] != null && (json['spareparts'] as List).length > 0
-            ? convertToCurrency(((((json['spareparts'] as List)
-                        .map((i) => RCPSparePart.fromJson(i))
-                        .toList())
-                    .map((e) => num.parse(e.amountVal ?? "0"))
+    this.sparePartCost = json['spareparts'] != null &&
+            (json['spareparts'] as List).length > 0
+        ? convertToCurrency(((((json['spareparts'] as List)
+                    .map((i) => RCPSparePart.fromJson(i))
                     .toList())
-                .reduce((value, element) => value + element)).toString())
-            : convertToCurrency(null);
+                .map((e) => num.parse(e.amountVal ?? "0") * (e.quantity ?? 0))
+                .toList())
+            .reduce((value, element) => value + element)).toString())
+        : convertToCurrency(null);
+
+    this.pickListCost = json['picklist'] != null &&
+            (json['picklist'] as List).length > 0
+        ? convertToCurrency(((((json['picklist'] as List)
+                    .map((i) => RCPSparePart.fromJson(i))
+                    .toList())
+                .map((e) => num.parse(e.amountVal ?? "0") * (e.quantity ?? 0))
+                .toList())
+            .reduce((value, element) => value + element)).toString())
+        : convertToCurrency(null);
+
+    this.spareParts =
+        json['spareparts'] != null && (json['spareparts'] as List).length > 0
+            ? (json['spareparts'] as List)
+                .map((i) => RCPSparePart.fromJson(i))
+                .toList()
+            : [];
+
+    this.pickListItems =
+        json['picklist'] != null && (json['picklist'] as List).length > 0
+            ? (json['picklist'] as List)
+                .map((i) => RCPSparePart.fromJson(i))
+                .toList()
+            : [];
 
     this.miscCost = convertToCurrency(json['misc'] != null
         ? ((json['misc'] as List)
@@ -128,7 +160,9 @@ class RCPSparePart {
     this.rcpAmountFormatted = json["rcp_amount"]?["formatted"];
     this.rcpAmountVal = json["rcp_amount"]?["amount"];
     this.amountVal = json["amount"]?["amount"];
-    this.quantity = json["quantity"];
+    this.quantity = (json["quantity"] is String)
+        ? int.parse(json["quantity"])
+        : json["quantity"];
     this.description = json["desc"];
     this.code = json["code"];
   }

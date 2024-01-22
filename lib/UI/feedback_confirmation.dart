@@ -96,7 +96,7 @@ class _FeedBackConfirmationState extends State<FeedBackConfirmation> {
                 ),
                 children: <TextSpan>[
                   TextSpan(
-                    text: 'Job Successfull!',
+                    text: 'Job Successful!',
                   ),
                 ],
               ),

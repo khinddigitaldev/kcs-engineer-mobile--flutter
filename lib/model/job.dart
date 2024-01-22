@@ -47,16 +47,17 @@ class Job {
   String? actualProblemDescription;
   String? estimatedSolutionCode;
   String? estimatedSolutionDescription;
-  String? estimatedSolutionIndoorCharges;
-  String? estimatedSolutionOutdoorCharges;
+  String? estimatedSolutionCharges;
   String? actualSolutionCode;
   String? actualSolutionDescription;
-  String? actualSolutionIndoorCharges;
-  String? actualSolutionOutdoorCharges;
+  String? actualSolutionCharges;
   String? remarks;
   String? adminRemarks;
+  String? engineerRemarks;
+
   String? productCode;
   int? productId;
+  int? productGroupdId;
   int? productModelId;
   String? productDescription;
   String? serialNo;
@@ -85,6 +86,10 @@ class Job {
   List<MiscellaneousItem>? miscCharges;
 
   bool? isDiscountApplied;
+  bool? isMainEngineer;
+
+  int? currentKIVCount;
+  int? maxKIVCount;
 
   Job(
       {this.serviceRequestid,
@@ -107,12 +112,10 @@ class Job {
       this.actualProblemDescription,
       this.estimatedSolutionCode,
       this.estimatedSolutionDescription,
-      this.estimatedSolutionIndoorCharges,
-      this.estimatedSolutionOutdoorCharges,
+      this.estimatedSolutionCharges,
       this.actualSolutionCode,
       this.actualSolutionDescription,
-      this.actualSolutionIndoorCharges,
-      this.actualSolutionOutdoorCharges,
+      this.actualSolutionCharges,
       this.remarks,
       this.paymentMethods,
       this.adminRemarks,
@@ -141,14 +144,24 @@ class Job {
       this.isChargeableSolution,
       this.isChargeableTransport,
       this.chargeableSparepartIds,
-      this.isDiscountApplied});
+      this.currentKIVCount,
+      this.maxKIVCount,
+      this.engineerRemarks,
+      this.isDiscountApplied,
+      this.productGroupdId,
+      this.isMainEngineer});
 
   Job.fromJson(Map<String, dynamic> json) {
     this.serviceRequestid = json["service_request_id"];
     this.serviceJobNo = json["service_job_no"];
     this.serviceType = json["service_type"];
     this.serviceJobStatus = json["service_job_status"];
-    this.serviceDate = json["service_date"];
+    this.serviceDate = json["service_date"] == null
+        ? ""
+        : DateTime.parse(json["service_date"])
+            .toLocal()
+            .toString()
+            .split(" ")[0];
     this.customerName = json["customer"]?["name"];
     this.customerTelephone = json["customer"]?["telephone"];
     this.customerEmail = json["customer"]?["email"];
@@ -165,31 +178,31 @@ class Job {
     this.estimatedSolutionCode = json["solution"]?["estimated"]?["code"];
     this.estimatedSolutionDescription =
         json["solution"]?["estimated"]?["solution"];
-    this.estimatedSolutionIndoorCharges =
-        json["solution"]?["estimated"]?["indoor_charges"]?["formatted"];
-    this.estimatedSolutionOutdoorCharges =
-        json["solution"]?["estimated"]?["outdoor_charges"]?["formatted"];
+    this.estimatedSolutionCharges =
+        json["solution"]?["estimated"]?["charges"]?["formatted"];
+
     this.actualSolutionCode = json["solution"]?["actual"]?["code"];
     this.actualSolutionDescription = json["solution"]?["actual"]?["solution"];
-    this.actualSolutionIndoorCharges =
-        json["solution"]?["actual"]?["indoor_charges"]?["formatted"];
-    this.actualSolutionOutdoorCharges =
-        json["solution"]?["actual"]?["outdoor_charges"]?["formatted"];
+
+    this.actualSolutionCharges =
+        json["solution"]?["actual"]?["charges"]?["formatted"];
     this.remarks = json["remarks"]?["remarks"];
     this.adminRemarks = json["remarks"]?["admin_remarks"];
+    this.engineerRemarks = json["remarks"]?["engineer_remarks"];
     this.productCode = json["product"]?["code"];
     this.productDescription = json["product"]?["description"];
     this.serialNo = json["warranty_info"]?["serial_no"];
     this.purchaseDate = json["warranty_info"]?["purchase_date"];
     this.isPaid = json["payment"] != null;
-    this.paymentMethods =
-        (json["payment"] != null && json["payment"]?["payment_method"] != null)
-            ? (json["payment"]?["payment_method"] as List<dynamic>).join(",")
-            : null;
+    // this.paymentMethods =
+    //     (json["payment"] != null && json["payment"]?["payment_method"] != null)
+    //         ? (json["payment"]?["payment_method"] as List<dynamic>).join(",")
+    //         : null;
     this.isRTOOrder = json["has_sales_order_connection"];
     this.productId = json["product"]?["id"];
     this.serviceTypeId = json["service_type_id"];
     this.productModelId = json["product"]?["model_id"];
+    this.productGroupdId = json["product"]?["group_id"];
     this.isUnderWarranty = json["warranty_info"] != null
         ? (json["warranty_info"]?["is_warranty_valid"])
         : null;
@@ -208,7 +221,8 @@ class Job {
         (json["saved_states"]?['is_discount_applied'] != null
             ? (json["saved_states"]?['is_discount_applied']) == "1"
             : false);
-
+    this.maxKIVCount = json["kiv_info"]?["max_kiv_count"];
+    this.currentKIVCount = json["kiv_info"]?["current_kiv_count"];
     this.chargeableSparepartIds =
         json["saved_states"]?["list_of_spareparts_not_chargeable"] != null
             ? (json["saved_states"]?["list_of_spareparts_not_chargeable"]
@@ -291,6 +305,8 @@ class Job {
         this.aggregatedSpareparts?.add(element);
       }
     });
+
+    this.isMainEngineer = json["is_main_engineer"];
 
     var list = [];
   }

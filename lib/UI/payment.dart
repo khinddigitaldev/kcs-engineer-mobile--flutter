@@ -7,6 +7,7 @@ import 'package:kcs_engineer/model/job.dart';
 import 'package:kcs_engineer/model/payment_method.dart';
 import 'package:kcs_engineer/model/payment_request.dart';
 import 'package:kcs_engineer/model/rcpCost.dart';
+import 'package:kcs_engineer/util/components/payment_image_uploader.dart';
 import 'package:kcs_engineer/util/helpers.dart';
 import 'package:kcs_engineer/util/repositories.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -293,7 +294,8 @@ class _PaymentState extends State<Payment> {
                               side: BorderSide(
                                   color: Color(0xFFFFB700).withOpacity(0.7))))),
                   onPressed: () async {
-                    var val = await Repositories.confirmAcknowledgement(
+                    var res = await showMultipleImagesPromptDialog(
+                        context,
                         selectedJob?.serviceRequestid ?? "",
                         widget.signature,
                         widget.isWantInvoice ?? false,
@@ -313,8 +315,7 @@ class _PaymentState extends State<Payment> {
                                 .toString());
 
                     // if (val) {
-                    Navigator.pushNamed(context, 'feedback_confirmation',
-                        arguments: selectedJob);
+
                     // }
                   }),
             ),
@@ -322,6 +323,26 @@ class _PaymentState extends State<Payment> {
         ),
       ),
     );
+  }
+
+  showMultipleImagesPromptDialog(BuildContext context, String jobId, File image,
+      bool isMailInvoice, String mailEmail, String paymentMethodId) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return SignatureMultiImageUploadDialog(
+          jobId: jobId,
+          image: image,
+          isMailInvoice: isMailInvoice,
+          mailEmail: mailEmail,
+          paymentMethodId: paymentMethodId,
+        );
+      },
+    ).then((value) async {
+      Navigator.pushNamed(context, 'feedback_confirmation',
+          arguments: selectedJob);
+    });
   }
 
   _renderError() {
