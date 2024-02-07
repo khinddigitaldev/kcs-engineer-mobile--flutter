@@ -8,6 +8,7 @@ class SparePart {
   String? from;
   int? quantity;
   int? selectedQuantity;
+  int? unapprovedQuantityTaken;
   bool? isSparePart;
   String? headingTitle;
   bool? isBomSpecific;
@@ -21,6 +22,7 @@ class SparePart {
       this.priceCurrency,
       this.priceFormatted,
       this.from,
+      this.unapprovedQuantityTaken,
       this.quantity,
       this.selectedQuantity,
       this.isSparePart = true,
@@ -43,6 +45,8 @@ class SparePart {
     this.quantity = json["quantity_taken"] != null
         ? json["quantity_taken"]
         : json["quantity"];
+
+    this.unapprovedQuantityTaken = json["unapproved_quantity_taken"];
     this.selectedQuantity = 0;
     this.isSparePart = true;
     this.isBomSpecific = false;

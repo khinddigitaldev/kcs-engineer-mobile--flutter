@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kcs_engineer/model/user.dart';
+import 'package:kcs_engineer/model/user/user.dart';
 import 'package:kcs_engineer/themes/app_colors.dart';
 
 class CalendarView extends StatefulWidget with WidgetsBindingObserver {

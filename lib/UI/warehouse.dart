@@ -5,9 +5,8 @@ import 'package:after_layout/after_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kcs_engineer/model/general_code.dart';
-import 'package:kcs_engineer/model/job.dart';
-import 'package:kcs_engineer/model/sparepart.dart';
+import 'package:kcs_engineer/model/job/job.dart';
+import 'package:kcs_engineer/model/spareparts/sparepart.dart';
 import 'package:kcs_engineer/themes/text_styles.dart';
 import 'package:kcs_engineer/util/api.dart';
 import 'package:kcs_engineer/util/helpers.dart';
@@ -46,13 +45,11 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
   String? price;
   String? remarks;
   List<SparePart> sparePartList = [];
-  List<GeneralCode> generalCodeList = [];
 
   bool isSpareParts = true;
   bool isGeneralCode = false;
 
   List<SparePart> addedSparePartQuantities = [];
-  List<GeneralCode> addedGeneralCodeQuantities = [];
 
   Timer? searchOnStoppedTyping;
   String currentSearchText = "";
@@ -77,7 +74,6 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
     jobId = widget.jobId;
 
     addedSparePartQuantities = [];
-    addedGeneralCodeQuantities = [];
 
     Future.delayed(Duration.zero, () {});
     //_checkPermisions();
@@ -513,232 +509,110 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                 rows: []),
           ),
           sparePartList.length > 0
-              ? ConstrainedBox(
-                  constraints: BoxConstraints(maxHeight: 900, minHeight: 200),
-                  child: Container(
-                      child: Scrollbar(
-                          child: ListView(
-                              shrinkWrap: true,
-                              controller: controller,
-                              children: [
-                        DataTable(
-                            dataRowHeight: 70.0,
-                            headingRowHeight: 0.0,
-                            columns: [
-                              DataColumn(
-                                  label: Container(
-                                width: MediaQuery.of(context).size.width * .15,
-                                child: Padding(
-                                    padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
-                                    child: new Container()),
-                              )),
-                              DataColumn(
-                                  label: Container(
-                                width: MediaQuery.of(context).size.width * .16,
-                                child: Padding(
-                                  padding: EdgeInsets.fromLTRB(10, 0, 0, 0),
-                                  child: new Container(),
-                                ),
-                              )),
-                              DataColumn(
-                                  label: Container(
-                                width: MediaQuery.of(context).size.width * .15,
-                                child: Padding(
-                                  padding: EdgeInsets.fromLTRB(10, 0, 0, 0),
-                                  child: new Container(),
-                                ),
-                              )),
-                              DataColumn(
-                                  label: Container(
-                                width: MediaQuery.of(context).size.width * .18,
-                                child: new Container(),
-                              )),
-                            ],
-                            rows:
-                                sparePartList // Loops through dataColumnText, each iteration assigning the value to element
-                                    .map(
-                                      ((element) => DataRow(
-                                            cells: <DataCell>[
-                                              DataCell(Text(element.code ??
-                                                  "")), //Extracting from Map element the value
-                                              DataCell(Text(
-                                                  element.description ?? "")),
-                                              DataCell(
-                                                Container(
-                                                  alignment:
-                                                      Alignment.centerLeft,
-                                                  //color: Colors.white,
-                                                  child: Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .center,
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .center,
-                                                    children: [
-                                                      element.quantity != 0
-                                                          ? RichText(
-                                                              textAlign:
-                                                                  TextAlign
-                                                                      .center,
-                                                              text: TextSpan(
-                                                                // Note: Styles for TextSpans must be explicitly defined.
-                                                                // Child text spans will inherit styles from parent
-                                                                style:
-                                                                    const TextStyle(
-                                                                  fontSize:
-                                                                      12.0,
-                                                                  color: Colors
-                                                                      .black,
-                                                                ),
-                                                                children: <
-                                                                    TextSpan>[
-                                                                  TextSpan(
-                                                                      text: element
-                                                                          .quantity
-                                                                          .toString(),
-                                                                      style: const TextStyle(
-                                                                          fontWeight:
-                                                                              FontWeight.bold)),
-                                                                ],
-                                                              ),
-                                                            )
-                                                          : RichText(
-                                                              textAlign:
-                                                                  TextAlign
-                                                                      .center,
-                                                              text: TextSpan(
-                                                                // Note: Styles for TextSpans must be explicitly defined.
-                                                                // Child text spans will inherit styles from parent
-                                                                style:
-                                                                    const TextStyle(
-                                                                  fontSize:
-                                                                      15.0,
-                                                                  color: Colors
-                                                                      .black,
-                                                                ),
-                                                                children: <
-                                                                    TextSpan>[
-                                                                  TextSpan(
-                                                                      text:
-                                                                          'Out of Stock',
-                                                                      style:
-                                                                          const TextStyle()),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                              DataCell(
-                                                Container(
-                                                    alignment:
-                                                        Alignment.centerLeft,
-                                                    //color: Colors.white,
-                                                    child: element.quantity != 0
-                                                        ? Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .center,
-                                                            crossAxisAlignment:
-                                                                CrossAxisAlignment
-                                                                    .center,
-                                                            children: [
-                                                              IconButton(
-                                                                  icon:
-                                                                      new Icon(
-                                                                    color: element.quantity ==
-                                                                            0
-                                                                        ? Colors
-                                                                            .black54
-                                                                        : Colors
-                                                                            .black,
-                                                                    Icons
-                                                                        .remove,
-                                                                    size: 11.0,
+              ? Container(
+                  height: MediaQuery.of(context).size.height * 0.5,
+                  child: Scrollbar(
+                      controller: controller,
+                      child: ListView(
+                          shrinkWrap: true,
+                          controller: controller,
+                          children: [
+                            DataTable(
+                                dataRowHeight: 70.0,
+                                headingRowHeight: 0.0,
+                                columns: [
+                                  DataColumn(
+                                      label: Container(
+                                    width:
+                                        MediaQuery.of(context).size.width * .15,
+                                    child: Padding(
+                                        padding:
+                                            EdgeInsets.fromLTRB(20, 0, 0, 0),
+                                        child: new Container()),
+                                  )),
+                                  DataColumn(
+                                      label: Container(
+                                    width:
+                                        MediaQuery.of(context).size.width * .16,
+                                    child: Padding(
+                                      padding: EdgeInsets.fromLTRB(10, 0, 0, 0),
+                                      child: new Container(),
+                                    ),
+                                  )),
+                                  DataColumn(
+                                      label: Container(
+                                    width:
+                                        MediaQuery.of(context).size.width * .15,
+                                    child: Padding(
+                                      padding: EdgeInsets.fromLTRB(10, 0, 0, 0),
+                                      child: new Container(),
+                                    ),
+                                  )),
+                                  DataColumn(
+                                      label: Container(
+                                    width:
+                                        MediaQuery.of(context).size.width * .18,
+                                    child: new Container(),
+                                  )),
+                                ],
+                                rows:
+                                    sparePartList // Loops through dataColumnText, each iteration assigning the value to element
+                                        .map(
+                                          ((element) => DataRow(
+                                                cells: <DataCell>[
+                                                  DataCell(Text(element.code ??
+                                                      "")), //Extracting from Map element the value
+                                                  DataCell(Text(
+                                                      element.description ??
+                                                          "")),
+                                                  DataCell(
+                                                    Container(
+                                                      alignment:
+                                                          Alignment.centerLeft,
+                                                      //color: Colors.white,
+                                                      child: Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .center,
+                                                        children: [
+                                                          element.quantity !=
+                                                                      0 &&
+                                                                  ((element.quantity ??
+                                                                          0) >
+                                                                      0)
+                                                              ? RichText(
+                                                                  textAlign:
+                                                                      TextAlign
+                                                                          .center,
+                                                                  text:
+                                                                      TextSpan(
+                                                                    // Note: Styles for TextSpans must be explicitly defined.
+                                                                    // Child text spans will inherit styles from parent
+                                                                    style:
+                                                                        const TextStyle(
+                                                                      fontSize:
+                                                                          12.0,
+                                                                      color: Colors
+                                                                          .black,
+                                                                    ),
+                                                                    children: <
+                                                                        TextSpan>[
+                                                                      TextSpan(
+                                                                          text: element
+                                                                              .quantity
+                                                                              .toString(),
+                                                                          style:
+                                                                              const TextStyle(fontWeight: FontWeight.bold)),
+                                                                    ],
                                                                   ),
-                                                                  onPressed:
-                                                                      () => {
-                                                                            if (element.selectedQuantity !=
-                                                                                0)
-                                                                              {
-                                                                                if (addedSparePartQuantities.contains(element))
-                                                                                  {
-                                                                                    addedSparePartQuantities.forEach((d) {
-                                                                                      if (d.id == element.id) {
-                                                                                        d.selectedQuantity = (d.selectedQuantity ?? 0) - 1;
-                                                                                      }
-                                                                                    }),
-                                                                                  }
-                                                                                else
-                                                                                  {},
-                                                                                setState(() {
-                                                                                  sparePartList[sparePartList.indexOf(element)] = element;
-                                                                                })
-                                                                              }
-                                                                          }),
-                                                              RichText(
-                                                                text: TextSpan(
-                                                                  // Note: Styles for TextSpans must be explicitly defined.
-                                                                  // Child text spans will inherit styles from parent
-                                                                  style:
-                                                                      const TextStyle(
-                                                                    fontSize:
-                                                                        12.0,
-                                                                    color: Colors
-                                                                        .black,
-                                                                  ),
-                                                                  children: <
-                                                                      TextSpan>[
-                                                                    TextSpan(
-                                                                        text: element
-                                                                            .selectedQuantity
-                                                                            .toString(),
-                                                                        style: const TextStyle(
-                                                                            fontWeight:
-                                                                                FontWeight.bold)),
-                                                                  ],
-                                                                ),
-                                                              ),
-                                                              IconButton(
-                                                                  icon:
-                                                                      new Icon(
-                                                                    color: Colors
-                                                                        .black,
-                                                                    Icons.add,
-                                                                    size: 11.0,
-                                                                  ),
-                                                                  onPressed:
-                                                                      () => {
-                                                                            if (addedSparePartQuantities.contains(element))
-                                                                              {
-                                                                                addedSparePartQuantities.forEach((d) {
-                                                                                  if (d.id == element.id) {
-                                                                                    element.selectedQuantity = (element.selectedQuantity ?? 0) + 1;
-                                                                                  }
-                                                                                }),
-                                                                              }
-                                                                            else
-                                                                              {
-                                                                                element.selectedQuantity = (element.selectedQuantity ?? 0) + 1,
-                                                                                addedSparePartQuantities.add(element)
-                                                                              },
-                                                                            setState(() {
-                                                                              sparePartList[sparePartList.indexOf(element)] = element;
-                                                                            }),
-                                                                          }),
-                                                            ],
-                                                          )
-                                                        : Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .center,
-                                                            crossAxisAlignment:
-                                                                CrossAxisAlignment
-                                                                    .center,
-                                                            children: [
-                                                                RichText(
+                                                                )
+                                                              : RichText(
+                                                                  textAlign:
+                                                                      TextAlign
+                                                                          .center,
                                                                   text:
                                                                       TextSpan(
                                                                     // Note: Styles for TextSpans must be explicitly defined.
@@ -760,13 +634,148 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                                                                     ],
                                                                   ),
                                                                 ),
-                                                              ])),
-                                              )
-                                            ],
-                                          )),
-                                    )
-                                    .toList())
-                      ]))))
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  DataCell(
+                                                    Container(
+                                                        alignment: Alignment
+                                                            .centerLeft,
+                                                        //color: Colors.white,
+                                                        child: element.quantity !=
+                                                                    0 &&
+                                                                ((element.quantity ??
+                                                                        0) >
+                                                                    0)
+                                                            ? Row(
+                                                                mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .center,
+                                                                crossAxisAlignment:
+                                                                    CrossAxisAlignment
+                                                                        .center,
+                                                                children: [
+                                                                  IconButton(
+                                                                      icon:
+                                                                          new Icon(
+                                                                        color: element.quantity ==
+                                                                                0
+                                                                            ? Colors.black54
+                                                                            : Colors.black,
+                                                                        Icons
+                                                                            .remove,
+                                                                        size:
+                                                                            11.0,
+                                                                      ),
+                                                                      onPressed:
+                                                                          () =>
+                                                                              {
+                                                                                if (element.selectedQuantity != 0)
+                                                                                  {
+                                                                                    if (addedSparePartQuantities.contains(element))
+                                                                                      {
+                                                                                        addedSparePartQuantities.forEach((d) {
+                                                                                          if (d.id == element.id) {
+                                                                                            d.selectedQuantity = (d.selectedQuantity ?? 0) - 1;
+                                                                                          }
+                                                                                        }),
+                                                                                      }
+                                                                                    else
+                                                                                      {},
+                                                                                    setState(() {
+                                                                                      sparePartList[sparePartList.indexOf(element)] = element;
+                                                                                    })
+                                                                                  }
+                                                                              }),
+                                                                  RichText(
+                                                                    text:
+                                                                        TextSpan(
+                                                                      // Note: Styles for TextSpans must be explicitly defined.
+                                                                      // Child text spans will inherit styles from parent
+                                                                      style:
+                                                                          const TextStyle(
+                                                                        fontSize:
+                                                                            12.0,
+                                                                        color: Colors
+                                                                            .black,
+                                                                      ),
+                                                                      children: <
+                                                                          TextSpan>[
+                                                                        TextSpan(
+                                                                            text:
+                                                                                element.selectedQuantity.toString(),
+                                                                            style: const TextStyle(fontWeight: FontWeight.bold)),
+                                                                      ],
+                                                                    ),
+                                                                  ),
+                                                                  IconButton(
+                                                                      icon:
+                                                                          new Icon(
+                                                                        color: Colors
+                                                                            .black,
+                                                                        Icons
+                                                                            .add,
+                                                                        size:
+                                                                            11.0,
+                                                                      ),
+                                                                      onPressed:
+                                                                          () =>
+                                                                              {
+                                                                                if (addedSparePartQuantities.contains(element))
+                                                                                  {
+                                                                                    addedSparePartQuantities.forEach((d) {
+                                                                                      if (d.id == element.id) {
+                                                                                        element.selectedQuantity = (element.selectedQuantity ?? 0) + 1;
+                                                                                      }
+                                                                                    }),
+                                                                                  }
+                                                                                else
+                                                                                  {
+                                                                                    element.selectedQuantity = (element.selectedQuantity ?? 0) + 1,
+                                                                                    addedSparePartQuantities.add(element)
+                                                                                  },
+                                                                                setState(() {
+                                                                                  sparePartList[sparePartList.indexOf(element)] = element;
+                                                                                }),
+                                                                              }),
+                                                                ],
+                                                              )
+                                                            : Row(
+                                                                mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .center,
+                                                                crossAxisAlignment:
+                                                                    CrossAxisAlignment
+                                                                        .center,
+                                                                children: [
+                                                                    RichText(
+                                                                      text:
+                                                                          TextSpan(
+                                                                        // Note: Styles for TextSpans must be explicitly defined.
+                                                                        // Child text spans will inherit styles from parent
+                                                                        style:
+                                                                            const TextStyle(
+                                                                          fontSize:
+                                                                              15.0,
+                                                                          color:
+                                                                              Colors.black,
+                                                                        ),
+                                                                        children: <
+                                                                            TextSpan>[
+                                                                          TextSpan(
+                                                                              text: 'Out of Stock',
+                                                                              style: const TextStyle()),
+                                                                        ],
+                                                                      ),
+                                                                    ),
+                                                                  ])),
+                                                  )
+                                                ],
+                                              )),
+                                        )
+                                        .toList())
+                          ])))
               : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -847,17 +856,11 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
 
     addedSparePartQuantities.forEach((element) {
       element.from = "warehouse";
-      element.quantity = (element.selectedQuantity ?? 0) +
-          (selectedJob?.picklist?.indexWhere((e) => element.id == e.id) != -1
-              ? (selectedJob?.picklist
-                      ?.firstWhere((e) => element.id == e.id)
-                      .quantity ??
-                  0)
-              : 0);
-      var existingQuantity = selectedJob?.currentJobSparepartsfromPickList
+      element.quantity = (element.selectedQuantity ?? 0);
+      var existingQuantity = selectedJob?.picklistCollected
                   ?.indexWhere((e) => element.id == e.id) !=
               -1
-          ? (selectedJob?.currentJobSparepartsfromPickList
+          ? (selectedJob?.picklistCollected
                   ?.firstWhere((e) => element.id == e.id)
                   .quantity ??
               0)
@@ -887,11 +890,11 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
             ? (warehouseSearchCT.text != ""
                 ? '&q=' + warehouseSearchCT.text.toString()
                 : "")
-            : (code != null ? '&q=' + code.toString() : "")) +
+            : (code != "" ? '&q=' + code.toString() : "")) +
         (searchByCode ? '&search_only_by_code=1' : '&search_only_by_code=0') +
         (!searchByCode ? '&product_id=${selectedJob?.productId}' : '') +
         (!searchByCode ? '&service_request_id=${jobId}' : '');
-    final response = await Api.bearerGet('general/spareparts?per_page=20' +
+    final response = await Api.bearerGet('general/spareparts?per_page=15' +
         '&page=$sparePartsCurrentPage' +
         (!searchByCode
             ? (warehouseSearchCT.text != ""
@@ -901,9 +904,9 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
         (searchByCode ? '&search_only_by_code=1' : '&search_only_by_code=0') +
         (!searchByCode ? '&product_id=${selectedJob?.productId}' : '') +
         (!searchByCode ? '&service_request_id=${jobId}' : ''));
-    Navigator.pop(context);
 
     print("#Resp: ${jsonEncode(response)}");
+    Navigator.pop(context);
 
     if (response["success"] != null) {
       List<SparePart> spareParts =
@@ -915,8 +918,8 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
 
       currentHistory.addAll(spareParts);
 
-      currentHistory
-          .sort((a, b) => b.quantity?.compareTo(a.quantity ?? 0) ?? 0);
+      // currentHistory
+      //     .sort((a, b) => b.quantity?.compareTo(a.quantity ?? 0) ?? 0);
     }
     setState(() {
       sparePartsMaxPages =

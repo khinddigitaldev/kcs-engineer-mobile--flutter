@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:after_layout/after_layout.dart';
 import 'package:flutter/material.dart';
-import 'package:kcs_engineer/model/bag.dart';
-import 'package:kcs_engineer/model/sparepart.dart';
+import 'package:kcs_engineer/model/user/bag.dart';
+import 'package:kcs_engineer/model/spareparts/sparepart.dart';
 import 'package:kcs_engineer/util/repositories.dart';
 
 class AddItemsFromBagDialog extends StatefulWidget {

@@ -3,10 +3,10 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kcs_engineer/model/job.dart';
-import 'package:kcs_engineer/model/payment_method.dart';
-import 'package:kcs_engineer/model/payment_request.dart';
-import 'package:kcs_engineer/model/rcpCost.dart';
+import 'package:kcs_engineer/model/job/job.dart';
+import 'package:kcs_engineer/model/payment/payment_method.dart';
+import 'package:kcs_engineer/model/payment/payment_request.dart';
+import 'package:kcs_engineer/model/payment/rcpCost.dart';
 import 'package:kcs_engineer/util/components/payment_image_uploader.dart';
 import 'package:kcs_engineer/util/helpers.dart';
 import 'package:kcs_engineer/util/repositories.dart';
@@ -49,6 +49,7 @@ class _PaymentState extends State<Payment> {
   final storage = new FlutterSecureStorage();
   String? token;
   PaymentDTO? paymentDTO;
+  String? qrText;
 
   @override
   void initState() {
@@ -56,6 +57,9 @@ class _PaymentState extends State<Payment> {
     setState(() {
       selectedJob = widget.data;
       paymentDTO = widget.paymentDTO;
+      qrText = widget.paymentMethods
+          ?.firstWhere((element) => element.hasQr ?? false)
+          .qrText;
     });
     _loadVersion();
     //_loadToken();
@@ -159,15 +163,16 @@ class _PaymentState extends State<Payment> {
               ),
             ),
             SizedBox(height: 50),
-            Container(
-              alignment: Alignment.center,
-              child: QrImage(
-                data:
-                    "00020101021226370009SG.PAYNOW010120210198701251D030115204000053037025802SG5923MAYER MARKETING PTE LTD6009Singapore62260122MAYER MARKETING - UBI 63040880",
-                version: QrVersions.auto,
-                size: 300.0,
-              ),
-            ),
+            qrText != null
+                ? Container(
+                    alignment: Alignment.center,
+                    child: QrImage(
+                      data: "$qrText",
+                      version: QrVersions.auto,
+                      size: 300.0,
+                    ),
+                  )
+                : new Container(),
             // Container(
             //   height: 100,
             //   width: 300,

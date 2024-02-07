@@ -5,7 +5,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
-import 'package:kcs_engineer/model/sparepart_history_item.dart';
+import 'package:kcs_engineer/model/spareparts/sparepart_history_item.dart';
 import 'package:kcs_engineer/themes/text_styles.dart';
 import 'package:kcs_engineer/util/api.dart';
 import 'package:kcs_engineer/util/helpers.dart';

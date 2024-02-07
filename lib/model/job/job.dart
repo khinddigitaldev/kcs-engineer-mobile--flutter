@@ -1,8 +1,8 @@
-import 'package:kcs_engineer/model/miscellaneousItem.dart';
-import 'package:kcs_engineer/model/pickup_charges.dart';
-import 'package:kcs_engineer/model/secondaryEngineer.dart';
-import 'package:kcs_engineer/model/sparepart.dart';
-import 'package:kcs_engineer/model/transportCharge.dart';
+import 'package:kcs_engineer/model/spareparts/miscellaneousItem.dart';
+import 'package:kcs_engineer/model/payment/pickup_charges.dart';
+import 'package:kcs_engineer/model/user/secondaryEngineer.dart';
+import 'package:kcs_engineer/model/spareparts/sparepart.dart';
+import 'package:kcs_engineer/model/job/general/transportCharge.dart';
 
 class JobData {
   List<Job>? jobs;
@@ -77,7 +77,9 @@ class Job {
   List<String>? chargeableSparepartIds;
 
   List<SecondaryEngineer>? secondaryEngineers;
-  List<SparePart>? picklist;
+  List<SparePart>? picklistNotCollected;
+  List<SparePart>? picklistCollected;
+
   List<SparePart>? currentJobSparepartsfromBag;
   List<SparePart>? currentJobSparepartsfromWarehouse;
   List<SparePart>? currentJobSparepartsfromPickList;
@@ -125,7 +127,7 @@ class Job {
       this.purchaseDate,
       this.productId,
       this.serviceTypeId,
-      this.picklist,
+      this.picklistNotCollected,
       this.currentJobSparepartsfromBag,
       this.currentJobSparepartsfromWarehouse,
       this.currentJobSparepartsfromPickList,
@@ -149,6 +151,7 @@ class Job {
       this.engineerRemarks,
       this.isDiscountApplied,
       this.productGroupdId,
+      this.picklistCollected,
       this.isMainEngineer});
 
   Job.fromJson(Map<String, dynamic> json) {
@@ -193,7 +196,7 @@ class Job {
     this.productDescription = json["product"]?["description"];
     this.serialNo = json["warranty_info"]?["serial_no"];
     this.purchaseDate = json["warranty_info"]?["purchase_date"];
-    this.isPaid = json["payment"] != null;
+    this.isPaid = json["payment"] != null && json["payment"]?["is_paid"];
     // this.paymentMethods =
     //     (json["payment"] != null && json["payment"]?["payment_method"] != null)
     //         ? (json["payment"]?["payment_method"] as List<dynamic>).join(",")
@@ -237,12 +240,18 @@ class Job {
             .toList()
         : [];
 
-    this.picklist = json["bag_pick_list"]?['spareparts'] != null
+    this.picklistNotCollected = json["bag_pick_list"]?['spareparts'] != null
         ? ((json["bag_pick_list"]?['spareparts'] as List)
                 .map((e) => SparePart.fromJson(e))
                 .toList())
             .where((element) => element.collectedAt == null)
             .toList()
+        : [];
+
+    this.picklistCollected = json["bag_pick_list"]?['spareparts'] != null
+        ? ((json["bag_pick_list"]?['spareparts'] as List)
+            .map((e) => SparePart.fromJson(e))
+            .toList())
         : [];
 
     this.miscCharges = json["misc_charges"] != null

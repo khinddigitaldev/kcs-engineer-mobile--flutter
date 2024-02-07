@@ -4,10 +4,9 @@ import 'dart:convert';
 import 'package:after_layout/after_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kcs_engineer/model/general_code.dart';
-import 'package:kcs_engineer/model/job.dart';
-import 'package:kcs_engineer/model/pick_list_Items.dart';
-import 'package:kcs_engineer/model/sparepart.dart';
+import 'package:kcs_engineer/model/job/job.dart';
+import 'package:kcs_engineer/model/spareparts/pick_list_Items.dart';
+import 'package:kcs_engineer/model/spareparts/sparepart.dart';
 import 'package:kcs_engineer/themes/text_styles.dart';
 import 'package:kcs_engineer/util/api.dart';
 import 'package:kcs_engineer/util/helpers.dart';
@@ -185,8 +184,10 @@ class _PickListState extends State<PickList> with AfterLayoutMixin {
                     //     ),
                     //   ],
                     // ),
-                    SizedBox(height: 20),
-                    collected.length > 0
+                    notCollected.length > 0
+                        ? SizedBox(height: 20)
+                        : new Container(),
+                    notCollected.length > 0
                         ? Container(
                             alignment: Alignment.centerLeft,
                             child: RichText(
@@ -207,12 +208,12 @@ class _PickListState extends State<PickList> with AfterLayoutMixin {
                             ),
                           )
                         : new Container(),
-                    collected.length > 0
+                    notCollected.length > 0
                         ? SizedBox(
                             height: 30,
                           )
                         : new Container(),
-                    collected.length > 0
+                    notCollected.length > 0
                         ? Container(
                             width: MediaQuery.of(context).size.width * .9,
                             alignment: Alignment.centerLeft,
@@ -257,7 +258,7 @@ class _PickListState extends State<PickList> with AfterLayoutMixin {
                                   )),
                                 ],
                                 rows:
-                                    collected // Loops through dataColumnText, each iteration assigning the value to element
+                                    notCollected // Loops through dataColumnText, each iteration assigning the value to element
                                         .map(
                                           ((element) => DataRow(
                                                 cells: <DataCell>[
@@ -319,12 +320,12 @@ class _PickListState extends State<PickList> with AfterLayoutMixin {
                                         .toList()),
                           )
                         : new Container(),
-                    notCollected.length > 0
+                    collected.length > 0 && notCollected.length > 0
                         ? SizedBox(
                             height: MediaQuery.of(context).size.height * .1,
                           )
                         : new Container(),
-                    notCollected.length > 0
+                    collected.length > 0
                         ? Container(
                             alignment: Alignment.centerLeft,
                             child: RichText(
@@ -345,10 +346,10 @@ class _PickListState extends State<PickList> with AfterLayoutMixin {
                             ),
                           )
                         : new Container(),
-                    notCollected.length > 0
+                    collected.length > 0
                         ? SizedBox(height: 30)
                         : new Container(),
-                    notCollected.length > 0
+                    collected.length > 0
                         ? Container(
                             width: MediaQuery.of(context).size.width * .9,
                             alignment: Alignment.centerLeft,
@@ -393,7 +394,7 @@ class _PickListState extends State<PickList> with AfterLayoutMixin {
                                   )),
                                 ],
                                 rows:
-                                    notCollected // Loops through dataColumnText, each iteration assigning the value to element
+                                    collected // Loops through dataColumnText, each iteration assigning the value to element
                                         .map(
                                           ((element) => DataRow(
                                                 cells: <DataCell>[

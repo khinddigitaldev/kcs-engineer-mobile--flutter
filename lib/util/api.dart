@@ -8,25 +8,10 @@ import 'package:intl/intl.dart';
 import 'package:kcs_engineer/util/helpers.dart';
 import 'package:kcs_engineer/util/key.dart';
 import 'package:kcs_engineer/util/repositories.dart';
+import 'package:kcs_engineer/util/navigationService.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 final storage = new FlutterSecureStorage();
-
-// class AuthInterceptor implements InterceptorContract {
-//   @override
-//   Future<RequestData> interceptRequest({required RequestData data}) async {
-//     try {
-//       String refreshToken = storage.read(key: REFRESH_TOKEN).toString();
-//     } catch (e) {
-//       print('Auth Interceptor error $e');
-//     }
-//     return data;
-//   }
-
-//   @override
-//   Future<ResponseData> interceptResponse({required ResponseData data}) async {
-//     return data;
-//   }
-// }
 
 class ApiInterceptor implements InterceptorContract {
   String baseUrl = dotenv.env["API_BASE_URL"] ?? "";
@@ -40,11 +25,20 @@ class ApiInterceptor implements InterceptorContract {
         num tokenExpiry = num.parse(epoch.toString());
         var now = DateTime.now().toUtc().millisecondsSinceEpoch;
         if (tokenExpiry < now) {
-          await renewAccessToken();
+          try {
+            await renewAccessToken();
+          } catch (err) {
+            Helpers.isAuthenticated = false;
+            await storage.delete(key: TOKEN);
+            await storage.delete(key: TOKEN_EXPIRY);
+            await storage.delete(key: REFRESH_TOKEN);
+            await storage.delete(key: USERID);
+            await NavigationService.pushReplacementNamed('signIn');
+          }
         }
       }
       data.headers['Content-Type'] = 'application/json';
-      data.headers['Accept'] = '*/*';
+      data.headers['Accept'] = 'application/json';
       var token = await storage.read(key: TOKEN);
       String bearerAuth = 'Bearer $token';
       data.headers['Authorization'] = bearerAuth;
@@ -53,41 +47,6 @@ class ApiInterceptor implements InterceptorContract {
       print('Api Interceptor error $e');
     }
     return data;
-  }
-
-  static Future<String> renewAccessToken() async {
-    var baseUrl = await dotenv.env["API_BASE_URL"];
-    var refreshToken = await storage.read(key: REFRESH_TOKEN);
-
-    var data = {"refresh_token": refreshToken};
-
-    final res =
-        await http.post(Uri.parse("$baseUrl/auth/refresh-token"), body: data);
-
-    var response = json.decode(res.body) as Map<String, dynamic>;
-
-    print("#Resp: ${jsonEncode(response)}");
-
-    if (response["success"]) {
-      Helpers.isAuthenticated = false;
-      var dateTimeFormat = DateFormat("yyyy-MM-ddTHH:mm:ss.SSSSSS'Z'")
-          .parse(response?['data']?['token']?['expires_at']);
-
-      await storage.write(
-          key: TOKEN, value: response?['data']?['token']?['token']);
-      await storage.write(
-          key: TOKEN_EXPIRY,
-          value: dateTimeFormat.millisecondsSinceEpoch.toString());
-
-      return response?['data']?['token']?['token'];
-    } else {
-      Helpers.isAuthenticated = false;
-      await storage.delete(key: TOKEN);
-      await storage.delete(key: TOKEN_EXPIRY);
-      await storage.delete(key: REFRESH_TOKEN);
-      await storage.delete(key: USERID);
-      return "unauthenticated";
-    }
   }
 
   @override
@@ -100,9 +59,19 @@ class ApiInterceptor implements InterceptorContract {
       await storage.delete(key: TOKEN_EXPIRY);
       await storage.delete(key: REFRESH_TOKEN);
       await storage.delete(key: USERID);
+
+      await NavigationService.pushReplacementNamed('signIn');
     }
 
     return data;
+  }
+
+  static Future<void> renewAccessToken() async {
+    var res = await Repositories.renewAccessToken();
+
+    if (res == "unauthenticated") {
+      await NavigationService.pushReplacementNamed('signIn');
+    }
   }
 }
 

@@ -1,4 +1,4 @@
-import 'package:kcs_engineer/model/sparepart.dart';
+import 'package:kcs_engineer/model/spareparts/sparepart.dart';
 
 class PaymentCollection {
   String? amount;

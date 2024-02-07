@@ -10,18 +10,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_switch/flutter_switch.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:kcs_engineer/model/bag.dart';
-import 'package:kcs_engineer/model/checklistAttachment.dart';
-import 'package:kcs_engineer/model/comment.dart';
-import 'package:kcs_engineer/model/job.dart';
-import 'package:kcs_engineer/model/miscellaneousItem.dart';
-import 'package:kcs_engineer/model/pickup_charges.dart';
-import 'package:kcs_engineer/model/problem.dart';
-import 'package:kcs_engineer/model/rcpCost.dart';
-import 'package:kcs_engineer/model/reason.dart';
-import 'package:kcs_engineer/model/solution.dart';
-import 'package:kcs_engineer/model/sparepart.dart';
-import 'package:kcs_engineer/model/transportCharge.dart';
+import 'package:kcs_engineer/model/user/bag.dart';
+import 'package:kcs_engineer/model/job/checklistAttachment.dart';
+import 'package:kcs_engineer/model/job/comment.dart';
+import 'package:kcs_engineer/model/job/job.dart';
+import 'package:kcs_engineer/model/spareparts/miscellaneousItem.dart';
+import 'package:kcs_engineer/model/payment/pickup_charges.dart';
+import 'package:kcs_engineer/model/job/general/problem.dart';
+import 'package:kcs_engineer/model/payment/rcpCost.dart';
+import 'package:kcs_engineer/model/job/general/reason.dart';
+import 'package:kcs_engineer/model/job/general/solution.dart';
+import 'package:kcs_engineer/model/spareparts/sparepart.dart';
+import 'package:kcs_engineer/model/job/general/transportCharge.dart';
 import 'package:kcs_engineer/util/components/add_items_bag.dart';
 import 'package:kcs_engineer/util/full_screen_image.dart';
 import 'package:kcs_engineer/util/helpers.dart';
@@ -143,6 +143,7 @@ class _JobDetailsState extends State<JobDetails>
   bool isDiscountApplied = false;
   bool isRCPValid = false;
   ScrollController _scrollController = ScrollController();
+  Map<int, int> pickListIndexToQuantityTemp = {};
 
   @override
   FutureOr<void> afterFirstLayout(BuildContext context) async {
@@ -2241,7 +2242,10 @@ class _JobDetailsState extends State<JobDetails>
                                   tabController?.animateTo(2);
                                 }
 
-                                if ((selectedJob?.picklist?.length ?? 0) > 0) {
+                                if ((selectedJob
+                                            ?.picklistNotCollected?.length ??
+                                        0) >
+                                    0) {
                                   setState(() {
                                     isPendingItemsInPickList = true;
                                   });
@@ -2284,57 +2288,55 @@ class _JobDetailsState extends State<JobDetails>
                                 }
                               })
                           : new Container(),
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width * 0.1,
+                      ),
                       checkActionsEnabled("payment") &&
                               (selectedJob?.serviceType?.toLowerCase() ==
-                                  "home visit")
-                          ? SizedBox(
-                              width: MediaQuery.of(context).size.width *
-                                  0.2, // <-- match_parent
-                              height: MediaQuery.of(context).size.width *
-                                  0.05, // <-- match-parent
-                              child: ElevatedButton(
-                                  child: Padding(
-                                      padding: const EdgeInsets.all(0.0),
-                                      child: Row(
-                                        children: [
-                                          const Icon(
-                                            // <-- Icon
-                                            Icons.check,
-                                            color: Colors.white,
-                                            size: 18.0,
-                                          ),
-                                          const SizedBox(
-                                            width: 10,
-                                          ),
-                                          const Text(
-                                            'Payment',
-                                            style: TextStyle(
-                                                fontSize: 15,
-                                                color: Colors.white),
-                                          )
-                                        ],
-                                      )),
-                                  style: ButtonStyle(
-                                      foregroundColor:
-                                          MaterialStateProperty.all<Color>(
-                                              Colors.green),
-                                      backgroundColor:
-                                          MaterialStateProperty.all<Color>(
-                                              Colors.green),
-                                      shape: MaterialStateProperty.all<
-                                              RoundedRectangleBorder>(
-                                          RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(4.0),
-                                              side:
-                                                  const BorderSide(color: Colors.green)))),
-                                  onPressed: () async {
-                                    Navigator.pushNamed(context, 'signature',
-                                            arguments: [selectedJob, rcpCost])
-                                        .then((val) async {
-                                      if ((val as bool)) {}
-                                    });
-                                  }))
+                                  "home visit") &&
+                              rcpCost != null
+                          ? ElevatedButton(
+                              child: Padding(
+                                  padding: const EdgeInsets.all(0.0),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        // <-- Icon
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 18.0,
+                                      ),
+                                      const SizedBox(
+                                        width: 10,
+                                      ),
+                                      const Text(
+                                        'Payment',
+                                        style: TextStyle(
+                                            fontSize: 15, color: Colors.white),
+                                      )
+                                    ],
+                                  )),
+                              style: ButtonStyle(
+                                  foregroundColor:
+                                      MaterialStateProperty.all<Color>(
+                                          Colors.green),
+                                  backgroundColor:
+                                      MaterialStateProperty.all<Color>(
+                                          Colors.green),
+                                  shape: MaterialStateProperty.all<
+                                          RoundedRectangleBorder>(
+                                      RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(4.0),
+                                          side: const BorderSide(
+                                              color: Colors.green)))),
+                              onPressed: () async {
+                                Navigator.pushNamed(context, 'signature',
+                                        arguments: [selectedJob, rcpCost])
+                                    .then((val) async {
+                                  if ((val as bool)) {}
+                                });
+                              })
                           : new Container(),
                       checkActionsEnabled("complete")
                           ? const SizedBox(
@@ -3224,7 +3226,7 @@ class _JobDetailsState extends State<JobDetails>
                 continuePressed = false;
                 nextImagePressed = false;
               });
-              await pickImage(false, false, false, false, true, false);
+              // await pickImage(false, false, false, false, true, false);
             }
           }),
     );
@@ -3707,9 +3709,9 @@ class _JobDetailsState extends State<JobDetails>
                         child: Container(
                           height: MediaQuery.of(context).size.height * 0.03,
                           width: selectedJob?.serviceJobStatus?.toLowerCase() ==
-                                  "repairing"
-                              ? MediaQuery.of(context).size.width * 0.5
-                              : MediaQuery.of(context).size.width * 0.25,
+                                  "pending job start"
+                              ? MediaQuery.of(context).size.width * 0.25
+                              : MediaQuery.of(context).size.width * 0.5,
                           decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(20),
                               color: Colors.white),
@@ -3724,19 +3726,19 @@ class _JobDetailsState extends State<JobDetails>
                             // ignore: prefer_const_literals_to_create_immutables
                             tabs:
                                 selectedJob?.serviceJobStatus?.toLowerCase() ==
-                                        "repairing"
+                                        "pending job start"
                                     ? [
                                         Tab(
                                           text: "Estimated Solution",
-                                        ),
-                                        Tab(
-                                          text: "Actual Solution",
                                         )
                                       ]
                                     : [
                                         Tab(
                                           text: "Estimated Solution",
                                         ),
+                                        Tab(
+                                          text: "Actual Solution",
+                                        )
                                       ],
                           ),
                         ),
@@ -3753,15 +3755,11 @@ class _JobDetailsState extends State<JobDetails>
                               controller: tabController,
                               children: (selectedJob?.serviceJobStatus
                                           ?.toLowerCase() ==
-                                      "repairing"
+                                      "pending job start"
                                   ? ([
                                       Container(
                                         child: _renderSolutionComponents(
                                             isStepper, false),
-                                      ),
-                                      Container(
-                                        child: _renderSolutionComponents(
-                                            isStepper, true),
                                       ),
                                     ])
                                   : ([
@@ -3774,6 +3772,16 @@ class _JobDetailsState extends State<JobDetails>
                                                 1,
                                         child: _renderSolutionComponents(
                                             isStepper, false),
+                                      ),
+                                      Container(
+                                        height:
+                                            MediaQuery.of(context).size.height *
+                                                0.15,
+                                        width:
+                                            MediaQuery.of(context).size.width *
+                                                1,
+                                        child: _renderSolutionComponents(
+                                            isStepper, true),
                                       ),
                                     ])))),
                     ],
@@ -4064,14 +4072,15 @@ class _JobDetailsState extends State<JobDetails>
     );
   }
 
-  Future<bool> deleteItemFromPickList(int id) async {
+  Future<bool> deleteItemFromPickList(
+      int id, bool isDeleteAll, int quantity) async {
     List<SparePart> ids = [];
 
     // var ids = addedSparePartQuantities.map((e) => e.id).toList();
 
-    selectedJob?.picklist?.forEach((element) {
+    selectedJob?.picklistNotCollected?.forEach((element) {
       if (element.id == id) {
-        element.quantity = 0;
+        element.quantity = isDeleteAll ? 0 : quantity;
       }
       ids.add(element);
     });
@@ -4106,7 +4115,7 @@ class _JobDetailsState extends State<JobDetails>
             Helpers.checkIfEditableByJobStatus(
                         selectedJob, (selectedJob?.isMainEngineer ?? true)) &&
                     !isStepper &&
-                    (selectedJob?.picklist?.length ?? 0) == 0 &&
+                    (selectedJob?.picklistNotCollected?.length ?? 0) == 0 &&
                     rcpCost != null
                 ? ElevatedButton(
                     child: const Padding(
@@ -4146,8 +4155,8 @@ class _JobDetailsState extends State<JobDetails>
         SizedBox(
           height: 20,
         ),
-        (selectedJob?.picklist != null &&
-                    (selectedJob?.picklist!.length ?? 0) > 0) &&
+        (selectedJob?.picklistNotCollected != null &&
+                    (selectedJob?.picklistNotCollected!.length ?? 0) > 0) &&
                 Helpers.checkIfEditableByJobStatus(
                     selectedJob, (selectedJob?.isMainEngineer ?? true)) &&
                 rcpCost != null
@@ -4202,8 +4211,14 @@ class _JobDetailsState extends State<JobDetails>
                                       side: const BorderSide(
                                           color: Color(0xFF242A38))))),
                           onPressed: () async {
-                            var abc = Helpers.editableMiscItems;
-                            print("LALALAL");
+                            pickListIndexToQuantityTemp.keys?.map((e) async {
+                              await deleteItemFromPickList(
+                                  selectedJob!.picklistNotCollected?[e].id ?? 0,
+                                  false,
+                                  pickListIndexToQuantityTemp[e] ?? 0);
+
+                              await refreshJobDetails();
+                            });
                           })
                       : new Container(),
                   isPickListPartsEditable
@@ -4232,6 +4247,9 @@ class _JobDetailsState extends State<JobDetails>
                                       side: const BorderSide(
                                           color: Color(0xFF242A38))))),
                           onPressed: () async {
+                            setState(() {
+                              pickListIndexToQuantityTemp = {};
+                            });
                             await refreshJobDetails();
                             setState(() {
                               isPickListPartsEditable = false;
@@ -4247,7 +4265,7 @@ class _JobDetailsState extends State<JobDetails>
         Container(
           width: double.infinity,
           padding: EdgeInsets.symmetric(horizontal: 10),
-          child: (selectedJob?.picklist?.length ?? 0) > 0
+          child: (selectedJob?.picklistNotCollected?.length ?? 0) > 0
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -4259,7 +4277,7 @@ class _JobDetailsState extends State<JobDetails>
                         // physics: NeverScrollableScrollPhysics(),
                         shrinkWrap: true,
                         // shrinkWrap: false,
-                        itemCount: selectedJob?.picklist?.length,
+                        itemCount: selectedJob?.picklistNotCollected?.length,
                         physics: const NeverScrollableScrollPhysics(),
                         itemBuilder: (BuildContext context, int index) {
                           return PickListItem(
@@ -4267,14 +4285,25 @@ class _JobDetailsState extends State<JobDetails>
                                   selectedJob?.aggregatedSpareparts ?? [],
                               isDiscountApplied: isDiscountApplied,
                               width: MediaQuery.of(context).size.width * 0.5,
-                              part: (selectedJob!.picklist!.elementAt(index)),
+                              part: (selectedJob!.picklistNotCollected!
+                                  .elementAt(index)),
+                              onQuantityChanged:
+                                  (String newQuantity, int index) {
+                                setState(() {
+                                  pickListIndexToQuantityTemp[index] =
+                                      newQuantity != ""
+                                          ? int.parse(newQuantity)
+                                          : 0;
+                                });
+                              },
                               index: index,
                               rcpCost: rcpCost,
                               jobId: (selectedJob!.serviceRequestid ?? ""),
                               editable: isPickListPartsEditable ? true : false,
-                              partList: (selectedJob!.picklist ?? []),
+                              partList:
+                                  (selectedJob!.picklistNotCollected ?? []),
                               onDeletePressed: (var id) async {
-                                await deleteItemFromPickList(id);
+                                await deleteItemFromPickList(id, true, 0);
                                 await refreshJobDetails();
                               },
                               job: selectedJob ?? new Job());
@@ -4286,8 +4315,9 @@ class _JobDetailsState extends State<JobDetails>
                     ),
                     Container(
                       alignment: Alignment.centerLeft,
-                      child: (selectedJob?.picklist != null &&
-                                  (selectedJob?.picklist!.length ?? 0) > 0) &&
+                      child: (selectedJob?.picklistNotCollected != null &&
+                                  (selectedJob?.picklistNotCollected!.length ?? 0) >
+                                      0) &&
                               Helpers.checkIfEditableByJobStatus(selectedJob,
                                   (selectedJob?.isMainEngineer ?? true)) &&
                               !isStepper
@@ -4313,17 +4343,16 @@ class _JobDetailsState extends State<JobDetails>
                                         )
                                       ])),
                               style: ButtonStyle(
-                                  foregroundColor: MaterialStateProperty.all<Color>(
-                                      Color(0xFF242A38)),
+                                  foregroundColor:
+                                      MaterialStateProperty.all<Color>(
+                                          Color(0xFF242A38)),
                                   backgroundColor:
                                       MaterialStateProperty.all<Color>(
                                           Color(0xFF242A38)),
                                   shape: MaterialStateProperty.all<RoundedRectangleBorder>(
                                       RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(4.0),
-                                          side: const BorderSide(
-                                              color: Color(0xFF242A38))))),
+                                          borderRadius: BorderRadius.circular(4.0),
+                                          side: const BorderSide(color: Color(0xFF242A38))))),
                               onPressed: () async {
                                 await fetchBag(selectedJob?.serviceRequestid);
                                 showDialog(
@@ -4424,7 +4453,8 @@ class _JobDetailsState extends State<JobDetails>
                 ),
               ),
               Spacer(),
-              (rcpCost?.isRCPValid ?? false)
+              (rcpCost?.isRCPValid ?? false) &&
+                      rcpCost?.discountPercentage != "0%"
                   ? FlutterSwitch(
                       activeColor: Helpers.checkIfEditableByJobStatus(
                                   selectedJob,
@@ -4479,7 +4509,8 @@ class _JobDetailsState extends State<JobDetails>
                         ? _buildChargeItem("Picklist charges (Estimated)",
                             rcpCost?.pickListCost ?? "MYR 0.00", false)
                         : new Container(),
-                    rcpCost?.sparePartCost != "MYR 0.00"
+                    rcpCost?.sparePartCost != "MYR 0.00" &&
+                            (selectedJob?.aggregatedSpareparts?.length ?? 0) > 0
                         ? _buildChargeItem("Sparepart charges",
                             rcpCost?.sparePartCost ?? "MYR 0.00", false)
                         : new Container(),
@@ -4504,16 +4535,19 @@ class _JobDetailsState extends State<JobDetails>
                     ),
                     _buildChargeItem(
                         "Total", rcpCost?.total ?? "MYR 0.00", true),
-                    (rcpCost?.isDiscountValid ?? false)
+                    (rcpCost?.isDiscountValid ?? false) &&
+                            rcpCost?.discountPercentage != "0%"
                         ? _buildChargeItem(
                             '${rcpCost?.discountPercentage} Discount applied',
                             rcpCost?.discount ?? "MYR 0.00",
                             true)
                         : new Container(),
-                    (rcpCost?.isDiscountValid ?? false)
+                    (rcpCost?.isDiscountValid ?? false) &&
+                            rcpCost?.discountPercentage != "0%"
                         ? Divider()
                         : new Container(),
-                    (rcpCost?.isDiscountValid ?? false)
+                    (rcpCost?.isDiscountValid ?? false) &&
+                            rcpCost?.discountPercentage != "0%"
                         ? _buildChargeItem("Grand Total",
                             rcpCost?.totalRCP ?? "MYR 0.00", true)
                         : new Container(),
@@ -6327,9 +6361,10 @@ class _JobDetailsState extends State<JobDetails>
         isDiscountApplied = selectedJob?.isDiscountApplied ?? false;
         tabController = TabController(
           initialIndex: 0,
-          length: selectedJob?.serviceJobStatus?.toLowerCase() == "repairing"
-              ? 2
-              : 1,
+          length: selectedJob?.serviceJobStatus?.toLowerCase() ==
+                  "pending job start"
+              ? 1
+              : 2,
           vsync: this,
         );
       });
@@ -7345,6 +7380,7 @@ class AddPartItemState extends State<AddPartItem> {
       child: Text("OK"),
       onPressed: () async {
         await widget.onDeletePressed?.call(widget.part?.id);
+        Navigator.pop(context);
       },
     );
 
@@ -7424,7 +7460,7 @@ class AddPartItemState extends State<AddPartItem> {
                       ),
                       children: <TextSpan>[
                         TextSpan(
-                          text: '$sparePartCode',
+                          text: '${sparePartCode ?? "-"}',
                         ),
                       ]),
                 ),
@@ -7439,7 +7475,7 @@ class AddPartItemState extends State<AddPartItem> {
                     ),
                     children: <TextSpan>[
                       TextSpan(
-                        text: '$description',
+                        text: '${description ?? "-"}',
                       ),
                     ]),
               ),
@@ -7569,7 +7605,7 @@ class AddPartItemState extends State<AddPartItem> {
                   children: <TextSpan>[
                     TextSpan(
                       text:
-                          'MYR ${((num.parse(((widget.rcpCost?.pickListItems ?? []).indexWhere((element) => element.sparepartsId == widget.part?.id) != -1 ? ((widget.isDiscountApplied ?? false) ? (widget.rcpCost?.pickListItems ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).rcpAmountVal : (widget.rcpCost?.pickListItems ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).amountVal) : "0") ?? "0") * (quantity)) / 100).toStringAsFixed(2)}',
+                          'MYR ${((num.parse(((widget.rcpCost?.spareParts ?? []).indexWhere((element) => element.sparepartsId == widget.part?.id) != -1 ? ((widget.isDiscountApplied ?? false) ? (widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).rcpAmountVal : (widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).amountVal) : "0") ?? "0")) / 100).toStringAsFixed(2)}',
                     ),
                   ]),
             ),
@@ -7593,6 +7629,7 @@ class PickListItem extends StatelessWidget {
       required this.editable,
       required this.isDiscountApplied,
       required this.aggregatedSpareParts,
+      required this.onQuantityChanged,
       required this.partList})
       : super(key: key);
 
@@ -7602,6 +7639,7 @@ class PickListItem extends StatelessWidget {
   final String jobId;
   final int index;
   Function onDeletePressed;
+  Function onQuantityChanged;
   RCPCost? rcpCost;
   bool? isDiscountApplied;
   List<SparePart> aggregatedSpareParts;
@@ -7667,19 +7705,25 @@ class PickListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     // var transactionId = this.part.transactionId;
     var sparePartId = this.part.id;
-    int quantity =
-        aggregatedSpareParts.indexWhere((element) => element.id == part.id) ==
-                -1
-            ? (part.quantity ?? 0)
-            : (part.quantity ?? 0) -
-                (aggregatedSpareParts
-                        .firstWhere((element) => element.id == part.id)
-                        .quantity ??
-                    0);
+    int quantity = this.part.unapprovedQuantityTaken ?? 0;
+    // aggregatedSpareParts.indexWhere((element) => element.id == part.id) ==
+    //         -1
+    //     ? (part.quantity ?? 0)
+    //     : (part.quantity ?? 0) -
+    //         (aggregatedSpareParts
+    //                 .firstWhere((element) => element.id == part.id)
+    //                 .quantity ??
+    //             0);
     // var discount = this.part.discount;
     var price = this.part.priceFormatted;
     var sparePartCode = this.part.code;
     var description = this.part.description;
+
+    num unitPrice = num.parse((rcpCost?.pickListItems ?? [])
+                .indexWhere((element) => element.sparepartsId == part.id) !=
+            -1
+        ? '${(num.parse((isDiscountApplied ?? false) ? (rcpCost?.pickListItems ?? []).firstWhere((element) => element.sparepartsId == part.id).rcpUnitPriceVal ?? "0" : (rcpCost?.pickListItems ?? []).firstWhere((element) => element.sparepartsId == part.id).unitPrice ?? "0") / (100)).toStringAsFixed(2)}'
+        : "0.00");
 
     // var total = (((double.parse(price ?? '0') *
     //         double.parse((quantity != "" ? quantity : "0") ?? "0")) *
@@ -7706,8 +7750,7 @@ class PickListItem extends StatelessWidget {
         SizedBox(
           width: 5,
         ),
-        SizedBox(
-          width: 300,
+        Expanded(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -7745,119 +7788,99 @@ class PickListItem extends StatelessWidget {
             ],
           ),
         ),
-        new Spacer(),
-        !editable
-            ? SizedBox(
-                width: 90,
-                child: Container(
-                  padding: const EdgeInsets.only(bottom: 50),
-                  child: RichText(
-                    text: TextSpan(
-                        // Note: Styles for TextSpans must be explicitly defined.
-                        // Child text spans will inherit styles from parent
-                        style: TextStyle(
-                          fontSize: 18.0,
-                          color: Colors.black54,
-                        ),
-                        children: <TextSpan>[
-                          TextSpan(
-                            text: quantity == 1
-                                ? '$quantity Unit'
-                                : '$quantity Units',
-                          ),
-                        ]),
-                  ),
+        Expanded(
+            // width: MediaQuery.of(context).size.width * 0.4,
+            child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+              Container(
+                padding: const EdgeInsets.only(bottom: 30),
+                child: RichText(
+                  text: TextSpan(
+                      // Note: Styles for TextSpans must be explicitly defined.
+                      // Child text spans will inherit styles from parent
+                      style: TextStyle(
+                        fontSize: 16.0,
+                        color: Colors.black54,
+                      ),
+                      children: <TextSpan>[
+                        TextSpan(
+                          text: "MYR ${unitPrice.toStringAsFixed(2)}",
+                        )
+                      ]),
                 ),
-              )
-            : Container(
-                width: 80,
-                padding: EdgeInsets.only(bottom: 50),
-                child: TextFormField(
-                    //focusNode: focusEmail,
-                    keyboardType: TextInputType.number,
-                    onChanged: (str) {
-                      Helpers.editableJobSpareParts[index].quantity =
-                          int.parse(str);
-                    },
-                    onEditingComplete: () {},
-                    onFieldSubmitted: (val) {
-                      FocusScope.of(context).requestFocus(new FocusNode());
-                    },
-                    inputFormatters: <TextInputFormatter>[
-                      FilteringTextInputFormatter.allow(RegExp("[0-9a-zA-Z]")),
-                    ],
-                    style: TextStyle(
-                      fontSize: 18.0,
-                      color: Colors.black54,
-                    ),
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(),
-                      //suffixText: quantity == 1 ? ' Unit' : ' Units',
-                      hintText: '$quantity'.split(".")[0],
-                      hintStyle: TextStyle(color: Colors.grey.withOpacity(0.7)),
-                      contentPadding: EdgeInsets.fromLTRB(20, 5, 0, 0),
-                    )),
               ),
-        SizedBox(
-          width: 10,
-        ),
-        SizedBox(
-          width: 90,
-          child: Container(
-            padding: const EdgeInsets.only(bottom: 30),
-            child: RichText(
-              text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
-                  style: TextStyle(
-                    fontSize: 16.0,
-                    color: Colors.black54,
-                  ),
-                  children: <TextSpan>[
-                    TextSpan(
-                      text: (rcpCost?.pickListItems ?? []).indexWhere(
-                                  (element) =>
-                                      element.sparepartsId == part.id) !=
-                              -1
-                          ? ((isDiscountApplied ?? false)
-                              ? (rcpCost?.pickListItems ?? [])
-                                  .firstWhere((element) =>
-                                      element.sparepartsId == part.id)
-                                  .rcpAmountFormatted
-                              : (rcpCost?.pickListItems ?? [])
-                                  .firstWhere((element) =>
-                                      element.sparepartsId == part.id)
-                                  .amountFormatted)
-                          : "MYR 0.00",
+              !editable
+                  ? Container(
+                      padding: const EdgeInsets.only(bottom: 30),
+                      child: RichText(
+                        text: TextSpan(
+                            // Note: Styles for TextSpans must be explicitly defined.
+                            // Child text spans will inherit styles from parent
+                            style: TextStyle(
+                              fontSize: 16.0,
+                              color: Colors.black54,
+                            ),
+                            children: <TextSpan>[
+                              TextSpan(
+                                text: quantity == 1
+                                    ? '$quantity Unit'
+                                    : '$quantity Units',
+                              ),
+                            ]),
+                      ),
                     )
-                  ]),
-            ),
-          ),
-        ),
-        SizedBox(
-          width: 10,
-        ),
-        SizedBox(
-          width: 90,
-          child: Container(
-            padding: const EdgeInsets.only(bottom: 30),
-            child: RichText(
-              text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
-                  style: TextStyle(
-                    fontSize: 16.0,
-                    color: Colors.black54,
-                  ),
-                  children: <TextSpan>[
-                    TextSpan(
-                      text:
-                          'MYR ${((num.parse(((rcpCost?.pickListItems ?? []).indexWhere((element) => element.sparepartsId == part.id) != -1 ? ((isDiscountApplied ?? false) ? (rcpCost?.pickListItems ?? []).firstWhere((element) => element.sparepartsId == part.id).rcpAmountVal : (rcpCost?.pickListItems ?? []).firstWhere((element) => element.sparepartsId == part.id).amountVal) : "0") ?? "0") * quantity) / 100).toStringAsFixed(2)}',
+                  : Container(
+                      width: 80,
+                      padding: EdgeInsets.only(bottom: 50),
+                      child: TextFormField(
+                          //focusNode: focusEmail,
+                          keyboardType: TextInputType.number,
+                          onChanged: (newQuantity) async {
+                            await onQuantityChanged(newQuantity, index);
+                          },
+                          onEditingComplete: () {},
+                          onFieldSubmitted: (val) {
+                            FocusScope.of(context)
+                                .requestFocus(new FocusNode());
+                          },
+                          inputFormatters: <TextInputFormatter>[
+                            FilteringTextInputFormatter.allow(
+                                RegExp("[0-9a-zA-Z]")),
+                          ],
+                          style: TextStyle(
+                            fontSize: 18.0,
+                            color: Colors.black54,
+                          ),
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            //suffixText: quantity == 1 ? ' Unit' : ' Units',
+                            hintText: '$quantity'.split(".")[0],
+                            hintStyle:
+                                TextStyle(color: Colors.grey.withOpacity(0.7)),
+                            contentPadding: EdgeInsets.fromLTRB(20, 5, 0, 0),
+                          )),
                     ),
-                  ]),
-            ),
-          ),
-        ),
+              Container(
+                padding: const EdgeInsets.only(bottom: 30),
+                child: RichText(
+                  text: TextSpan(
+                      // Note: Styles for TextSpans must be explicitly defined.
+                      // Child text spans will inherit styles from parent
+                      style: TextStyle(
+                        fontSize: 16.0,
+                        color: Colors.black54,
+                      ),
+                      children: <TextSpan>[
+                        TextSpan(
+                          text:
+                              'MYR ${(unitPrice * quantity).toStringAsFixed(2)}',
+                        ),
+                      ]),
+                ),
+              ),
+            ])),
       ],
     );
   }

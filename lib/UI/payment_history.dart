@@ -4,9 +4,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
-import 'package:kcs_engineer/model/general_code.dart';
-import 'package:kcs_engineer/model/job.dart';
-import 'package:kcs_engineer/model/payment_history_item.dart';
+import 'package:kcs_engineer/model/job/job.dart';
+import 'package:kcs_engineer/model/payment/payment_history_item.dart';
 import 'package:kcs_engineer/themes/app_colors.dart';
 import 'package:kcs_engineer/util/api.dart';
 import 'package:kcs_engineer/util/helpers.dart';
@@ -40,9 +39,6 @@ class _PaymentHistoryState extends State<PaymentHistory> {
   String? quantity;
   String? price;
   String? remarks;
-  List<GeneralCode> generalCodeList = [];
-
-  List<GeneralCode> addedGeneralCodeQuantities = [];
 
   Timer? searchOnStoppedTyping;
   String currentSearchText = "";

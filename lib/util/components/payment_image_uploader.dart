@@ -48,7 +48,9 @@ class _SignatureMultiImageUploadDialogState
         mailEmail,
         paymentMethodId);
 
-    Navigator.pop(context, res);
+    if (res) {
+      Navigator.pop(context, res);
+    }
   }
 
   @override
@@ -83,7 +85,8 @@ class _SignatureMultiImageUploadDialogState
                     ),
                     children: <TextSpan>[
                       TextSpan(
-                        text: 'Please upload a picture of the receipt of the transaction',
+                        text:
+                            'Please upload a picture of the receipt of the transaction',
                       ),
                     ]),
               ),

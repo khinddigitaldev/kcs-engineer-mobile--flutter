@@ -1,6 +1,7 @@
 import 'package:easy_sidemenu/easy_sidemenu.dart';
 import 'package:flutter/material.dart';
 import 'package:kcs_engineer/UI/bag.dart';
+import 'package:kcs_engineer/UI/kiv_jobs.dart';
 import 'package:kcs_engineer/UI/pick_list.dart';
 import 'package:kcs_engineer/UI/jobs.dart';
 import 'package:kcs_engineer/UI/user_profile.dart';
@@ -10,6 +11,7 @@ import 'package:kcs_engineer/kcs_icons_icons.dart';
 import 'package:kcs_engineer/side_menu_icons_icons.dart';
 import 'package:kcs_engineer/util/helpers.dart';
 import 'package:kcs_engineer/util/repositories.dart';
+import 'package:kcs_engineer/kiv_icons.dart';
 
 class MyHomePage extends StatefulWidget {
   int? data;
@@ -63,6 +65,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 Container(
                   color: Colors.white,
+                  child: Center(child: KIVJobList()),
+                ),
+                Container(
+                  color: Colors.white,
                   child: Center(child: PickList()
                       // child: JobHistory(),
                       ),
@@ -86,12 +92,12 @@ class _MyHomePageState extends State<MyHomePage> {
                 //   ),
                 // ),
 
-                Container(
-                  color: Colors.white,
-                  child: Center(
-                    child: new Container(),
-                  ),
-                ),
+                // Container(
+                //   color: Colors.white,
+                //   child: Center(
+                //     child: new Container(),
+                //   ),
+                // ),
                 Container(
                   color: Colors.white,
                   child: Center(
@@ -141,10 +147,18 @@ class _MyHomePageState extends State<MyHomePage> {
             sidemenuController.changePage(index);
             page.jumpToPage(index);
           },
-          icon: const Icon(KcsIcons.picklist),
+          icon: const Icon(Kiv.historyiconkiv_jobs),
         ),
         SideMenuItem(
           priority: 2,
+          onTap: (index, controller) {
+            sidemenuController.changePage(index);
+            page.jumpToPage(index);
+          },
+          icon: const Icon(KcsIcons.picklist),
+        ),
+        SideMenuItem(
+          priority: 3,
           onTap: (index, controller) {
             sidemenuController.changePage(index);
             page.jumpToPage(index);

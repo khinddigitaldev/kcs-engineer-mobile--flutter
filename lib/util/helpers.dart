@@ -1,15 +1,25 @@
+import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_app_installer/flutter_app_installer.dart';
+import 'package:flutter_config/flutter_config.dart';
 import 'package:hexcolor/hexcolor.dart';
-import 'package:kcs_engineer/model/jobGeneralCodes.dart';
-import 'package:kcs_engineer/model/miscellaneousItem.dart';
-import 'package:kcs_engineer/model/sparepart.dart';
-import 'package:kcs_engineer/model/user.dart';
-import 'package:kcs_engineer/model/job_sparepart.dart';
+import 'package:kcs_engineer/model/spareparts/miscellaneousItem.dart';
+import 'package:kcs_engineer/model/spareparts/sparepart.dart';
+import 'package:kcs_engineer/model/user/user.dart';
+import 'package:kcs_engineer/model/spareparts/job_sparepart.dart';
+import 'package:kcs_engineer/model/util/app_version.dart';
 import 'package:kcs_engineer/themes/app_colors.dart';
+import 'package:kcs_engineer/util/repositories.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:open_file/open_file.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
+import 'package:sn_progress_dialog/progress_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:kcs_engineer/model/job.dart';
+import 'package:kcs_engineer/model/job/job.dart';
 
 class Helpers {
   static void showAlert(BuildContext ctx,
@@ -130,12 +140,183 @@ class Helpers {
   static User? loggedInUser;
   static Job? selectedJob;
   static bool isAuthenticated = false;
-  static List<JobGeneralCode> editableGeneralCodes = [];
   static List<SparePart> editableJobSpareParts = [];
   static List<Job> inProgressJobs = [];
   static List<Job> completedJobs = [];
 
   static List<MiscellaneousItem> editableMiscItems = [];
+
+  static Future<bool> checkAppVersion(BuildContext context) async {
+    AppVersion? version;
+    version = await Repositories.fetchAppVersion();
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+
+    // if (dotenv.env["ENVIRONMENT"] == "STAGING") {
+    if (version?.version.toString() == "${packageInfo.version}" &&
+        version?.buildNo.toString() == "${packageInfo.buildNumber}") {
+      return true;
+
+      // }
+    } else {
+      displayForceUpdatePopup(context, version, packageInfo);
+      return false;
+    }
+  }
+
+  static displayForceUpdatePopup(
+      BuildContext context, AppVersion? version, PackageInfo info) async {
+    AlertDialog alert = AlertDialog(
+      title: const Text(
+        "Update App",
+        textAlign: TextAlign.center,
+      ),
+      content: Container(
+        height: MediaQuery.of(context).size.height * 0.2,
+        child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              RichText(
+                  text: TextSpan(
+                      style: TextStyle(fontSize: 16, color: Colors.black),
+                      children: [
+                    TextSpan(
+                        text:
+                            "A new version of your app is available! Please update the app to proceed. "),
+                  ])),
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 0.02,
+              ),
+              Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    RichText(
+                        text: TextSpan(
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black),
+                            children: [
+                          TextSpan(text: "Your version : "),
+                        ])),
+                    RichText(
+                        text: TextSpan(
+                            style: TextStyle(fontSize: 16, color: Colors.black),
+                            children: [
+                          TextSpan(text: "${info.version}"),
+                        ])),
+                  ]),
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 0.015,
+              ),
+              Row(children: [
+                RichText(
+                    text: TextSpan(
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black),
+                        children: [
+                      TextSpan(text: "Latest version : "),
+                    ])),
+                RichText(
+                    text: TextSpan(
+                        style: TextStyle(fontSize: 16, color: Colors.black),
+                        children: [
+                      TextSpan(text: "${version?.version}"),
+                    ])),
+              ]),
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 0.015,
+              ),
+              // RichText(
+              //     text: TextSpan(
+              //         style: TextStyle(
+              //             fontSize: 16,
+              //             fontWeight: FontWeight.bold,
+              //             color: Colors.black),
+              //         children: [
+              //       TextSpan(text: "Release Notes :"),
+              //     ])),
+              // ConstrainedBox(
+              //     constraints: BoxConstraints(
+              //         minHeight: 1,
+              //         maxHeight: MediaQuery.of(context).size.height * 0.5,
+              //         maxWidth: MediaQuery.of(context).size.width * 0.5,
+              //         minWidth: 1),
+              //     child: ListView.builder(
+              //       itemCount: version?.releaseNotes?.length ?? 0,
+              //       itemBuilder: (context, index) {
+              //         return ListTile(
+              //           leading: Icon(Icons
+              //               .arrow_right), // You can use a bullet icon or any other icon
+              //           title: Text(version?.releaseNotes?[index] ?? ""),
+              //         );
+              //       },
+              //     ))
+            ]),
+      ),
+      actions: <Widget>[
+        Container(
+          alignment: Alignment.center,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              primary: Colors.amberAccent,
+            ),
+            child: Text(
+              'Update App',
+              style: TextStyle(color: Colors.black),
+            ),
+            onPressed: () async {
+              await _downloadFile(context, version?.apkUrl ?? "");
+            },
+          ),
+        ),
+      ],
+    );
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return WillPopScope(child: alert, onWillPop: () async => false);
+      },
+    );
+  }
+
+  static _downloadFile(BuildContext context, String url) async {
+    ProgressDialog pd = ProgressDialog(context: context);
+
+    try {
+      Dio dio = Dio();
+      String dir = (await getExternalStorageDirectory())?.path ?? "";
+      String filePath = '$dir/apk/${url.split('/').last.split("?")[0]}';
+
+      File file = File(filePath);
+
+      if (await file.exists()) {
+        file.deleteSync();
+      }
+
+      pd.show(max: 100, msg: 'Downloading...');
+
+      await dio.download('$url', filePath,
+          onReceiveProgress: (received, total) {
+        int progress = (received / total * 100).toInt();
+        pd.update(
+            value: progress,
+            msg:
+                '${(received / (1024 * 1024)).toDouble().toStringAsFixed(2)}MB/${(total / (1024 * 1024)).toDouble().toStringAsFixed(2)}MB');
+      });
+
+      pd.close();
+
+      FlutterAppInstaller.installApk(filePath: filePath);
+    } catch (e) {
+      print(e);
+    }
+  }
 
   static Widget fadeAlertAnimation(
     BuildContext context,

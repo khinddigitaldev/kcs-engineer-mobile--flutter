@@ -1,6 +1,6 @@
 import 'package:intl/intl.dart';
 import 'package:jiffy/jiffy.dart';
-import 'package:kcs_engineer/model/payment_method.dart';
+import 'package:kcs_engineer/model/payment/payment_method.dart';
 import 'package:signature/signature.dart';
 
 class PaymentStatus {
