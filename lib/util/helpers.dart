@@ -151,12 +151,11 @@ class Helpers {
     version = await Repositories.fetchAppVersion();
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
 
-    // if (dotenv.env["ENVIRONMENT"] == "STAGING") {
-    if (version?.version.toString() == "${packageInfo.version}" &&
-        version?.buildNo.toString() == "${packageInfo.buildNumber}") {
+    if ((version?.version.toString() == "${packageInfo.version}" &&
+            version?.buildNo.toString() == "${packageInfo.buildNumber}") ||
+        (int.parse(packageInfo.buildNumber) >=
+            int.parse(version?.buildNo.toString() ?? "0"))) {
       return true;
-
-      // }
     } else {
       displayForceUpdatePopup(context, version, packageInfo);
       return false;
@@ -204,7 +203,8 @@ class Helpers {
                         text: TextSpan(
                             style: TextStyle(fontSize: 16, color: Colors.black),
                             children: [
-                          TextSpan(text: "${info.version}"),
+                          TextSpan(
+                              text: "${info.version} (${info.buildNumber})"),
                         ])),
                   ]),
               SizedBox(
@@ -224,7 +224,8 @@ class Helpers {
                     text: TextSpan(
                         style: TextStyle(fontSize: 16, color: Colors.black),
                         children: [
-                      TextSpan(text: "${version?.version}"),
+                      TextSpan(
+                          text: "${version?.version} (${version?.buildNo})"),
                     ])),
               ]),
               SizedBox(
@@ -463,7 +464,7 @@ class Helpers {
         res = isActual ? false : true;
         break;
       case "repairing":
-        res = !isActual ? false : true;
+        res = true;
         break;
       case "kiv":
         res = true;

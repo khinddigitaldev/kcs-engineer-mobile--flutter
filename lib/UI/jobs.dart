@@ -53,6 +53,7 @@ class _JobListState extends State<JobList>
   String currentSearchTextCompleted = "";
   List<Job> inProgressJobs = [];
   List<Job?> rejectableJobs = [];
+  int currentPage = 1;
 
   final _listSizeController = TextEditingController(text: '5');
   int _listSize = 5;
@@ -83,19 +84,24 @@ class _JobListState extends State<JobList>
   bool isCollectionVisible = false;
 
   String? currentSearchText;
+  ScrollController? controller;
 
   final storage = new FlutterSecureStorage();
   String? token;
 
+  String startDate = "";
+  String toDate = "";
+
   @override
   void initState() {
+    controller = ScrollController()..addListener(_scrollListener);
     super.initState();
   }
 
   @override
   FutureOr<void> afterFirstLayout(BuildContext context) async {
     await _loadVersion();
-    await _fetchJobs();
+    await _fetchJobs(true);
     await fetchPaymentCollection();
     await _fetchJobStatuses();
     await fetchRejecReasons();
@@ -114,6 +120,21 @@ class _JobListState extends State<JobList>
           isFilterPressed = false;
         });
       }
+    });
+    setDates();
+  }
+
+  setDates() {
+    DateTime now = DateTime.now();
+
+    // Get date 30 days ago
+    DateTime thirtyDaysAgo = now.subtract(Duration(days: 30));
+
+    // Format dates in '2023-08-29T11:08:12Z' format
+
+    setState(() {
+      toDate = now.toString().replaceAll(' ', 'T');
+      startDate = thirtyDaysAgo.toString().replaceAll(' ', 'T');
     });
   }
 
@@ -139,7 +160,20 @@ class _JobListState extends State<JobList>
   @override
   void dispose() {
     searchCT.dispose();
+    controller?.removeListener(_scrollListener);
     super.dispose();
+  }
+
+  void _scrollListener() async {
+    if (controller?.position.atEdge ?? false) {
+      bool isTop = controller?.position.pixels == 0;
+
+      if (!isTop && currentPage <= (jobData?.meta?.lastPage ?? 0)) {
+        currentPage = currentPage + 1;
+
+        await _fetchJobs(false);
+      }
+    }
   }
 
   @override
@@ -156,7 +190,15 @@ class _JobListState extends State<JobList>
     });
   }
 
-  _fetchJobs() async {
+  _fetchJobs(bool isErasePrevious) async {
+    JobData? existingJobData;
+
+    if (!isErasePrevious) {
+      setState(() {
+        existingJobData = jobData;
+      });
+    }
+
     if (Helpers.loggedInUser != null) {
       user = Helpers.loggedInUser;
     }
@@ -193,7 +235,12 @@ class _JobListState extends State<JobList>
                     .toList())
               }
             : {}),
-      }
+      },
+      "start_date": '${startDate.split('.')[0]}Z',
+      "end_date": '${toDate.split('.')[0]}Z',
+      ...(currentSearchText != null && currentSearchText != ""
+          ? {"q": currentSearchText}
+          : {})
     };
 
     var filterMap = filters["filters"] as Map<dynamic, dynamic>;
@@ -202,11 +249,14 @@ class _JobListState extends State<JobList>
     }
 
     Helpers.showAlert(context);
-    fetchedJobData = await Repositories.fetchJobs(filters);
+    fetchedJobData = await Repositories.fetchJobs(filters, currentPage);
     Navigator.pop(context);
 
     setState(() {
       jobData = fetchedJobData;
+      if (!isErasePrevious) {
+        jobData?.jobs?.insertAll(0, existingJobData?.jobs ?? []);
+      }
       inProgressJobs = (jobData as JobData).jobs ?? [];
       rejectableJobs = ((jobData as JobData).jobs ?? []).map((e) {
         if (e.serviceJobStatus?.toLowerCase() == "pending job start") {
@@ -468,7 +518,7 @@ class _JobListState extends State<JobList>
         () => searchOnInProgressStoppedTyping = new Timer(duration, () async {
               if (currentSearchTextInProgress != value || value == "") {
                 currentSearchText = value;
-                await _fetchJobs();
+                await _fetchJobs(true);
               }
             }));
   }
@@ -623,7 +673,7 @@ class _JobListState extends State<JobList>
                   currentSelectedIndex = index;
                 });
 
-                await _fetchJobs();
+                await _fetchJobs(true);
               },
             ),
           ),
@@ -924,7 +974,7 @@ class _JobListState extends State<JobList>
                                 isBulkRejectEnabled = false;
                                 selectedJobsToReject = [];
                               });
-                              await _fetchJobs();
+                              await _fetchJobs(true);
                             }),
                       )
                     ]),
@@ -983,9 +1033,9 @@ class _JobListState extends State<JobList>
                       var res = await Repositories.changeSequence(
                           inProgressJobs[oldIndex].serviceRequestid ?? "",
                           newIndex.toString());
-                      await _fetchJobs();
+                      await _fetchJobs(false);
                     }),
-
+                    scrollController: controller,
                     shrinkWrap: true,
                     // shrinkWrap: false,
                     itemCount: inProgressJobs.length,
@@ -1023,7 +1073,7 @@ class _JobListState extends State<JobList>
                                     arguments:
                                         inProgressJobs[index].serviceRequestid)
                                 .then((value) async {
-                              await _fetchJobs();
+                              await _fetchJobs(true);
                             });
                           } else {
                             bool isAdd = selectedJobsToReject
@@ -1099,7 +1149,7 @@ class _JobListState extends State<JobList>
       prevSelectedServiceTypes = [];
     });
 
-    await _fetchJobs();
+    await _fetchJobs(true);
   }
 
   submitFilters() async {
@@ -1112,7 +1162,7 @@ class _JobListState extends State<JobList>
       prevSelectedServiceStatuses.addAll(selectedServiceStatuses);
       prevSelectedServiceTypes.addAll(selectedServiceTypes);
     });
-    await _fetchJobs();
+    await _fetchJobs(true);
   }
 
   @override
@@ -1120,7 +1170,7 @@ class _JobListState extends State<JobList>
     return RefreshIndicator(
         key: _refreshKey,
         onRefresh: () async {
-          await _fetchJobs();
+          await _fetchJobs(true);
         },
         child: Scaffold(
           key: _scaffoldKey,

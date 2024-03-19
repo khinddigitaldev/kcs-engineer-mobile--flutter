@@ -156,10 +156,11 @@ class Repositories {
     }
   }
 
-  static Future<JobData?> fetchJobs(filters) async {
+  static Future<JobData?> fetchJobs(filters, int currentPage) async {
     JobData? data;
 
-    final response = await Api.bearerPost('job/service-jobs', params: filters);
+    final response = await Api.bearerPost('job/service-jobs?page=$currentPage',
+        params: filters);
     print("#Resp: ${jsonEncode(response)}");
     // Navigator.pop(context);
     if (response["success"] && response['data'] != null) {
@@ -168,11 +169,12 @@ class Repositories {
     return data;
   }
 
-  static Future<JobData?> fetchKIVJobs(filters) async {
+  static Future<JobData?> fetchKIVJobs(filters, int currentPage) async {
     JobData? data;
 
-    final response =
-        await Api.bearerPost('job/service-jobs-extra', params: filters);
+    final response = await Api.bearerPost(
+        'job/service-jobs-extra?page=$currentPage',
+        params: filters);
     print("#Resp: ${jsonEncode(response)}");
     // Navigator.pop(context);
     if (response["success"] && response['data'] != null) {

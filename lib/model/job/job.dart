@@ -289,32 +289,37 @@ class Job {
 
     this.aggregatedSpareparts = [];
 
-    this.aggregatedSpareparts?.addAll(currentJobSparepartsfromBag ?? []);
+    if ((currentJobSparepartsfromBag?.length ?? 0) > 0) {
+      this.aggregatedSpareparts?.addAll(currentJobSparepartsfromBag ?? []);
+    }
 
-    currentJobSparepartsfromWarehouse?.forEach((element) {
-      var index =
-          this.aggregatedSpareparts?.indexWhere((e) => e.id == element.id);
-      if (index != -1) {
-        this.aggregatedSpareparts?[index ?? 0].quantity =
-            (this.aggregatedSpareparts?[index ?? 0].quantity ?? 0) +
-                (element.quantity ?? 0);
-      } else {
-        this.aggregatedSpareparts?.add(element);
-      }
-    });
+    if ((currentJobSparepartsfromWarehouse?.length ?? 0) > 0) {
+      currentJobSparepartsfromWarehouse?.forEach((element) {
+        var index =
+            this.aggregatedSpareparts?.indexWhere((e) => e.id == element.id);
+        if (index != -1) {
+          this.aggregatedSpareparts?[index ?? 0].quantity =
+              (this.aggregatedSpareparts?[index ?? 0].quantity ?? 0) +
+                  (element.quantity ?? 0);
+        } else {
+          this.aggregatedSpareparts?.add(element);
+        }
+      });
+    }
 
-    currentJobSparepartsfromPickList?.forEach((element) {
-      var index =
-          this.aggregatedSpareparts?.indexWhere((e) => e.id == element.id);
-      if (index != -1) {
-        this.aggregatedSpareparts?[index ?? 0].quantity =
-            (this.aggregatedSpareparts?[index ?? 0].quantity ?? 0) +
-                (element.quantity ?? 0);
-      } else {
-        this.aggregatedSpareparts?.add(element);
-      }
-    });
-
+    if ((currentJobSparepartsfromPickList?.length ?? 0) > 0) {
+      currentJobSparepartsfromPickList?.forEach((element) {
+        var index =
+            this.aggregatedSpareparts?.indexWhere((e) => e.id == element.id);
+        if (index != -1) {
+          this.aggregatedSpareparts?[index ?? 0].quantity =
+              (this.aggregatedSpareparts?[index ?? 0].quantity ?? 0) +
+                  (element.quantity ?? 0);
+        } else {
+          this.aggregatedSpareparts?.add(element);
+        }
+      });
+    }
     this.isMainEngineer = json["is_main_engineer"];
 
     var list = [];

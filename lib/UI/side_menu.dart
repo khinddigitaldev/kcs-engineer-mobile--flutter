@@ -1,12 +1,14 @@
 import 'package:easy_sidemenu/easy_sidemenu.dart';
 import 'package:flutter/material.dart';
 import 'package:kcs_engineer/UI/bag.dart';
+import 'package:kcs_engineer/UI/job_history.dart';
 import 'package:kcs_engineer/UI/kiv_jobs.dart';
 import 'package:kcs_engineer/UI/pick_list.dart';
 import 'package:kcs_engineer/UI/jobs.dart';
 import 'package:kcs_engineer/UI/user_profile.dart';
 import 'package:kcs_engineer/bag_icons.dart';
 import 'package:kcs_engineer/history_icons_icons.dart';
+import 'package:kcs_engineer/in_complete_jobs_icons.dart';
 import 'package:kcs_engineer/kcs_icons_icons.dart';
 import 'package:kcs_engineer/side_menu_icons_icons.dart';
 import 'package:kcs_engineer/util/helpers.dart';
@@ -66,6 +68,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 Container(
                   color: Colors.white,
                   child: Center(child: KIVJobList()),
+                ),
+                Container(
+                  color: Colors.white,
+                  child: Center(child: JobHistoryList()),
                 ),
                 Container(
                   color: Colors.white,
@@ -155,10 +161,18 @@ class _MyHomePageState extends State<MyHomePage> {
             sidemenuController.changePage(index);
             page.jumpToPage(index);
           },
-          icon: const Icon(KcsIcons.picklist),
+          icon: const Icon(InCompleteJobs.incompletejob),
         ),
         SideMenuItem(
           priority: 3,
+          onTap: (index, controller) {
+            sidemenuController.changePage(index);
+            page.jumpToPage(index);
+          },
+          icon: const Icon(KcsIcons.picklist),
+        ),
+        SideMenuItem(
+          priority: 4,
           onTap: (index, controller) {
             sidemenuController.changePage(index);
             page.jumpToPage(index);
@@ -188,7 +202,7 @@ class _MyHomePageState extends State<MyHomePage> {
         //   ),
         // ),
         SideMenuItem(
-          priority: 4,
+          priority: 5,
           onTap: (index, controller) {
             sidemenuController.changePage(index);
             page.jumpToPage(index);
@@ -196,7 +210,7 @@ class _MyHomePageState extends State<MyHomePage> {
           icon: const Icon(SideMenuIcons.profile),
         ),
         SideMenuItem(
-          priority: 5,
+          priority: 6,
           onTap: (index, controller) async {
             Helpers.showAlert(context);
             var res = await _logout();

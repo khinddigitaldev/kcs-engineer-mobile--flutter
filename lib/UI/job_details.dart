@@ -121,6 +121,7 @@ class _JobDetailsState extends State<JobDetails>
   bool isErrorProblemSelection = false;
   bool isErrorEstimatedSolutionSelection = false;
   bool isErrorActualSolutionSelection = false;
+  bool isErrorSerialNo = false;
   bool isPendingItemsInPickList = false;
 
   bool isPreviousJobsSelected = false;
@@ -612,6 +613,7 @@ class _JobDetailsState extends State<JobDetails>
                                   onChanged: (str) {
                                     setState(() {
                                       isSerialNoEditable = true;
+                                      isErrorSerialNo = false;
                                     });
                                   },
                                   enabled: isSerialNoEditable,
@@ -627,6 +629,39 @@ class _JobDetailsState extends State<JobDetails>
                                   ),
                                 ),
                               ),
+                              isErrorSerialNo
+                                  ? SizedBox(
+                                      width: MediaQuery.of(context).size.width *
+                                          0.25,
+                                      child: Row(children: [
+                                        Container(
+                                            child: Row(children: [
+                                          Icon(
+                                            Icons.warning,
+                                            color: Colors.red,
+                                            size: 20,
+                                          ),
+                                          SizedBox(width: 10),
+                                          Container(
+                                            child: RichText(
+                                              text: TextSpan(
+                                                  // Note: Styles for TextSpans must be explicitly defined.
+                                                  // Child text spans will inherit styles from parent
+                                                  style: const TextStyle(
+                                                    fontSize: 14.0,
+                                                    color: Colors.red,
+                                                  ),
+                                                  children: <TextSpan>[
+                                                    TextSpan(
+                                                      text:
+                                                          "Please fill in the serial number before proceeding.",
+                                                    ),
+                                                  ]),
+                                            ),
+                                          ),
+                                        ]))
+                                      ]))
+                                  : new Container()
                             ],
                           ),
                           const SizedBox(
@@ -1959,7 +1994,6 @@ class _JobDetailsState extends State<JobDetails>
                   Column(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.min,
                     children: [
                       checkActionsEnabled("cancel")
                           ? ElevatedButton(
@@ -2196,7 +2230,16 @@ class _JobDetailsState extends State<JobDetails>
                                   isErrorEstimatedSolutionSelection = false;
                                   isErrorActualSolutionSelection = false;
                                   isPendingItemsInPickList = false;
+                                  isErrorSerialNo = false;
                                 });
+
+                                if (selectedJob != null &&
+                                    !(selectedJob?.isUnderWarranty ?? true) &&
+                                    serialNoController.text == "") {
+                                  setState(() {
+                                    isErrorSerialNo = true;
+                                  });
+                                }
 
                                 var res = validateIfEditedValuesAreSaved();
 
@@ -2253,6 +2296,7 @@ class _JobDetailsState extends State<JobDetails>
 
                                 if (res &&
                                     !isEmptySolutionOrProblem &&
+                                    !isErrorSerialNo &&
                                     !isPendingItemsInPickList) {
                                   Helpers.showAlert(context,
                                       title: "Confirm to Complete Job?",
@@ -4114,9 +4158,10 @@ class _JobDetailsState extends State<JobDetails>
             Spacer(),
             Helpers.checkIfEditableByJobStatus(
                         selectedJob, (selectedJob?.isMainEngineer ?? true)) &&
-                    !isStepper &&
-                    (selectedJob?.picklistNotCollected?.length ?? 0) == 0 &&
-                    rcpCost != null
+                    !isStepper
+                //&&
+                // (selectedJob?.picklistNotCollected?.length ?? 0) == 0 &&
+                // rcpCost != null
                 ? ElevatedButton(
                     child: const Padding(
                         padding: EdgeInsets.all(0.0),
@@ -6409,7 +6454,6 @@ class _JobDetailsState extends State<JobDetails>
                 body: ExpandableBottomSheet(
                   //use the key to get access to expand(), contract() and expansionStatus
                   key: key,
-
                   onIsContractedCallback: () => print('contracted'),
                   onIsExtendedCallback: () => print('extended'),
                   animationDurationExtend: Duration(milliseconds: 500),

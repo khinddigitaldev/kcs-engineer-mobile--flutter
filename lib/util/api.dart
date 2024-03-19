@@ -53,7 +53,7 @@ class ApiInterceptor implements InterceptorContract {
   Future<ResponseData> interceptResponse({required ResponseData data}) async {
     var body = jsonDecode(data.body ?? "");
 
-    if (body["data"] == "unauthenticated") {
+    if (data.statusCode == 401) {
       Helpers.isAuthenticated = false;
       await storage.delete(key: TOKEN);
       await storage.delete(key: TOKEN_EXPIRY);
@@ -69,7 +69,7 @@ class ApiInterceptor implements InterceptorContract {
   static Future<void> renewAccessToken() async {
     var res = await Repositories.renewAccessToken();
 
-    if (res == "unauthenticated") {
+    if (res.toString().toLowerCase() == "unauthenticated") {
       await NavigationService.pushReplacementNamed('signIn');
     }
   }

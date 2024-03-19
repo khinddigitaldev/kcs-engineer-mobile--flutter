@@ -24,15 +24,15 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:readmore/readmore.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class KIVJobList extends StatefulWidget with WidgetsBindingObserver {
+class JobHistoryList extends StatefulWidget with WidgetsBindingObserver {
   int? data;
-  KIVJobList({this.data});
+  JobHistoryList({this.data});
 
   @override
-  _KIVJobListState createState() => _KIVJobListState();
+  _JobHistoryListState createState() => _JobHistoryListState();
 }
 
-class _KIVJobListState extends State<KIVJobList>
+class _JobHistoryListState extends State<JobHistoryList>
     with WidgetsBindingObserver, AfterLayoutMixin {
   var _refreshKey = GlobalKey<RefreshIndicatorState>();
   GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
@@ -84,13 +84,13 @@ class _KIVJobListState extends State<KIVJobList>
   bool isDataLoaded = false;
   String startDate = "";
   String toDate = "";
-  ScrollController? controller;
   int currentPage = 1;
 
   String? currentSearchText;
 
   final storage = new FlutterSecureStorage();
   String? token;
+  ScrollController? controller;
 
   @override
   void initState() {
@@ -101,10 +101,12 @@ class _KIVJobListState extends State<KIVJobList>
   @override
   FutureOr<void> afterFirstLayout(BuildContext context) async {
     await _loadVersion();
+    // await _fetchJobStatuses();
     // await fetchPaymentCollection();
     // await _fetchJobStatuses();
     // await fetchRejecReasons();
     await setDates();
+    // await _fetchKIVJobs();
 
     await Future.wait([_fetchJobStatuses(), _fetchKIVJobs(true)])
         .then((value) => print('done'));
@@ -148,11 +150,6 @@ class _KIVJobListState extends State<KIVJobList>
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {}
-  }
-
   void _scrollListener() async {
     if (controller?.position.atEdge ?? false) {
       bool isTop = controller?.position.pixels == 0;
@@ -163,6 +160,11 @@ class _KIVJobListState extends State<KIVJobList>
         await _fetchKIVJobs(false);
       }
     }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {}
   }
 
   _loadVersion() async {
@@ -213,6 +215,7 @@ class _KIVJobListState extends State<KIVJobList>
     if (Helpers.loggedInUser != null) {
       user = Helpers.loggedInUser;
     }
+
     var fetchedJobData = null;
 
     var filters = {
@@ -235,13 +238,20 @@ class _KIVJobListState extends State<KIVJobList>
                 selectedPaymentStatuses.length == 2)
             ? {}
             : {"payment_status": selectedPaymentStatuses[0] == "Paid"}),
-        "service_request_status": [21],
+        "service_request_status": [2, 24]
+
+        // (fetchedJobFilterOptions?.serviceJobStatuses
+        //     ?.where((element) =>
+        //         selectedServiceStatuses.contains(element.serviceJobStatus))
+        //     .toList()
+        //     .map((e) => e?.id)
+        //     .toList())
       },
       "start_date": '${startDate.split('.')[0]}Z',
       "end_date": '${toDate.split('.')[0]}Z',
       ...(currentSearchText != null && currentSearchText != ""
           ? {"q": currentSearchText}
-          : {})
+          : {}),
     };
 
     // var filterMap = filters["filters"] as Map<dynamic, dynamic>;
@@ -364,7 +374,7 @@ class _KIVJobListState extends State<KIVJobList>
                       ),
                       children: <TextSpan>[
                         TextSpan(
-                            text: 'KIV Jobs',
+                            text: 'Incomplete Jobs',
                             style:
                                 const TextStyle(fontWeight: FontWeight.bold)),
                       ],

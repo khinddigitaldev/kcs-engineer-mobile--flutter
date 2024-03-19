@@ -56,11 +56,14 @@ class _SignInState extends State<SignIn> {
   }
 
   void validateToken() async {
-    final accessToken = await storage.read(key: TOKEN);
+    try {
+      final accessToken = 
+      await storage.read(key: TOKEN);
 
-    if (accessToken != null && accessToken != "") {
-      Navigator.pushReplacementNamed(context, 'home');
-    }
+      if (accessToken != null && accessToken != "") {
+        Navigator.pushReplacementNamed(context, 'home');
+      }
+    } catch (err) {}
   }
 
   @override
