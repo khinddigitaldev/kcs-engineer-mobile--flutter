@@ -54,9 +54,10 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
   Timer? searchOnStoppedTyping;
   String currentSearchText = "";
   ScrollController? controller;
-  int sparePartsCurrentPage = 1;
+ 
   int generalCodeCurrentPage = 1;
   int sparePartsMaxPages = 10;
+   int sparePartsCurrentPage = 1;
   int generalCodeMaxPages = 10;
 
   bool isSearchByCodeEnabled = false;

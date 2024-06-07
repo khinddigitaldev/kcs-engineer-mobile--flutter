@@ -23,6 +23,7 @@ import 'package:kcs_engineer/util/repositories.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:readmore/readmore.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 class JobList extends StatefulWidget with WidgetsBindingObserver {
   int? data;
@@ -41,6 +42,7 @@ class _JobListState extends State<JobList>
   FocusNode focusinProgressSearch = new FocusNode();
   FocusNode focusCompletedSearch = new FocusNode();
   bool isLoading = false;
+  bool isLoadingJobList = false;
   bool showPassword = false;
   String errorMsg = "";
   String version = "";
@@ -1101,7 +1103,18 @@ class _JobListState extends State<JobList>
                     },
                   ),
                 )
-              : new Container(),
+              : isLoadingJobList
+                  ? Container(
+                      alignment: Alignment.center,
+                      child: Padding(
+                        padding: const EdgeInsets.all(5.0),
+                        child: LoadingAnimationWidget.staggeredDotsWave(
+                          color: Color(0xFF000000),
+                          size: MediaQuery.of(context).size.height * 0.03,
+                        ),
+                      ),
+                    )
+                  : Container(),
           SizedBox(
             height: 30,
           ),
