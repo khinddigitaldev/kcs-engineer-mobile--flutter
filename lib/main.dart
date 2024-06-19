@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_config/flutter_config.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 // import 'package:flutter_downloader/flutter_downloader.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:kcs_engineer/app_config.dart';
 import 'package:kcs_engineer/model/user/user.dart';
 import 'package:kcs_engineer/router.dart';
@@ -138,8 +137,6 @@ class MyApp extends StatelessWidget {
       navigatorKey: NavigationService.navigatorKey,
       title: 'Khind',
       localizationsDelegates: [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
         DefaultCupertinoLocalizations.delegate,
       ],
       supportedLocales: [

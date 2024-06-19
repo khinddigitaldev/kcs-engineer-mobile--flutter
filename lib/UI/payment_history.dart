@@ -595,7 +595,6 @@ class _PaymentHistoryState extends State<PaymentHistory> {
                 border: Border.all(color: const Color(0xFFB6B6B6), width: 1),
                 shape: BoxShape.circle),
           ),
-
           onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
             setState(() {
               if (args.value.startDate != null) {
@@ -609,16 +608,7 @@ class _PaymentHistoryState extends State<PaymentHistory> {
                 tempEndDate = tempStartDate;
               }
             });
-
-            // setState(() {
-            //   tempSelectedDate = DateFormat('yyyy-MM-dd').format(
-            //       DateFormat('yyyy-MM-dd hh:mm:ss')
-            //           .parse(args.value.toString()));
-            // });
           },
-          // initialSelectedRange: PickerDateRange(
-          //     DateTime.now().subtract(const Duration(days: 4)),
-          //     DateTime.now().add(const Duration(days: 3))),
         ),
       ),
     );

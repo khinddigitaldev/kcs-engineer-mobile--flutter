@@ -18,6 +18,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:sn_progress_dialog/progress_dialog.dart';
+import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:kcs_engineer/model/job/job.dart';
 
@@ -419,6 +420,113 @@ class Helpers {
     )) {
       throw 'Could not launch $url';
     }
+  }
+
+  static showDatePicker(BuildContext context, Function cancelPressed,
+      Function tempSelection, Function donePressed) {
+    String startdate = "";
+    String endDate = "";
+
+    AlertDialog filterDialog = AlertDialog(
+      title: Center(child: Text("Pick a Date")),
+      actionsAlignment: MainAxisAlignment.center,
+      actions: [
+        Container(
+          color: Colors.white,
+          height: MediaQuery.of(context).size.height * 0.04,
+          width: MediaQuery.of(context).size.width * 0.3,
+          child: ElevatedButton(
+              child: Padding(
+                  padding: const EdgeInsets.all(5.0),
+                  child: Text(
+                    'CANCEL',
+                    style: TextStyle(fontSize: 13, color: Colors.white),
+                  )),
+              style: ButtonStyle(
+                  foregroundColor:
+                      MaterialStateProperty.all<Color>(AppColors.primary),
+                  backgroundColor:
+                      MaterialStateProperty.all<Color>(AppColors.primary),
+                  shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                      RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(5.0),
+                          side: BorderSide(color: AppColors.primary)))),
+              onPressed: () async {
+                Navigator.pop(context);
+                await cancelPressed.call();
+              }),
+        ),
+        Container(
+          height: MediaQuery.of(context).size.height * 0.04,
+          width: MediaQuery.of(context).size.width * 0.3,
+          child: ElevatedButton(
+              child: Padding(
+                  padding: const EdgeInsets.all(5.0),
+                  child: Text(
+                    'DONE',
+                    style: TextStyle(fontSize: 13, color: Colors.white),
+                  )),
+              style: ButtonStyle(
+                  foregroundColor:
+                      MaterialStateProperty.all<Color>(AppColors.primary),
+                  backgroundColor:
+                      MaterialStateProperty.all<Color>(AppColors.primary),
+                  shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                      RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(5.0),
+                          side: BorderSide(color: AppColors.primary)))),
+              onPressed: () async {
+                Navigator.pop(context);
+                await donePressed.call();
+              }),
+        )
+      ],
+      content: Container(
+        height: MediaQuery.of(context).size.height * 0.4,
+        width: MediaQuery.of(context).size.width * 0.6,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(
+            width: 0.4,
+            color: Colors.grey.withOpacity(0.5),
+          ),
+          boxShadow: [
+            BoxShadow(
+                blurRadius: 5, color: Colors.grey[200]!, offset: Offset(0, 10)),
+          ],
+          borderRadius: BorderRadius.circular(7.5),
+        ),
+        child: SfDateRangePicker(
+          headerHeight: 60,
+          selectionMode: DateRangePickerSelectionMode.range,
+          headerStyle: DateRangePickerHeaderStyle(
+              textStyle: TextStyle(
+                  fontWeight: FontWeight.w400,
+                  fontSize: 20,
+                  color: Colors.black)),
+          selectionTextStyle: TextStyle(
+              fontWeight: FontWeight.w400, fontSize: 16, color: Colors.black),
+          monthCellStyle: DateRangePickerMonthCellStyle(
+            textStyle: TextStyle(
+                fontWeight: FontWeight.w400, fontSize: 16, color: Colors.black),
+            leadingDatesDecoration: BoxDecoration(
+                color: const Color(0xFFDFDFDF),
+                border: Border.all(color: const Color(0xFFB6B6B6), width: 1),
+                shape: BoxShape.circle),
+          ),
+          onSelectionChanged: (DateRangePickerSelectionChangedArgs args) async {
+            await tempSelection.call(args.value.startDate, args.value.endDate);
+          },
+        ),
+      ),
+    );
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return filterDialog;
+      },
+    );
   }
 
   static bool checkIfEditableByJobStatus(Job? job, bool isMainEngineer) {

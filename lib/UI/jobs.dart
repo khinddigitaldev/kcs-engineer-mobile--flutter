@@ -1075,7 +1075,7 @@ class _JobListState extends State<JobList>
                                     arguments:
                                         inProgressJobs[index].serviceRequestid)
                                 .then((value) async {
-                              await _fetchJobs(true);
+                              await resetArrays();
                             });
                           } else {
                             bool isAdd = selectedJobsToReject
@@ -1160,6 +1160,13 @@ class _JobListState extends State<JobList>
       prevSelectedPaymentStatuses = [];
       prevSelectedServiceStatuses = [];
       prevSelectedServiceTypes = [];
+    });
+    DateTime now = DateTime.now();
+    DateTime thirtyDaysAgo = now.subtract(Duration(days: 30));
+    setState(() {
+      toDate = now.toString().replaceAll(' ', 'T');
+      startDate = thirtyDaysAgo.toString().replaceAll(' ', 'T');
+      currentPage = 1;
     });
 
     await _fetchJobs(true);
