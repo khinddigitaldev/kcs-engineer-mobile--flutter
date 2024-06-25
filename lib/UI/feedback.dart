@@ -124,8 +124,6 @@ class _FeedbackState extends State<FeedbackUI> {
                   new BoxDecoration(color: Colors.white.withOpacity(0.0)),
               child: RichText(
                 text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
                   style: const TextStyle(
                     fontSize: 35.0,
                     color: Colors.red,
@@ -145,8 +143,6 @@ class _FeedbackState extends State<FeedbackUI> {
                   new BoxDecoration(color: Colors.white.withOpacity(0.0)),
               child: RichText(
                 text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
                   style: const TextStyle(
                     fontSize: 15.0,
                     color: Colors.grey,
@@ -166,8 +162,6 @@ class _FeedbackState extends State<FeedbackUI> {
                   new BoxDecoration(color: Colors.white.withOpacity(0.0)),
               child: RichText(
                 text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
                   style: const TextStyle(
                     fontSize: 18.0,
                     color: Colors.black,
@@ -223,8 +217,6 @@ class _FeedbackState extends State<FeedbackUI> {
                         new BoxDecoration(color: Colors.white.withOpacity(0.0)),
                     child: RichText(
                       text: TextSpan(
-                        // Note: Styles for TextSpans must be explicitly defined.
-                        // Child text spans will inherit styles from parent
                         style: const TextStyle(
                           fontSize: 14.0,
                           color: Colors.grey,
@@ -269,8 +261,6 @@ class _FeedbackState extends State<FeedbackUI> {
             (!isNeutralRating && isBadRating)
                 ? RichText(
                     text: TextSpan(
-                      // Note: Styles for TextSpans must be explicitly defined.
-                      // Child text spans will inherit styles from parent
                       style: const TextStyle(
                         fontSize: 17.0,
                         color: Colors.black,

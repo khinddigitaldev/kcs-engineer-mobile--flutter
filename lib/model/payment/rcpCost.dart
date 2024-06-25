@@ -10,26 +10,31 @@ class RCPCost {
   String? miscCost;
   String? total;
   String? totalRCP;
+  String? totalSST;
+  String? totalSSTRCP;
   String? discount;
   bool? isRCPValid;
   String? discountPercentage;
   List<RCPSparePart>? spareParts;
   List<RCPSparePart>? pickListItems;
 
-  RCPCost(
-      {this.sparePartCost,
-      this.solutionCost,
-      this.pickListCost,
-      this.transportCost,
-      this.pickupCost,
-      this.miscCost,
-      this.isDiscountValid,
-      this.total,
-      this.spareParts,
-      this.pickListItems,
-      this.discount,
-      this.isRCPValid,
-      this.totalRCP});
+  RCPCost({
+    this.sparePartCost,
+    this.solutionCost,
+    this.pickListCost,
+    this.transportCost,
+    this.pickupCost,
+    this.miscCost,
+    this.isDiscountValid,
+    this.total,
+    this.spareParts,
+    this.pickListItems,
+    this.discount,
+    this.isRCPValid,
+    this.totalRCP,
+    this.totalSSTRCP,
+    this.totalSST,
+  });
 
   RCPCost.fromJson(Map<String, dynamic> json) {
     this.isDiscountValid = json["meta"]?["discount_valid"] == "1";
@@ -116,6 +121,14 @@ class RCPCost {
 
     this.solutionCost = convertToCurrency((json["solution"] != null)
         ? (json["solution"]?["amount"]?["amount"].toString())
+        : "0");
+
+    this.totalSSTRCP = convertToCurrency(json["meta"] != null
+        ? ((json["meta"]?["rcp_sst_total_sum"]?["amount"].toString()))
+        : "0");
+
+    this.totalSST = convertToCurrency(json["meta"] != null
+        ? (json["meta"]?["sst_total_sum"]?["amount"].toString())
         : "0");
   }
 

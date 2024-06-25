@@ -48,9 +48,17 @@ class Job {
   String? estimatedSolutionCode;
   String? estimatedSolutionDescription;
   String? estimatedSolutionCharges;
+  String? estimatedSolutionChargesAmount;
+  String? estimatedSolutionSSTPercentage;
+  String? estimatedSolutionTotalSST;
+  String? estimatedSolutionTotalLineVal;
   String? actualSolutionCode;
   String? actualSolutionDescription;
   String? actualSolutionCharges;
+  String? actualSolutionChargesAmount;
+  String? actualSolutionSSTPercentage;
+  String? actualSolutionTotalSST;
+  String? actualSolutionTotalLineVal;
   String? remarks;
   String? adminRemarks;
   String? engineerRemarks;
@@ -115,9 +123,17 @@ class Job {
       this.estimatedSolutionCode,
       this.estimatedSolutionDescription,
       this.estimatedSolutionCharges,
+      this.estimatedSolutionChargesAmount,
+      this.estimatedSolutionSSTPercentage,
+      this.estimatedSolutionTotalLineVal,
+      this.estimatedSolutionTotalSST,
       this.actualSolutionCode,
       this.actualSolutionDescription,
       this.actualSolutionCharges,
+      this.actualSolutionChargesAmount,
+      this.actualSolutionSSTPercentage,
+      this.actualSolutionTotalLineVal,
+      this.actualSolutionTotalSST,
       this.remarks,
       this.paymentMethods,
       this.adminRemarks,
@@ -183,12 +199,44 @@ class Job {
         json["solution"]?["estimated"]?["solution"];
     this.estimatedSolutionCharges =
         json["solution"]?["estimated"]?["charges"]?["formatted"];
-
+    this.estimatedSolutionChargesAmount = (double.parse(
+                json["solution"]?["estimated"]?["charges"]?["amount"] ?? "1") /
+            100)
+        .toStringAsFixed(2);
+    this.estimatedSolutionSSTPercentage =
+        json["solution"]?["estimated"]?["sst_percentage"].toString();
+    this.estimatedSolutionTotalSST = json["solution"]?["estimated"] != null
+        ? (double.parse(this.estimatedSolutionSSTPercentage ?? "0.0") *
+                double.parse(this.estimatedSolutionChargesAmount ?? "0.0"))
+            .toString()
+        : "-";
+    this.estimatedSolutionTotalLineVal = json["solution"]?["estimated"] != null
+        ? (double.parse(this.estimatedSolutionTotalSST ?? "0.0") +
+                double.parse(this.estimatedSolutionChargesAmount ?? "0.0"))
+            .toStringAsFixed(2)
+        : "-";
     this.actualSolutionCode = json["solution"]?["actual"]?["code"];
     this.actualSolutionDescription = json["solution"]?["actual"]?["solution"];
 
     this.actualSolutionCharges =
         json["solution"]?["actual"]?["charges"]?["formatted"];
+    this.actualSolutionChargesAmount = (double.parse(
+                json["solution"]?["actual"]?["charges"]?["amount"] ?? "1") /
+            100)
+        .toStringAsFixed(2);
+    this.actualSolutionSSTPercentage =
+        json["solution"]?["actual"]?["sst_percentage"].toString();
+    this.actualSolutionTotalSST = json["solution"]?["actual"] != null
+        ? (double.parse(this.actualSolutionSSTPercentage ?? "0.0") *
+                double.parse(this.actualSolutionChargesAmount ?? "0.0"))
+            .toString()
+        : "-";
+    this.actualSolutionTotalLineVal = json["solution"]?["actual"] != null
+        ? (double.parse(this.actualSolutionTotalSST ?? "0.0") +
+                double.parse(this.actualSolutionChargesAmount ?? "0.0"))
+            .toStringAsFixed(2)
+        : "-";
+
     this.remarks = json["remarks"]?["remarks"];
     this.adminRemarks = json["remarks"]?["admin_remarks"];
     this.engineerRemarks = json["remarks"]?["engineer_remarks"];

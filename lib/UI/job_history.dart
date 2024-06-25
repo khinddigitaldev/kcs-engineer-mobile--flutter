@@ -1,28 +1,19 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:ui';
 
 import 'package:after_layout/after_layout.dart';
 import 'package:bottom_sheet_bar/bottom_sheet_bar.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:intl/intl.dart';
 import 'package:kcs_engineer/components/job_item.dart';
 import 'package:kcs_engineer/model/job/job.dart';
 import 'package:kcs_engineer/model/job/filters/job_filter_options.dart';
-import 'package:kcs_engineer/model/job/job_order_seq.dart';
 import 'package:kcs_engineer/model/payment/paymentCollection.dart';
 import 'package:kcs_engineer/model/job/general/reason.dart';
 import 'package:kcs_engineer/model/user/user.dart';
 import 'package:kcs_engineer/themes/text_styles.dart';
-import 'package:kcs_engineer/util/api.dart';
-import 'package:kcs_engineer/util/components/calendarView.dart';
 import 'package:kcs_engineer/util/helpers.dart';
 import 'package:kcs_engineer/util/repositories.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:readmore/readmore.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class JobHistoryList extends StatefulWidget with WidgetsBindingObserver {
   int? data;
@@ -561,8 +552,6 @@ class _JobHistoryListState extends State<JobHistoryList>
                       ),
                       RichText(
                         text: TextSpan(
-                          // Note: Styles for TextSpans must be explicitly defined.
-                          // Child text spans will inherit styles from parent
                           style: const TextStyle(
                             fontSize: 32.0,
                             color: Colors.black,
@@ -582,8 +571,6 @@ class _JobHistoryListState extends State<JobHistoryList>
                         child: RichText(
                           textAlign: TextAlign.center,
                           text: TextSpan(
-                            // Note: Styles for TextSpans must be explicitly defined.
-                            // Child text spans will inherit styles from parent
                             style: const TextStyle(
                               fontSize: 16.0,
                               color: Colors.black54,

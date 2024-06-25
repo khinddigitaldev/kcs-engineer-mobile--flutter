@@ -369,8 +369,6 @@ class _JobListState extends State<JobList>
                 ),
                 RichText(
                   text: TextSpan(
-                    // Note: Styles for TextSpans must be explicitly defined.
-                    // Child text spans will inherit styles from parent
                     style: const TextStyle(
                       fontSize: 38.0,
                       color: Colors.black,
@@ -387,8 +385,6 @@ class _JobListState extends State<JobList>
                 ),
                 RichText(
                   text: TextSpan(
-                    // Note: Styles for TextSpans must be explicitly defined.
-                    // Child text spans will inherit styles from parent
                     style: const TextStyle(
                       fontSize: 14.0,
                       color: Colors.black54,
@@ -586,8 +582,6 @@ class _JobListState extends State<JobList>
                     child: Column(children: [
                       RichText(
                         text: TextSpan(
-                            // Note: Styles for TextSpans must be explicitly defined.
-                            // Child text spans will inherit styles from parent
                             style: const TextStyle(
                               fontSize: 15.0,
                               color: Colors.black,
@@ -603,8 +597,6 @@ class _JobListState extends State<JobList>
                           !isCollectionVisible
                               ? RichText(
                                   text: TextSpan(
-                                      // Note: Styles for TextSpans must be explicitly defined.
-                                      // Child text spans will inherit styles from parent
                                       style: const TextStyle(
                                         fontSize: 25.0,
                                         color: Colors.black,
@@ -685,8 +677,6 @@ class _JobListState extends State<JobList>
               alignment: Alignment.centerLeft,
               child: RichText(
                 text: TextSpan(
-                    // Note: Styles for TextSpans must be explicitly defined.
-                    // Child text spans will inherit styles from parent
                     style: const TextStyle(
                       fontSize: 25.0,
                       color: Colors.black,
@@ -715,8 +705,6 @@ class _JobListState extends State<JobList>
                     alignment: Alignment.centerLeft,
                     child: RichText(
                       text: TextSpan(
-                          // Note: Styles for TextSpans must be explicitly defined.
-                          // Child text spans will inherit styles from parent
                           style: const TextStyle(
                             fontSize: 25.0,
                             color: Colors.black,

@@ -227,8 +227,6 @@ class _SignatureState extends State<SignatureUI> {
                 children: [
                   RichText(
                     text: TextSpan(
-                      // Note: Styles for TextSpans must be explicitly defined.
-                      // Child text spans will inherit styles from parent
                       style: const TextStyle(
                         fontSize: 17.0,
                         color: Colors.black,
@@ -245,8 +243,6 @@ class _SignatureState extends State<SignatureUI> {
                   SizedBox(height: 15),
                   RichText(
                     text: TextSpan(
-                      // Note: Styles for TextSpans must be explicitly defined.
-                      // Child text spans will inherit styles from parent
                       style: const TextStyle(
                         fontSize: 14.0,
                         color: Colors.black,
@@ -334,8 +330,6 @@ class _SignatureState extends State<SignatureUI> {
                   signatureErr
                       ? RichText(
                           text: TextSpan(
-                            // Note: Styles for TextSpans must be explicitly defined.
-                            // Child text spans will inherit styles from parent
                             style: const TextStyle(
                               fontSize: 14.0,
                               color: Colors.red,
@@ -353,8 +347,6 @@ class _SignatureState extends State<SignatureUI> {
                     children: [
                       RichText(
                         text: TextSpan(
-                          // Note: Styles for TextSpans must be explicitly defined.
-                          // Child text spans will inherit styles from parent
                           style: const TextStyle(
                             fontSize: 14.0,
                             color: Colors.black,
@@ -386,8 +378,6 @@ class _SignatureState extends State<SignatureUI> {
                         children: [
                           RichText(
                             text: TextSpan(
-                                // Note: Styles for TextSpans must be explicitly defined.
-                                // Child text spans will inherit styles from parent
                                 style: TextStyle(
                                   fontSize: 25.0,
                                   color: Colors.blue,
@@ -406,8 +396,6 @@ class _SignatureState extends State<SignatureUI> {
                           ),
                           RichText(
                             text: TextSpan(
-                                // Note: Styles for TextSpans must be explicitly defined.
-                                // Child text spans will inherit styles from parent
                                 style: const TextStyle(
                                   fontSize: 18.0,
                                   color: Colors.blue,
@@ -432,8 +420,8 @@ class _SignatureState extends State<SignatureUI> {
                   //           children: [
                   // RichText(
                   //   text: TextSpan(
-                  //       // Note: Styles for TextSpans must be explicitly defined.
-                  //       // Child text spans will inherit styles from parent
+                  //
+                  //
                   //       style: const TextStyle(
                   //         fontSize: 18.0,
                   //         color: Colors.black,
@@ -604,8 +592,6 @@ class _SignatureState extends State<SignatureUI> {
                     children: [
                       RichText(
                         text: TextSpan(
-                          // Note: Styles for TextSpans must be explicitly defined.
-                          // Child text spans will inherit styles from parent
                           style: const TextStyle(
                             fontSize: 17.0,
                             color: Colors.black,
@@ -895,8 +881,8 @@ class _SignatureState extends State<SignatureUI> {
             //         children: [
             //           RichText(
             //             text: TextSpan(
-            //               // Note: Styles for TextSpans must be explicitly defined.
-            //               // Child text spans will inherit styles from parent
+            //
+            //
             //               style: const TextStyle(
             //                   fontSize: 20.0, color: Colors.black87),
             //               children: <TextSpan>[
@@ -914,8 +900,8 @@ class _SignatureState extends State<SignatureUI> {
             //             child: RichText(
             //               textAlign: TextAlign.center,
             //               text: TextSpan(
-            //                 // Note: Styles for TextSpans must be explicitly defined.
-            //                 // Child text spans will inherit styles from parent
+            //
+            //
             //                 style: const TextStyle(
             //                   fontSize: 17.0,
             //                   color: Colors.black54,
@@ -940,8 +926,8 @@ class _SignatureState extends State<SignatureUI> {
             //               RichText(
             //                 textAlign: TextAlign.center,
             //                 text: TextSpan(
-            //                   // Note: Styles for TextSpans must be explicitly defined.
-            //                   // Child text spans will inherit styles from parent
+            //
+            //
             //                   style: TextStyle(
             //                     fontSize: 25.0,
             //                     color: Colors.blue,
@@ -957,8 +943,8 @@ class _SignatureState extends State<SignatureUI> {
             //               RichText(
             //                 textAlign: TextAlign.center,
             //                 text: TextSpan(
-            //                   // Note: Styles for TextSpans must be explicitly defined.
-            //                   // Child text spans will inherit styles from parent
+            //
+            //
             //                   style: TextStyle(
             //                     fontSize: 18.0,
             //                     color: Colors.lightBlue,
@@ -1054,8 +1040,8 @@ class _SignatureState extends State<SignatureUI> {
             //                     child: RichText(
             //                       textAlign: TextAlign.left,
             //                       text: TextSpan(
-            //                         // Note: Styles for TextSpans must be explicitly defined.
-            //                         // Child text spans will inherit styles from parent
+            //
+            //
             //                         style: TextStyle(
             //                           fontSize: 17.0,
             //                           color: Colors.black,
@@ -1173,8 +1159,8 @@ class _SignatureState extends State<SignatureUI> {
             //                     child: RichText(
             //                       textAlign: TextAlign.left,
             //                       text: TextSpan(
-            //                         // Note: Styles for TextSpans must be explicitly defined.
-            //                         // Child text spans will inherit styles from parent
+            //
+            //
             //                         style: TextStyle(
             //                           fontSize: 17.0,
             //                           color: Colors.black,

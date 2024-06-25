@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:kcs_engineer/UI/feedback.dart';
 import 'package:kcs_engineer/UI/feedback_confirmation.dart';
 import 'package:kcs_engineer/UI/payment.dart';
-import 'package:kcs_engineer/UI/job_details.dart';
+import 'package:kcs_engineer/UI/job-details/job_details.dart';
 import 'package:kcs_engineer/UI/payment_history.dart';
 import 'package:kcs_engineer/UI/side_menu.dart';
 import 'package:kcs_engineer/UI/signature.dart';

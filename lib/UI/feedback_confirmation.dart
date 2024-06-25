@@ -88,8 +88,6 @@ class _FeedBackConfirmationState extends State<FeedBackConfirmation> {
             SizedBox(height: 20),
             RichText(
               text: TextSpan(
-                // Note: Styles for TextSpans must be explicitly defined.
-                // Child text spans will inherit styles from parent
                 style: const TextStyle(
                   fontSize: 39.0,
                   color: Colors.black,
@@ -104,8 +102,6 @@ class _FeedBackConfirmationState extends State<FeedBackConfirmation> {
             SizedBox(height: 20),
             RichText(
               text: TextSpan(
-                // Note: Styles for TextSpans must be explicitly defined.
-                // Child text spans will inherit styles from parent
                 style: const TextStyle(fontSize: 25.0, color: Colors.grey),
                 children: <TextSpan>[
                   TextSpan(

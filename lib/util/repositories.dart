@@ -414,12 +414,12 @@ class Repositories {
     }
   }
 
-  static Future<List<PickupCharge>> fetchPickListCharges() async {
+  static Future<List<PickupCharge>> fetchPickUpCharges() async {
     List<PickupCharge>? data = [];
 
     final response = await Api.bearerGet('general/pickup-charges');
     print("#Resp: ${jsonEncode(response)}");
-    // Navigator.pop(context);
+
     if (response["success"] && response['data'] != null) {
       data = (response['data'] as List)
           .map((i) => PickupCharge.fromJson(i))
@@ -441,8 +441,6 @@ class Repositories {
         data = (response['data'] as List)
             .map((i) => TransportCharge.fromJson(i))
             .toList();
-        var xx = data;
-
         return data;
       } else {
         return data;
