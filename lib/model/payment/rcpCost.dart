@@ -10,8 +10,12 @@ class RCPCost {
   String? miscCost;
   String? total;
   String? totalRCP;
+  num? totalAmount;
+  num? totalAmountRCP;
   String? totalSST;
   String? totalSSTRCP;
+  num? totalAmountSST;
+  num? totalAmountSSTRCP;
   String? discount;
   bool? isRCPValid;
   String? discountPercentage;
@@ -34,6 +38,10 @@ class RCPCost {
     this.totalRCP,
     this.totalSSTRCP,
     this.totalSST,
+    this.totalAmount,
+    this.totalAmountRCP,
+    this.totalAmountSST,
+    this.totalAmountSSTRCP,
   });
 
   RCPCost.fromJson(Map<String, dynamic> json) {
@@ -130,6 +138,19 @@ class RCPCost {
     this.totalSST = convertToCurrency(json["meta"] != null
         ? (json["meta"]?["sst_total_sum"]?["amount"].toString())
         : "0");
+    this.totalAmount = json["meta"] != null
+        ? ((num.parse(json["meta"]?["total_sum"]?["amount"] ?? "0")) / 100)
+        : 0;
+    this.totalAmountRCP = json["meta"] != null
+        ? ((num.parse(json["meta"]?["total_sum_rcp"]?["amount"] ?? "0") / 100))
+        : 0;
+    this.totalAmountSST = json["meta"] != null
+        ? ((num.parse(json["meta"]?["sst_total_sum"]?["amount"] ?? "0") / 100))
+        : 0;
+    this.totalAmountSSTRCP = json["meta"] != null
+        ? ((num.parse(json["meta"]?["rcp_sst_total_sum"]?["amount"] ?? "0") /
+            100))
+        : 0;
   }
 
   String convertToCurrency(String? input) {

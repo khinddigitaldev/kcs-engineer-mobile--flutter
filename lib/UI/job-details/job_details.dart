@@ -6,7 +6,6 @@ import 'package:after_layout/after_layout.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:expandable_bottom_sheet/expandable_bottom_sheet.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_switch/flutter_switch.dart';
 import 'package:image_picker/image_picker.dart';
@@ -18,11 +17,11 @@ import 'package:kcs_engineer/UI/job-details/components/misc_item.dart';
 import 'package:kcs_engineer/UI/job-details/components/multi_image_upload_dialog.dart';
 import 'package:kcs_engineer/UI/job-details/components/picklist_item.dart';
 import 'package:kcs_engineer/UI/job-details/components/stepper_alert_dialog.dart';
+import 'package:kcs_engineer/UI/job_details.dart';
 import 'package:kcs_engineer/model/user/bag.dart';
 import 'package:kcs_engineer/model/job/checklistAttachment.dart';
 import 'package:kcs_engineer/model/job/comment.dart';
 import 'package:kcs_engineer/model/job/job.dart';
-import 'package:kcs_engineer/model/spareparts/miscellaneousItem.dart';
 import 'package:kcs_engineer/model/payment/pickup_charges.dart';
 import 'package:kcs_engineer/model/job/general/problem.dart';
 import 'package:kcs_engineer/model/payment/rcpCost.dart';
@@ -31,14 +30,11 @@ import 'package:kcs_engineer/model/job/general/solution.dart';
 import 'package:kcs_engineer/model/spareparts/sparepart.dart';
 import 'package:kcs_engineer/model/job/general/transportCharge.dart';
 import 'package:kcs_engineer/util/components/add_items_bag.dart';
-import 'package:kcs_engineer/util/full_screen_image.dart';
 import 'package:kcs_engineer/util/helpers.dart';
 import 'package:kcs_engineer/util/key.dart';
 import 'package:kcs_engineer/util/repositories.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:readmore/readmore.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class JobDetails extends StatefulWidget {
   String? id;
@@ -4055,11 +4051,20 @@ class _JobDetailsState extends State<JobDetails>
                         ? _buildChargeItem("Pickup charges",
                             rcpCost?.pickupCost ?? "MYR 0.00", false)
                         : new Container(),
+                    rcpCost?.totalSSTRCP != "MYR 0.00"
+                        ? _buildChargeItem("Total SST",
+                            rcpCost?.totalSSTRCP ?? "MYR 0.00", false)
+                        : new Container(),
                     SizedBox(
                       height: 5,
                     ),
                     _buildChargeItem(
-                        "Total", rcpCost?.total ?? "MYR 0.00", true),
+                        (rcpCost?.isDiscountValid ?? false) &&
+                                rcpCost?.discountPercentage != "0%"
+                            ? "Total"
+                            : "Grand Total",
+                        'MYR ${((rcpCost?.totalAmount ?? 0) + (rcpCost?.totalAmountSST ?? 0)).toStringAsFixed(2)}',
+                        true),
                     (rcpCost?.isDiscountValid ?? false) &&
                             rcpCost?.discountPercentage != "0%"
                         ? _buildChargeItem(
@@ -4067,16 +4072,16 @@ class _JobDetailsState extends State<JobDetails>
                             rcpCost?.discount ?? "MYR 0.00",
                             true)
                         : new Container(),
-                    _buildChargeItem(
-                        "Total SST", rcpCost?.totalSSTRCP ?? "MYR 0.00", true),
                     (rcpCost?.isDiscountValid ?? false) &&
                             rcpCost?.discountPercentage != "0%"
                         ? Divider()
                         : new Container(),
                     (rcpCost?.isDiscountValid ?? false) &&
                             rcpCost?.discountPercentage != "0%"
-                        ? _buildChargeItem("Grand Total",
-                            rcpCost?.totalRCP ?? "MYR 0.00", true)
+                        ? _buildChargeItem(
+                            "Grand Total",
+                            'MYR ${((rcpCost?.totalAmountRCP ?? 0) + (rcpCost?.totalAmountSSTRCP ?? 0)).toStringAsFixed(2)}',
+                            true)
                         : new Container(),
                   ],
                 ),
@@ -4934,7 +4939,7 @@ class _JobDetailsState extends State<JobDetails>
                             selectedJob?.transportCharge != null)
                         ? Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Container(
                                 child: Column(
@@ -4949,7 +4954,7 @@ class _JobDetailsState extends State<JobDetails>
                                               ),
                                               children: <TextSpan>[
                                                 const TextSpan(
-                                                  text: 'TRANSPORT CHARGE CODE',
+                                                  text: 'CHARGE CODE',
                                                 ),
                                               ],
                                             ),
@@ -4992,7 +4997,7 @@ class _JobDetailsState extends State<JobDetails>
                                               ),
                                               children: <TextSpan>[
                                                 const TextSpan(
-                                                  text: 'TRANSPORT CHARGE',
+                                                  text: 'CHARGE',
                                                 ),
                                               ],
                                             ),
@@ -5014,7 +5019,8 @@ class _JobDetailsState extends State<JobDetails>
                                                 TextSpan(
                                                   text: selectedJob
                                                       ?.transportCharge
-                                                      ?.description,
+                                                      ?.description
+                                                      ?.trim(),
                                                 ),
                                               ],
                                             ),
@@ -5101,7 +5107,7 @@ class _JobDetailsState extends State<JobDetails>
                                               children: <TextSpan>[
                                                 TextSpan(
                                                   text:
-                                                      'MYR ${selectedJob?.transportCharge?.lineTotal?.toStringAsFixed(2)}',
+                                                      'MYR ${selectedJob?.transportCharge?.lineTotal?.toStringAsFixed(2).trim()}',
                                                 ),
                                               ],
                                             ),
@@ -5109,9 +5115,6 @@ class _JobDetailsState extends State<JobDetails>
                                         : new Container(),
                                   ],
                                 ),
-                              ),
-                              SizedBox(
-                                width: 50,
                               ),
                               Helpers.checkIfEditableByJobStatus(
                                           selectedJob,
