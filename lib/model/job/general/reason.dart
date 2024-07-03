@@ -15,11 +15,11 @@ class Reason {
     this.reason = json["reason"];
   }
 
-  Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data["email"] = this.id;
-    data["full_name"] = this.statusId;
-    data["mobile_phone"] = this.reason;
-    return data;
-  }
+  // Map<String, dynamic> toJson() {
+  //   final Map<String, dynamic> data = new Map<String, dynamic>();
+  //   data["email"] = this.id;
+  //   data["full_name"] = this.statusId;
+  //   data["mobile_phone"] = this.reason;
+  //   return data;
+  // }
 }

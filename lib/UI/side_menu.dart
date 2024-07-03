@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:after_layout/after_layout.dart';
 import 'package:easy_sidemenu/easy_sidemenu.dart';
 import 'package:flutter/material.dart';
 import 'package:kcs_engineer/UI/bag.dart';
@@ -22,7 +25,7 @@ class MyHomePage extends StatefulWidget {
   _MyHomePageState createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with AfterLayoutMixin {
   PageController page = PageController();
   SideMenuController sidemenuController = SideMenuController();
 
@@ -33,6 +36,13 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     sidemenuController = SideMenuController();
     super.initState();
+  }
+
+  @override
+  FutureOr<void> afterFirstLayout(BuildContext context) async {
+    await Repositories.fetchRejectReasonsInitial();
+    await Repositories.fetchKIVReasonsInitial();
+    await Repositories.fetchCancellationReasonsInitial();
   }
 
   @override

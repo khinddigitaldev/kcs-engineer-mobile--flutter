@@ -33,6 +33,7 @@ import 'package:mime/mime.dart';
 import 'package:http_parser/http_parser.dart';
 
 import 'package:kcs_engineer/util/key.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Repositories {
   static Future<dynamic> handleSignIn(String email, String password) async {
@@ -781,44 +782,83 @@ class Repositories {
     }
   }
 
-  static Future<List<Reason>> fetchKIVReasons() async {
+  static Future<void> fetchKIVReasonsInitial() async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
     final response = await Api.bearerGet(
         'general/service-request-cancellation-reason?service_request_status_id=21');
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null && response["success"]) {
       var reason =
           (response['data'] as List).map((i) => Reason.fromJson(i)).toList();
-      return reason;
+      var abc = json.encode(reason);
+      pref.setString("kiv-reasons", json.encode(reason));
     } else {
-      return [];
+      return fetchKIVReasonsInitial();
     }
   }
 
-  static Future<List<Reason>> fetchCancellationReasons() async {
+  static Future<void> fetchCancellationReasonsInitial() async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+
     final response = await Api.bearerGet(
         'general/service-request-cancellation-reason?service_request_status_id=16');
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null && response["success"]) {
       var reason =
           (response['data'] as List).map((i) => Reason.fromJson(i)).toList();
-      return reason;
+      var abc = response['data'];
+      pref.setString("cancel-reasons", json.encode(reason));
     } else {
-      return [];
+      fetchCancellationReasonsInitial();
     }
   }
 
-  static Future<List<Reason>> fetchRejectReasons() async {
+  static Future<void> fetchRejectReasonsInitial() async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
     final response = await Api.bearerGet(
         'general/service-request-cancellation-reason?service_request_status_id=23');
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null && response["success"]) {
       var reason =
           (response['data'] as List).map((i) => Reason.fromJson(i)).toList();
-      return reason;
+      pref.setString("reject-reasons", json.encode(reason));
     } else {
-      return [];
+      fetchRejectReasonsInitial();
     }
   }
+
+  ///////SharedPREF BEGIN
+
+  static Future<List<Reason>> fetchKIVReasons() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String kivReasonsStr = prefs.getString("kiv-reasons") ?? "";
+    List<Reason> kivReasons = (json.decode(kivReasonsStr) as List)
+        .map((e) => Reason.fromJson(e))
+        .toList();
+    return kivReasons;
+  }
+
+  static Future<List<Reason>> fetchCancellationReasons() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String cancellationReasonsStr = prefs.getString("cancel-reasons") ?? "";
+    var abc = json.decode(cancellationReasonsStr);
+    List<Reason> cancellationReasons =
+        (json.decode(cancellationReasonsStr) as List)
+            .map((e) => Reason.fromJson(e))
+            .toList();
+    return cancellationReasons;
+  }
+
+  static Future<List<Reason>> fetchRejectReasons() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String rejectionReasonsStr = prefs.getString("reject-reasons") ?? "";
+    List<Reason> rejectionReasons = (json.decode(rejectionReasonsStr) as List)
+        .map((e) => Reason.fromJson(e))
+        .toList();
+    return rejectionReasons;
+  }
+
+  ///////SHARED PREF END
 
   static Future<bool> updateChargeable(
       String jobId,
