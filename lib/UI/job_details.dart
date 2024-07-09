@@ -162,15 +162,15 @@ class _JobDetailsState extends State<JobDetails>
       fetchRejecReasons(),
       fetchKIVReasons(),
 
-      //ones which are product specific
-      fetchRCPCost(),
-      fetchTransportCharges(),
-
-      fetchJobHistory(),
-      fetchChecklistAttachments(),
+      //ondemandstuff
+      // fetchTransportCharges(),
       fetchComments(),
       fetchProblems(),
-      fetchSolutionsByProduct()
+      fetchSolutionsByProduct(),
+      //ones which are product specific
+      fetchRCPCost(),
+      fetchJobHistory(),
+      fetchChecklistAttachments(),
     ]);
 
     if (solutionLabels.length == 0 && selectedJob != null) {}
@@ -217,19 +217,6 @@ class _JobDetailsState extends State<JobDetails>
     if (mounted) {
       setState(() {
         KIVReasons = reasons;
-      });
-    }
-  }
-
-  Future<void> fetchTransportCharges() async {
-    isLoadingTransportCharges = true;
-    var transportCharges =
-        await Repositories.fetchTransportCharges(selectedJob?.productModelId);
-    isLoadingTransportCharges = false;
-    if (mounted) {
-      setState(() {
-        allTransportCharges = transportCharges;
-        isTransportationChargesAvailable = transportCharges.length > 0;
       });
     }
   }
@@ -551,6 +538,22 @@ class _JobDetailsState extends State<JobDetails>
       // this.refreshJobDetails();
       //
     }
+  }
+
+  openTransportCharges(
+    String productModelId,
+  ) {
+    showDialog(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(builder: (context, setState) {
+            return TransportChargesPopup(
+                productModelId: '138',
+                transportChargeSelected: () {
+                  print("LALA");
+                });
+          });
+        });
   }
 
   _loadVersion() async {
@@ -5514,7 +5517,7 @@ class _JobDetailsState extends State<JobDetails>
                     child: const Padding(
                         padding: EdgeInsets.all(0.0),
                         child: Text(
-                          'Refresh',
+                          'Sync',
                           style: TextStyle(fontSize: 15, color: Colors.white),
                         )),
                     style: ButtonStyle(
@@ -5528,7 +5531,9 @@ class _JobDetailsState extends State<JobDetails>
                                     borderRadius: BorderRadius.circular(4.0),
                                     side: const BorderSide(
                                         color: Color(0xFF242A38))))),
-                    onPressed: () async {}),
+                    onPressed: () async {
+                      openTransportCharges('138');
+                    }),
               )
             ]),
             Spacer(),
@@ -5569,6 +5574,31 @@ class _JobDetailsState extends State<JobDetails>
               },
             ),
           ]),
+          SizedBox(height: MediaQuery.of(context).size.height * 0.05),
+          Container(
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(color: Colors.black87, width: 1.0)),
+              child: Container(
+                  padding: EdgeInsets.all(10),
+                  child: Row(
+                    children: [
+                      RichText(
+                        text: TextSpan(
+                            style: TextStyle(
+                              fontSize: 15.0,
+                              color: Colors.black87,
+                            ),
+                            children: <TextSpan>[
+                              TextSpan(
+                                text: "Add Transport Charges",
+                              ),
+                            ]),
+                      ),
+                      Spacer(),
+                      Icon(Icons.arrow_drop_down_outlined)
+                    ],
+                  ))),
           isLoadingTransportCharges
               ? Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -5595,8 +5625,7 @@ class _JobDetailsState extends State<JobDetails>
                           ])
                     ])
               : allTransportCharges == null
-                  ? _renderLoadingErrorWidget(
-                      fetchTransportCharges, '"Transport Charges"')
+                  ? _renderLoadingErrorWidget(() {}, '"Transport Charges"')
                   : Column(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -5945,6 +5974,8 @@ class _JobDetailsState extends State<JobDetails>
                     ),
         ]);
   }
+
+  displayTransportChargesList() {}
 
   Widget _renderLoadingErrorWidget(void Function() sync, String type) {
     return Row(
@@ -9258,6 +9289,81 @@ class MiscItem extends StatelessWidget {
               ),
       ],
     );
+  }
+}
+
+class TransportChargesPopup extends StatefulWidget {
+  String? productModelId;
+  Function transportChargeSelected;
+  TransportChargesPopup(
+      {this.productModelId, required this.transportChargeSelected}) {}
+
+  @override
+  _TransportChargesPopupState createState() => _TransportChargesPopupState();
+}
+
+class _TransportChargesPopupState extends State<TransportChargesPopup>
+    with AfterLayoutMixin {
+  List<TransportCharge>? charges = [];
+  bool isLoadingTransportCharges = false;
+  bool isTransportationChargesAvailable = false;
+  bool isTransportChargesLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  Future<void> fetchTransportCharges() async {
+    isLoadingTransportCharges = true;
+    var transportCharges =
+        await Repositories.fetchTransportCharges(widget.productModelId);
+    isLoadingTransportCharges = false;
+    if (mounted) {
+      setState(() {
+        charges = transportCharges;
+        isTransportationChargesAvailable = transportCharges.length > 0;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Popup Title'),
+      content: Center(
+          child: (charges != null && (charges?.length ?? 0) > 0)
+              ? ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: 100, maxHeight: 300),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: charges?.length,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemBuilder: (BuildContext context, int index) {
+                      return GestureDetector(
+                          onTap: () {
+                            widget.transportChargeSelected?.call();
+                          },
+                          child: Text(charges?[index].description ?? ""));
+                    },
+                  ),
+                )
+              : Container()),
+      actions: <Widget>[
+        TextButton(
+          child: Text('Close'),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
+      ],
+    );
+  }
+
+  @override
+  FutureOr<void> afterFirstLayout(BuildContext context) async {
+    fetchTransportCharges();
+    throw UnimplementedError();
   }
 }
 

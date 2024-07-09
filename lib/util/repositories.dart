@@ -788,10 +788,10 @@ class Repositories {
         'general/service-request-cancellation-reason?service_request_status_id=21');
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null && response["success"]) {
-      var reason =
-          (response['data'] as List).map((i) => Reason.fromJson(i)).toList();
-      var abc = json.encode(reason);
-      pref.setString("kiv-reasons", json.encode(reason));
+      // var reason =
+      //     (response['data'] as List).map((i) => Reason.fromJson(i)).toList();
+      // var abc = json.encode(reason);
+      pref.setString("kiv-reasons", json.encode(response['data']));
     } else {
       return fetchKIVReasonsInitial();
     }
@@ -804,10 +804,9 @@ class Repositories {
         'general/service-request-cancellation-reason?service_request_status_id=16');
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null && response["success"]) {
-      var reason =
-          (response['data'] as List).map((i) => Reason.fromJson(i)).toList();
-      var abc = response['data'];
-      pref.setString("cancel-reasons", json.encode(reason));
+      // var reason =
+      //     (response['data'] as List).map((i) => Reason.fromJson(i)).toList();
+      pref.setString("cancel-reasons", json.encode(response['data']));
     } else {
       fetchCancellationReasonsInitial();
     }
@@ -819,9 +818,9 @@ class Repositories {
         'general/service-request-cancellation-reason?service_request_status_id=23');
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null && response["success"]) {
-      var reason =
-          (response['data'] as List).map((i) => Reason.fromJson(i)).toList();
-      pref.setString("reject-reasons", json.encode(reason));
+      // var reason =
+      //     (response['data'] as List).map((i) => Reason.fromJson(i)).toList();
+      pref.setString("reject-reasons", json.encode(response['data']));
     } else {
       fetchRejectReasonsInitial();
     }
@@ -852,6 +851,7 @@ class Repositories {
   static Future<List<Reason>> fetchRejectReasons() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String rejectionReasonsStr = prefs.getString("reject-reasons") ?? "";
+    var abc = json.decode(rejectionReasonsStr);
     List<Reason> rejectionReasons = (json.decode(rejectionReasonsStr) as List)
         .map((e) => Reason.fromJson(e))
         .toList();
