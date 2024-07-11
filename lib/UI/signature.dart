@@ -137,12 +137,17 @@ class _SignatureState extends State<SignatureUI> {
           const SizedBox(height: 40),
           ConstrainedBox(
               constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * .15,
+                  maxHeight: MediaQuery.of(context).size.height * .2,
                   minHeight: MediaQuery.of(context).size.height * .1),
               child: Container(
                 child: ListView(
                   children: [
                     widget.rcpCost?.sparePartCost != "MYR 0.00"
+                        ? _buildChargeItem("Picklist charges (Estimated)",
+                            widget.rcpCost?.pickListCost ?? "MYR 0.00", false)
+                        : new Container(),
+                    widget.rcpCost?.sparePartCost != "MYR 0.00" &&
+                            (selectedJob?.aggregatedSpareparts?.length ?? 0) > 0
                         ? _buildChargeItem("Sparepart charges",
                             widget.rcpCost?.sparePartCost ?? "MYR 0.00", false)
                         : new Container(),
@@ -162,23 +167,37 @@ class _SignatureState extends State<SignatureUI> {
                         ? _buildChargeItem("Pickup charges",
                             widget.rcpCost?.pickupCost ?? "MYR 0.00", false)
                         : new Container(),
+                    widget.rcpCost?.totalSSTRCP != "MYR 0.00"
+                        ? _buildChargeItem("Total SST",
+                            widget.rcpCost?.totalSSTRCP ?? "MYR 0.00", false)
+                        : new Container(),
                     SizedBox(
                       height: 5,
                     ),
                     _buildChargeItem(
-                        "Total", widget.rcpCost?.total ?? "MYR 0.00", true),
-                    (widget.rcpCost?.isDiscountValid ?? false)
+                        (widget.rcpCost?.isDiscountValid ?? false) &&
+                                widget.rcpCost?.discountPercentage != "0%"
+                            ? "Total"
+                            : "Grand Total",
+                        'MYR ${((widget.rcpCost?.totalAmount ?? 0) + (widget.rcpCost?.totalAmountSST ?? 0)).toStringAsFixed(2)}',
+                        true),
+                    (widget.rcpCost?.isDiscountValid ?? false) &&
+                            widget.rcpCost?.discountPercentage != "0%"
                         ? _buildChargeItem(
-                            "${widget.rcpCost?.discountPercentage} Discount applied",
+                            '${widget.rcpCost?.discountPercentage} Discount applied',
                             widget.rcpCost?.discount ?? "MYR 0.00",
                             true)
                         : new Container(),
-                    (widget.rcpCost?.isDiscountValid ?? false)
+                    (widget.rcpCost?.isDiscountValid ?? false) &&
+                            widget.rcpCost?.discountPercentage != "0%"
                         ? Divider()
                         : new Container(),
-                    (widget.rcpCost?.isDiscountValid ?? false)
-                        ? _buildChargeItem("Grand Total",
-                            widget.rcpCost?.totalRCP ?? "MYR 0.00", true)
+                    (widget.rcpCost?.isDiscountValid ?? false) &&
+                            widget.rcpCost?.discountPercentage != "0%"
+                        ? _buildChargeItem(
+                            "Grand Total",
+                            'MYR ${((widget.rcpCost?.totalAmountRCP ?? 0) + (widget.rcpCost?.totalAmountSSTRCP ?? 0)).toStringAsFixed(2)}',
+                            true)
                         : new Container(),
                   ],
                 ),
@@ -384,11 +403,10 @@ class _SignatureState extends State<SignatureUI> {
                                 ),
                                 children: <TextSpan>[
                                   TextSpan(
-                                    text: (widget.rcpCost?.isDiscountValid ??
-                                            false)
-                                        ? widget.rcpCost?.totalRCP
-                                        : widget.rcpCost?.total,
-                                  ),
+                                      text: (widget.rcpCost?.isDiscountValid ??
+                                              false)
+                                          ? 'MYR ${((widget.rcpCost?.totalAmountRCP ?? 0) + (widget.rcpCost?.totalAmountSST ?? 0)).toStringAsFixed(2)}'
+                                          : 'MYR ${((widget.rcpCost?.totalAmount ?? 0) + (widget.rcpCost?.totalAmountSST ?? 0)).toStringAsFixed(2)}'),
                                 ]),
                           ),
                           SizedBox(
