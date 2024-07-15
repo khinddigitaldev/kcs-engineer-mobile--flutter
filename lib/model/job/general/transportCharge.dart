@@ -24,4 +24,16 @@ class TransportCharge {
     this.currency = json["transport_charges"]?["currency"];
     this.priceFormatted = json["transport_charges"]?["formatted"];
   }
+
+  static Map<String, dynamic> toJson(TransportCharge charge) {
+    Map<String, dynamic> map = {};
+    map["id"] = charge.id;
+    map["code"] = charge.code;
+    map["description"] = charge.description;
+    map["amount"] = charge.amount;
+    map["currency"] = charge.currency;
+    map["priceFormatted"] = charge.priceFormatted;
+
+    return map;
+  }
 }

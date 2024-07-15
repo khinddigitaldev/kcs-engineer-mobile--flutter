@@ -54,10 +54,10 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
   Timer? searchOnStoppedTyping;
   String currentSearchText = "";
   ScrollController? controller;
- 
+
   int generalCodeCurrentPage = 1;
   int sparePartsMaxPages = 10;
-   int sparePartsCurrentPage = 1;
+  int sparePartsCurrentPage = 1;
   int generalCodeMaxPages = 10;
 
   bool isSearchByCodeEnabled = false;
@@ -885,7 +885,7 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
 
     Helpers.showAlert(context);
 
-    var url = 'general/spareparts?per_page=20' +
+    var url = 'general/spareparts?per_page=15' +
         '&page=$sparePartsCurrentPage' +
         (!searchByCode
             ? (warehouseSearchCT.text != ""
@@ -904,7 +904,7 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
             : (code != "" ? '&q=' + code.toString() : "")) +
         (searchByCode ? '&search_only_by_code=1' : '&search_only_by_code=0') +
         (!searchByCode ? '&product_id=${selectedJob?.productId}' : '') +
-        (!searchByCode ? '&service_request_id=${jobId}' : ''));
+        ('&service_request_id=${jobId}'));
 
     print("#Resp: ${jsonEncode(response)}");
     Navigator.pop(context);

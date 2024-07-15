@@ -16,12 +16,12 @@ class Solution {
     this.solution = json["solution"];
   }
 
-  Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data["solution_id"] = this.solutionId;
-    data["solution_code"] = this.solutionCode;
-    data["solution"] = this.solution;
+  static Map<String, dynamic> toJson(Solution solution) {
+    Map<String, dynamic> map = {};
+    map["id"] = solution.solutionId;
+    map["code"] = solution.solutionCode;
+    map["description"] = solution.solution;
 
-    return data;
+    return map;
   }
 }

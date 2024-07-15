@@ -15,12 +15,12 @@ class Problem {
     this.problem = json["problem"];
   }
 
-  Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data["problem_id"] = this.problemId;
-    data["problem_code"] = this.problemCode;
-    data["problem"] = this.problem;
+  static Map<String, dynamic> toJson(Problem problem) {
+    Map<String, dynamic> map = {};
+    map["id"] = problem.problemId;
+    map["code"] = problem.problemCode;
+    map["description"] = problem.problem;
 
-    return data;
+    return map;
   }
 }

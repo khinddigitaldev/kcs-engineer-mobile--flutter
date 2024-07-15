@@ -14,7 +14,9 @@ import 'package:kcs_engineer/history_icons_icons.dart';
 import 'package:kcs_engineer/in_complete_jobs_icons.dart';
 import 'package:kcs_engineer/kcs_icons_icons.dart';
 import 'package:kcs_engineer/side_menu_icons_icons.dart';
+import 'package:kcs_engineer/util/api.dart';
 import 'package:kcs_engineer/util/helpers.dart';
+import 'package:kcs_engineer/util/key.dart';
 import 'package:kcs_engineer/util/repositories.dart';
 import 'package:kcs_engineer/kiv_icons.dart';
 
@@ -38,11 +40,38 @@ class _MyHomePageState extends State<MyHomePage> with AfterLayoutMixin {
     super.initState();
   }
 
+  Future<bool> checkIsAuth() async {
+    try {
+      final accessToken = await storage.read(key: TOKEN);
+
+      var epoch = await storage.read(key: TOKEN_EXPIRY);
+
+      if (epoch != null) {
+        num tokenExpiry = num.parse(epoch.toString());
+        var now = DateTime.now().toUtc().millisecondsSinceEpoch;
+
+        if (accessToken != null && accessToken != "" && tokenExpiry > now) {
+          return true;
+        } else {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    } catch (err) {
+      return false;
+    }
+  }
+
   @override
   FutureOr<void> afterFirstLayout(BuildContext context) async {
-    await Repositories.fetchRejectReasonsInitial();
-    await Repositories.fetchKIVReasonsInitial();
-    await Repositories.fetchCancellationReasonsInitial();
+    bool isAuth = await checkIsAuth();
+
+    if (isAuth) {
+      await Repositories.fetchRejectReasonsInitial();
+      await Repositories.fetchKIVReasonsInitial();
+      await Repositories.fetchCancellationReasonsInitial();
+    }
   }
 
   @override

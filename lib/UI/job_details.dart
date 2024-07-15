@@ -165,7 +165,7 @@ class _JobDetailsState extends State<JobDetails>
       //ondemandstuff
       // fetchTransportCharges(),
       fetchComments(),
-      fetchProblems(),
+      // fetchProblems(),
       fetchSolutionsByProduct(),
       //ones which are product specific
       fetchRCPCost(),
@@ -483,7 +483,7 @@ class _JobDetailsState extends State<JobDetails>
     }
   }
 
-  Future<void> fetchSolutionsByProduct() async {
+  Future<List<Solution>> fetchSolutionsByProduct() async {
     isLoadingSolutions = true;
     solutions = await Repositories.fetchSolutions(
         selectedJob?.productModelId.toString() ?? "",
@@ -500,12 +500,13 @@ class _JobDetailsState extends State<JobDetails>
       });
     }
     isLoadingSolutions = false;
+
+    return solutions;
   }
 
-  Future<void> fetchProblems() async {
+  Future<List<Problem>> fetchProblems(String groupId) async {
     isLoadingProblems = true;
-    problems = await Repositories.fetchProblems(
-        selectedJob?.productGroupdId.toString() ?? "");
+    problems = await Repositories.fetchProblems(groupId);
 
     problems.forEach((element) {
       problemLabels.add(element.problem ?? "");
@@ -519,6 +520,15 @@ class _JobDetailsState extends State<JobDetails>
       });
     }
     isLoadingProblems = false;
+
+    return problems;
+  }
+
+  Future<List<TransportCharge>> fetchTransportCharges(
+      int productModelId) async {
+    var transportCharges =
+        await Repositories.fetchTransportCharges(productModelId);
+    return transportCharges;
   }
 
   @override
@@ -540,17 +550,46 @@ class _JobDetailsState extends State<JobDetails>
     }
   }
 
-  openTransportCharges(
-    String productModelId,
-  ) {
+  openCharges(
+      String productModelId, String type, Function fetchData, bool isActual) {
     showDialog(
         context: context,
         builder: (context) {
           return StatefulBuilder(builder: (context, setState) {
-            return TransportChargesPopup(
-                productModelId: '138',
-                transportChargeSelected: () {
-                  print("LALA");
+            return ChargesPopup(
+                itemheight: MediaQuery.of(context).size.height * 0.45,
+                width: MediaQuery.of(context).size.width * 0.5,
+                searchEnabled: type != "transport",
+                productModelId: productModelId,
+                fetchFunction: () async {
+                  return await fetchData.call(int.parse(productModelId));
+                },
+                type: '$type',
+                submitFunction: (String type, int chargeId) async {
+                  Navigator.pop(context);
+                  var res;
+                  switch (type) {
+                    case 'transport':
+                      res = await Repositories.addTransportChargesToJob(
+                        selectedJob!.serviceRequestid ?? "0",
+                        selectedJob?.productModelId ?? 0,
+                        chargeId,
+                      );
+                      break;
+                    case 'problems':
+                      res = await Repositories.addProblemToJob(
+                          (selectedJob?.serviceRequestid ?? ""),
+                          chargeId,
+                          false);
+                      //show error if error
+                      break;
+                    case 'solutions':
+                      res = await Repositories.addSolutionToJob(
+                          selectedJob!.serviceRequestid ?? "0",
+                          chargeId,
+                          !isActual);
+                  }
+                  await refreshJobDetails();
                 });
           });
         });
@@ -902,42 +941,38 @@ class _JobDetailsState extends State<JobDetails>
                   children: <Widget>[
                     Container(
                       width: MediaQuery.of(context).size.width * 0.25,
-                      child: Row(
-                        children: [
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              RichText(
-                                text: const TextSpan(
-                                    style: TextStyle(
-                                      fontSize: 15.0,
-                                      color: Colors.black54,
-                                    ),
-                                    children: <TextSpan>[
-                                      const TextSpan(
-                                        text: 'PRODUCT NAME',
-                                      ),
-                                    ]),
-                              ),
-                              Container(
-                                alignment: Alignment.centerLeft,
-                                width: 130,
-                                child: RichText(
-                                  text: TextSpan(
-                                      style: TextStyle(
-                                        fontSize: 15.0,
-                                        color: Colors.black87,
-                                      ),
-                                      children: <TextSpan>[
-                                        TextSpan(
-                                          text: selectedJob?.productDescription,
-                                        ),
-                                      ]),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          RichText(
+                            text: const TextSpan(
+                                style: TextStyle(
+                                  fontSize: 15.0,
+                                  color: Colors.black54,
                                 ),
-                              )
-                            ],
+                                children: <TextSpan>[
+                                  const TextSpan(
+                                    text: 'PRODUCT NAME',
+                                  ),
+                                ]),
                           ),
+                          Container(
+                            alignment: Alignment.centerLeft,
+                            width: 130,
+                            child: RichText(
+                              text: TextSpan(
+                                  style: TextStyle(
+                                    fontSize: 15.0,
+                                    color: Colors.black87,
+                                  ),
+                                  children: <TextSpan>[
+                                    TextSpan(
+                                      text: selectedJob?.productDescription,
+                                    ),
+                                  ]),
+                            ),
+                          )
                         ],
                       ),
                     ),
@@ -3075,16 +3110,12 @@ class _JobDetailsState extends State<JobDetails>
                     const SizedBox(height: 20),
                     buildIssueInfo(),
                     const SizedBox(height: 20),
-                    (rcpCost != null && rcpCost?.total != "MYR 0.00")
-                        ? Divider()
-                        : new Container(),
-                    (rcpCost != null && rcpCost?.total != "MYR 0.00")
+                    (rcpCost != null) ? Divider() : new Container(),
+                    (rcpCost != null)
                         ? const SizedBox(height: 20)
                         : new Container(),
-                    (rcpCost != null && rcpCost?.total != "MYR 0.00")
-                        ? _renderCost(false)
-                        : new Container(),
-                    (rcpCost != null && rcpCost?.total != "MYR 0.00")
+                    (rcpCost != null) ? _renderCost(false) : new Container(),
+                    (rcpCost != null)
                         ? const SizedBox(height: 10)
                         : new Container(),
                     Divider(),
@@ -3311,88 +3342,88 @@ class _JobDetailsState extends State<JobDetails>
                     !isStepper
                 ? SizedBox(height: 30)
                 : new Container(),
-            (solutionLabels.contains(isActual
-                        ? selectedJob?.actualSolutionDescription
-                        : selectedJob?.estimatedSolutionDescription) &&
-                    Helpers.checkIfEditableByJobStatusForSolution(isActual,
-                        selectedJob, (selectedJob?.isMainEngineer ?? false)) &&
-                    !isStepper)
-                ? DropdownButtonFormField<String>(
-                    isExpanded: true,
-                    items: solutionLabels.map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                    onChanged: (element) async {
-                      var index = solutions
-                          .indexWhere((e) => e.solution == element.toString());
-                      var res = await Repositories.addSolutionToJob(
-                          selectedJob!.serviceRequestid ?? "0",
-                          solutions[index].solutionId ?? 0,
-                          !isActual);
-                      //show error if error
-                      await refreshJobDetails();
-                    },
-                    decoration: InputDecoration(
-                        contentPadding:
-                            EdgeInsets.symmetric(vertical: 7, horizontal: 3),
-                        border: OutlineInputBorder(
-                          borderRadius: const BorderRadius.all(
-                            const Radius.circular(5.0),
-                          ),
-                        ),
-                        filled: true,
-                        hintStyle: TextStyle(color: Colors.grey[800]),
-                        hintText: "Please Select a Solution",
-                        fillColor: Colors.white),
-                    value: solutionLabels.contains(isActual
-                            ? selectedJob?.actualSolutionDescription
-                            : selectedJob?.estimatedSolutionDescription)
-                        ? isActual
-                            ? selectedJob?.actualSolutionDescription
-                            : selectedJob?.estimatedSolutionDescription
-                        : "",
-                  )
-                : Helpers.checkIfEditableByJobStatusForSolution(
-                            isActual,
-                            selectedJob,
-                            (selectedJob?.isMainEngineer ?? false)) &&
-                        !isStepper
-                    ? DropdownButtonFormField<String>(
-                        isExpanded: true,
-                        items: solutionLabels.map((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                        onChanged: (element) async {
-                          var index =
-                              solutionLabels.indexOf(element.toString());
-                          var res = await Repositories.addSolutionToJob(
-                              selectedJob!.serviceRequestid ?? "0",
-                              solutions[index].solutionId ?? 0,
-                              !isActual);
-                          //show error if error
-                          await refreshJobDetails();
-                        },
-                        decoration: InputDecoration(
-                            contentPadding: EdgeInsets.symmetric(
-                                vertical: 7, horizontal: 3),
-                            border: OutlineInputBorder(
-                              borderRadius: const BorderRadius.all(
-                                const Radius.circular(5.0),
-                              ),
-                            ),
-                            filled: true,
-                            hintStyle: TextStyle(color: Colors.grey[800]),
-                            hintText: "Please Select a Solution",
-                            fillColor: Colors.white),
-                        //value: dropDownValue,
-                      )
-                    : new Container(),
+            // (solutionLabels.contains(isActual
+            //             ? selectedJob?.actualSolutionDescription
+            //             : selectedJob?.estimatedSolutionDescription) &&
+            //         Helpers.checkIfEditableByJobStatusForSolution(isActual,
+            //             selectedJob, (selectedJob?.isMainEngineer ?? false)) &&
+            //         !isStepper)
+            //     ? DropdownButtonFormField<String>(
+            //         isExpanded: true,
+            //         items: solutionLabels.map((String value) {
+            //           return DropdownMenuItem<String>(
+            //             value: value,
+            //             child: Text(value),
+            //           );
+            //         }).toList(),
+            //         onChanged: (element) async {
+            //           // var index = solutions
+            //           //     .indexWhere((e) => e.solution == element.toString());
+            //           // var res = await Repositories.addSolutionToJob(
+            //           //     selectedJob!.serviceRequestid ?? "0",
+            //           //     solutions[index].solutionId ?? 0,
+            //           //     !isActual);
+            //           // //show error if error
+            //           // await refreshJobDetails();
+            //         },
+            //         decoration: InputDecoration(
+            //             contentPadding:
+            //                 EdgeInsets.symmetric(vertical: 7, horizontal: 3),
+            //             border: OutlineInputBorder(
+            //               borderRadius: const BorderRadius.all(
+            //                 const Radius.circular(5.0),
+            //               ),
+            //             ),
+            //             filled: true,
+            //             hintStyle: TextStyle(color: Colors.grey[800]),
+            //             hintText: "Please Select a Solution",
+            //             fillColor: Colors.white),
+            //         value: solutionLabels.contains(isActual
+            //                 ? selectedJob?.actualSolutionDescription
+            //                 : selectedJob?.estimatedSolutionDescription)
+            //             ? isActual
+            //                 ? selectedJob?.actualSolutionDescription
+            //                 : selectedJob?.estimatedSolutionDescription
+            //             : "",
+            //       )
+            //     : Helpers.checkIfEditableByJobStatusForSolution(
+            //                 isActual,
+            //                 selectedJob,
+            //                 (selectedJob?.isMainEngineer ?? false)) &&
+            //             !isStepper
+            //         ? DropdownButtonFormField<String>(
+            //             isExpanded: true,
+            //             items: solutionLabels.map((String value) {
+            //               return DropdownMenuItem<String>(
+            //                 value: value,
+            //                 child: Text(value),
+            //               );
+            //             }).toList(),
+            //             onChanged: (element) async {
+            //               var index =
+            //                   solutionLabels.indexOf(element.toString());
+            //               var res = await Repositories.addSolutionToJob(
+            //                   selectedJob!.serviceRequestid ?? "0",
+            //                   solutions[index].solutionId ?? 0,
+            //                   !isActual);
+            //               //show error if error
+            //               await refreshJobDetails();
+            //             },
+            //             decoration: InputDecoration(
+            //                 contentPadding: EdgeInsets.symmetric(
+            //                     vertical: 7, horizontal: 3),
+            //                 border: OutlineInputBorder(
+            //                   borderRadius: const BorderRadius.all(
+            //                     const Radius.circular(5.0),
+            //                   ),
+            //                 ),
+            //                 filled: true,
+            //                 hintStyle: TextStyle(color: Colors.grey[800]),
+            //                 hintText: "Please Select a Solution",
+            //                 fillColor: Colors.white),
+            //             //value: dropDownValue,
+            //           )
+            //         : new Container(),
             Helpers.checkIfEditableByJobStatusForSolution(isActual, selectedJob,
                         (selectedJob?.isMainEngineer ?? false)) &&
                     !isStepper
@@ -3699,20 +3730,53 @@ class _JobDetailsState extends State<JobDetails>
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(children: [
-            RichText(
-              text: const TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
-                  style: TextStyle(
-                    fontSize: 20.0,
-                    color: Colors.black,
-                  ),
-                  children: <TextSpan>[
-                    TextSpan(
-                      text: 'Select Solution',
+            Row(children: [
+              RichText(
+                text: const TextSpan(
+                    // Note: Styles for TextSpans must be explicitly defined.
+                    // Child text spans will inherit styles from parent
+                    style: TextStyle(
+                      fontSize: 20.0,
+                      color: Colors.black,
                     ),
-                  ]),
-            ),
+                    children: <TextSpan>[
+                      TextSpan(
+                        text: 'Select Solution',
+                      ),
+                    ]),
+              ),
+              SizedBox(
+                width: 10,
+              ),
+              SizedBox(
+                width: MediaQuery.of(context).size.width * 0.1,
+                height: 35.0,
+                child: ElevatedButton(
+                    child: const Padding(
+                        padding: EdgeInsets.all(0.0),
+                        child: Text(
+                          'Update',
+                          style: TextStyle(fontSize: 15, color: Colors.white),
+                        )),
+                    style: ButtonStyle(
+                        foregroundColor:
+                            MaterialStateProperty.all<Color>(Color(0xFF242A38)),
+                        backgroundColor:
+                            MaterialStateProperty.all<Color>(Color(0xFF242A38)),
+                        shape:
+                            MaterialStateProperty.all<RoundedRectangleBorder>(
+                                RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4.0),
+                                    side: const BorderSide(
+                                        color: Color(0xFF242A38))))),
+                    onPressed: () async {
+                      openCharges(selectedJob?.productGroupdId.toString() ?? "",
+                          "solutions", (id) async {
+                        return await fetchSolutionsByProduct();
+                      }, tabController?.index == 1);
+                    }),
+              ),
+            ]),
             Spacer(),
             FlutterSwitch(
               activeColor: Helpers.checkIfEditableByJobStatus(
@@ -3873,13 +3937,13 @@ class _JobDetailsState extends State<JobDetails>
             width: 10,
           ),
           SizedBox(
-            width: MediaQuery.of(context).size.width * 0.106,
+            width: MediaQuery.of(context).size.width * 0.1,
             height: 35.0,
             child: ElevatedButton(
                 child: const Padding(
                     padding: EdgeInsets.all(0.0),
                     child: Text(
-                      'Refresh',
+                      'Update',
                       style: TextStyle(fontSize: 15, color: Colors.white),
                     )),
                 style: ButtonStyle(
@@ -3891,254 +3955,249 @@ class _JobDetailsState extends State<JobDetails>
                         RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(4.0),
                             side: const BorderSide(color: Color(0xFF242A38))))),
-                onPressed: () async {}),
+                onPressed: () async {
+                  openCharges(
+                      selectedJob?.productGroupdId.toString() ?? "", "problems",
+                      (id) async {
+                    return await fetchProblems(id.toString());
+                  }, false);
+                }),
           )
         ]),
-        isLoadingProblems
-            ? Column(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: 30),
-                  (selectedJob?.actualProblemCode != null ||
-                              selectedJob?.actualProblemDescription != null) &&
-                          Helpers.checkIfEditableByJobStatus(selectedJob,
-                              (selectedJob?.isMainEngineer ?? true)) &&
-                          !isStepper
-                      ? DropdownButtonFormField<String>(
-                          isExpanded: true,
-                          items: problemLabels.map((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value),
-                            );
-                          }).toList(),
-                          onChanged: (element) async {
-                            var index = problems
-                                .indexWhere((e) => e.problem == element);
-                            if (index != -1) {
-                              var res = await Repositories.addProblemToJob(
-                                  (selectedJob?.serviceRequestid ?? ""),
-                                  problems[index].problemId ?? 0,
-                                  false);
-                              //show error if error
-                              await refreshJobDetails();
-                            }
-                          },
-                          decoration: InputDecoration(
-                              contentPadding: EdgeInsets.symmetric(
-                                  vertical: 7, horizontal: 3),
-                              border: OutlineInputBorder(
-                                borderRadius: const BorderRadius.all(
-                                  const Radius.circular(5.0),
+        Column(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 20),
+            // (selectedJob?.actualProblemCode != null ||
+            //             selectedJob?.actualProblemDescription != null) &&
+            //         Helpers.checkIfEditableByJobStatus(
+            //             selectedJob, (selectedJob?.isMainEngineer ?? true)) &&
+            //         !isStepper
+            //     ? DropdownButtonFormField<String>(
+            //         isExpanded: true,
+            //         items: problemLabels.map((String value) {
+            //           return DropdownMenuItem<String>(
+            //             value: value,
+            //             child: Text(value),
+            //           );
+            //         }).toList(),
+            //         onChanged: (element) async {
+            //           var index =
+            //               problems.indexWhere((e) => e.problem == element);
+            //           if (index != -1) {
+            //             // var res = await Repositories.addProblemToJob(
+            //             //     (selectedJob?.serviceRequestid ?? ""),
+            //             //     problems[index].problemId ?? 0,
+            //             //     false);
+            //             // //show error if error
+            //             // await refreshJobDetails();
+            //           }
+            //         },
+            //         decoration: InputDecoration(
+            //             contentPadding:
+            //                 EdgeInsets.symmetric(vertical: 7, horizontal: 3),
+            //             border: OutlineInputBorder(
+            //               borderRadius: const BorderRadius.all(
+            //                 const Radius.circular(5.0),
+            //               ),
+            //             ),
+            //             filled: true,
+            //             hintStyle: TextStyle(color: Colors.grey[800]),
+            //             hintText: "Please Select a Problem",
+            //             fillColor: Colors.white),
+            //         value: problemLabels
+            //                 .contains(selectedJob?.actualProblemDescription)
+            //             ? selectedJob?.actualProblemDescription
+            //             : "",
+            //       )
+            //     : Helpers.checkIfEditableByJobStatus(selectedJob,
+            //                 (selectedJob?.isMainEngineer ?? true)) &&
+            //             !isStepper
+            //         ? DropdownButtonFormField<String>(
+            //             isExpanded: true,
+            //             items: problemLabels.map((String value) {
+            //               return DropdownMenuItem<String>(
+            //                 value: value,
+            //                 child: Text(value),
+            //               );
+            //             }).toList(),
+            //             onChanged: (element) async {
+            //               var index = problemLabels.indexOf(element.toString());
+            //               var res = await Repositories.addProblemToJob(
+            //                   (selectedJob?.serviceRequestid ?? ""),
+            //                   problems[index].problemId ?? 0,
+            //                   false);
+            //               //show error if error
+            //               await refreshJobDetails();
+            //             },
+            //             decoration: InputDecoration(
+            //                 contentPadding: EdgeInsets.symmetric(
+            //                     vertical: 7, horizontal: 3),
+            //                 border: OutlineInputBorder(
+            //                   borderRadius: const BorderRadius.all(
+            //                     const Radius.circular(5.0),
+            //                   ),
+            //                 ),
+            //                 filled: true,
+            //                 hintStyle: TextStyle(color: Colors.grey[800]),
+            //                 hintText: "Please Select a Problem",
+            //                 fillColor: Colors.white),
+            //             //value: dropDownValue,
+            //           )
+            //         : new Container(),
+            SizedBox(height: 20),
+            selectedJob?.actualProblemCode != null
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            RichText(
+                              text: const TextSpan(
+                                style: TextStyle(
+                                  fontSize: 12.0,
+                                  color: Colors.black54,
                                 ),
+                                children: <TextSpan>[
+                                  const TextSpan(
+                                    text: 'PROBLEM CODE',
+                                  ),
+                                ],
                               ),
-                              filled: true,
-                              hintStyle: TextStyle(color: Colors.grey[800]),
-                              hintText: "Please Select a Problem",
-                              fillColor: Colors.white),
-                          value: problemLabels.contains(
-                                  selectedJob?.actualProblemDescription)
-                              ? selectedJob?.actualProblemDescription
-                              : "",
-                        )
-                      : Helpers.checkIfEditableByJobStatus(selectedJob,
+                            ),
+                            SizedBox(
+                              height: 5,
+                            ),
+                            RichText(
+                              text: TextSpan(
+                                style: TextStyle(
+                                  fontSize: 14.0,
+                                  color: Colors.black,
+                                ),
+                                children: <TextSpan>[
+                                  TextSpan(
+                                      text: selectedJob?.actualProblemCode),
+                                ],
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+                      Container(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            RichText(
+                              text: const TextSpan(
+                                style: TextStyle(
+                                  fontSize: 12.0,
+                                  color: Colors.black54,
+                                ),
+                                children: <TextSpan>[
+                                  const TextSpan(
+                                    text: 'PROBLEM CODE',
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(
+                              height: 5,
+                            ),
+                            RichText(
+                              text: TextSpan(
+                                style: TextStyle(
+                                  fontSize: 14.0,
+                                  color: Colors.black,
+                                ),
+                                children: <TextSpan>[
+                                  TextSpan(
+                                    text: selectedJob?.actualProblemDescription,
+                                  ),
+                                ],
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+                      Helpers.checkIfEditableByJobStatus(selectedJob,
                                   (selectedJob?.isMainEngineer ?? true)) &&
                               !isStepper
-                          ? DropdownButtonFormField<String>(
-                              isExpanded: true,
-                              items: problemLabels.map((String value) {
-                                return DropdownMenuItem<String>(
-                                  value: value,
-                                  child: Text(value),
-                                );
-                              }).toList(),
-                              onChanged: (element) async {
-                                var index =
-                                    problemLabels.indexOf(element.toString());
-                                var res = await Repositories.addProblemToJob(
-                                    (selectedJob?.serviceRequestid ?? ""),
-                                    problems[index].problemId ?? 0,
-                                    false);
-                                //show error if error
-                                await refreshJobDetails();
-                              },
-                              decoration: InputDecoration(
-                                  contentPadding: EdgeInsets.symmetric(
-                                      vertical: 7, horizontal: 3),
-                                  border: OutlineInputBorder(
-                                    borderRadius: const BorderRadius.all(
-                                      const Radius.circular(5.0),
-                                    ),
-                                  ),
-                                  filled: true,
-                                  hintStyle: TextStyle(color: Colors.grey[800]),
-                                  hintText: "Please Select a Problem",
-                                  fillColor: Colors.white),
-                              //value: dropDownValue,
-                            )
-                          : new Container(),
-                  SizedBox(height: 20),
-                  selectedJob?.actualProblemCode != null
-                      ? Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Container(
-                              child: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  RichText(
-                                    text: const TextSpan(
-                                      style: TextStyle(
-                                        fontSize: 12.0,
-                                        color: Colors.black54,
-                                      ),
-                                      children: <TextSpan>[
-                                        const TextSpan(
-                                          text: 'PROBLEM CODE',
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    height: 5,
-                                  ),
-                                  RichText(
-                                    text: TextSpan(
-                                      style: TextStyle(
-                                        fontSize: 14.0,
-                                        color: Colors.black,
-                                      ),
-                                      children: <TextSpan>[
-                                        TextSpan(
-                                            text:
-                                                selectedJob?.actualProblemCode),
-                                      ],
-                                    ),
-                                  )
-                                ],
-                              ),
-                            ),
-                            Container(
-                              child: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  RichText(
-                                    text: const TextSpan(
-                                      style: TextStyle(
-                                        fontSize: 12.0,
-                                        color: Colors.black54,
-                                      ),
-                                      children: <TextSpan>[
-                                        const TextSpan(
-                                          text: 'PROBLEM CODE',
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    height: 5,
-                                  ),
-                                  RichText(
-                                    text: TextSpan(
-                                      style: TextStyle(
-                                        fontSize: 14.0,
-                                        color: Colors.black,
-                                      ),
-                                      children: <TextSpan>[
-                                        TextSpan(
-                                          text: selectedJob
-                                              ?.actualProblemDescription,
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                ],
-                              ),
-                            ),
-                            Helpers.checkIfEditableByJobStatus(
-                                        selectedJob,
-                                        (selectedJob?.isMainEngineer ??
-                                            true)) &&
-                                    !isStepper
-                                ? SizedBox(
-                                    width: 70,
-                                    height: 40.0,
-                                    child: ElevatedButton(
-                                        child: const Padding(
-                                            padding: EdgeInsets.all(0.0),
-                                            child: Text(
-                                              'Clear',
-                                              style: TextStyle(
-                                                  fontSize: 15,
-                                                  color: Colors.white),
-                                            )),
-                                        style: ButtonStyle(
-                                            foregroundColor:
-                                                MaterialStateProperty.all<Color>(
-                                                    Color(0xFF242A38)),
-                                            backgroundColor:
-                                                MaterialStateProperty.all<Color>(
-                                                    Color(0xFF242A38)),
-                                            shape: MaterialStateProperty.all<
-                                                    RoundedRectangleBorder>(
-                                                RoundedRectangleBorder(
-                                                    borderRadius: BorderRadius.circular(
-                                                        4.0),
-                                                    side: const BorderSide(
-                                                        color: Color(0xFF242A38))))),
-                                        onPressed: () async {
-                                          await Repositories.addProblemToJob(
-                                              selectedJob!.serviceRequestid ??
-                                                  "0",
-                                              null,
-                                              selectedJob?.serviceJobStatus
-                                                      ?.toLowerCase() ==
-                                                  "pending job start");
+                          ? SizedBox(
+                              width: 70,
+                              height: 40.0,
+                              child: ElevatedButton(
+                                  child: const Padding(
+                                      padding: EdgeInsets.all(0.0),
+                                      child: Text(
+                                        'Clear',
+                                        style: TextStyle(
+                                            fontSize: 15, color: Colors.white),
+                                      )),
+                                  style: ButtonStyle(
+                                      foregroundColor:
+                                          MaterialStateProperty.all<Color>(
+                                              Color(0xFF242A38)),
+                                      backgroundColor:
+                                          MaterialStateProperty.all<Color>(
+                                              Color(0xFF242A38)),
+                                      shape: MaterialStateProperty.all<
+                                              RoundedRectangleBorder>(
+                                          RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(4.0),
+                                              side: const BorderSide(
+                                                  color: Color(0xFF242A38))))),
+                                  onPressed: () async {
+                                    await Repositories.addProblemToJob(
+                                        selectedJob!.serviceRequestid ?? "0",
+                                        null,
+                                        selectedJob?.serviceJobStatus
+                                                ?.toLowerCase() ==
+                                            "pending job start");
 
-                                          await refreshJobDetails();
-                                        }),
-                                  )
-                                : new Container()
-                          ],
-                        )
-                      : isErrorProblemSelection
-                          ? Container(
-                              child: Row(children: [
-                              Icon(
-                                Icons.warning,
-                                color: Colors.red,
-                                size: 20,
-                              ),
-                              SizedBox(width: 10),
-                              RichText(
-                                text: TextSpan(
-                                    // Note: Styles for TextSpans must be explicitly defined.
-                                    // Child text spans will inherit styles from parent
-                                    style: const TextStyle(
-                                      fontSize: 15.0,
-                                      color: Colors.red,
-                                    ),
-                                    children: <TextSpan>[
-                                      TextSpan(
-                                        text:
-                                            "Please select the Actual problem before proceeding.",
-                                      ),
-                                    ]),
-                              ),
-                            ]))
+                                    await refreshJobDetails();
+                                  }),
+                            )
                           : new Container()
-                ],
-              )
-            : new Container(),
+                    ],
+                  )
+                : isErrorProblemSelection
+                    ? Container(
+                        child: Row(children: [
+                        Icon(
+                          Icons.warning,
+                          color: Colors.red,
+                          size: 20,
+                        ),
+                        SizedBox(width: 10),
+                        RichText(
+                          text: TextSpan(
+                              // Note: Styles for TextSpans must be explicitly defined.
+                              // Child text spans will inherit styles from parent
+                              style: const TextStyle(
+                                fontSize: 15.0,
+                                color: Colors.red,
+                              ),
+                              children: <TextSpan>[
+                                TextSpan(
+                                  text:
+                                      "Please select the Actual problem before proceeding.",
+                                ),
+                              ]),
+                        ),
+                      ]))
+                    : new Container()
+          ],
+        )
       ],
     );
   }
@@ -4596,8 +4655,10 @@ class _JobDetailsState extends State<JobDetails>
           const SizedBox(height: 40),
           ConstrainedBox(
               constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * .2,
-                  minHeight: MediaQuery.of(context).size.height * .1),
+                  maxHeight: rcpCost?.total != "MYR 0.00"
+                      ? MediaQuery.of(context).size.height * .2
+                      : MediaQuery.of(context).size.height * .08,
+                  minHeight: MediaQuery.of(context).size.height * .08),
               child: Container(
                 child: ListView(
                   children: [
@@ -5487,492 +5548,474 @@ class _JobDetailsState extends State<JobDetails>
 
   Widget _renderTransportCharges(bool isStepper) {
     return Column(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-            Row(children: [
-              RichText(
-                text: const TextSpan(
-                    // Note: Styles for TextSpans must be explicitly defined.
-                    // Child text spans will inherit styles from parent
-                    style: TextStyle(
-                      fontSize: 20.0,
-                      color: Colors.black,
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+          Row(children: [
+            RichText(
+              text: const TextSpan(
+                  // Note: Styles for TextSpans must be explicitly defined.
+                  // Child text spans will inherit styles from parent
+                  style: TextStyle(
+                    fontSize: 20.0,
+                    color: Colors.black,
+                  ),
+                  children: <TextSpan>[
+                    TextSpan(
+                      text: 'Transport Charges',
                     ),
-                    children: <TextSpan>[
-                      TextSpan(
-                        text: 'Transport Charges',
-                      ),
-                    ]),
-              ),
-              SizedBox(
-                width: 10,
-              ),
-              SizedBox(
-                width: MediaQuery.of(context).size.width * 0.106,
-                height: 35.0,
-                child: ElevatedButton(
-                    child: const Padding(
-                        padding: EdgeInsets.all(0.0),
-                        child: Text(
-                          'Sync',
-                          style: TextStyle(fontSize: 15, color: Colors.white),
-                        )),
-                    style: ButtonStyle(
-                        foregroundColor:
-                            MaterialStateProperty.all<Color>(Color(0xFF242A38)),
-                        backgroundColor:
-                            MaterialStateProperty.all<Color>(Color(0xFF242A38)),
-                        shape:
-                            MaterialStateProperty.all<RoundedRectangleBorder>(
-                                RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(4.0),
-                                    side: const BorderSide(
-                                        color: Color(0xFF242A38))))),
-                    onPressed: () async {
-                      openTransportCharges('138');
-                    }),
-              )
-            ]),
-            Spacer(),
-            FlutterSwitch(
-              activeColor: Helpers.checkIfEditableByJobStatus(
-                          selectedJob, (selectedJob?.isMainEngineer ?? true)) &&
-                      !isStepper
-                  ? Colors.green
-                  : Colors.grey,
-              inactiveColor: Helpers.checkIfEditableByJobStatus(
-                          selectedJob, (selectedJob?.isMainEngineer ?? true)) &&
-                      !isStepper
-                  ? Colors.red
-                  : Colors.grey,
-              activeTextColor: Colors.white,
-              inactiveTextColor: Colors.white,
-              activeText: "Chargeable",
-              inactiveText: "Not Chargeable",
-              value: isChargeableTransportCharges,
-              valueFontSize: 14.0,
-              width: 150,
-              borderRadius: 30.0,
-              showOnOff: true,
-              onToggle: (val) async {
-                if (Helpers.checkIfEditableByJobStatus(
-                        selectedJob, (selectedJob?.isMainEngineer ?? true)) &&
-                    !isStepper) {
-                  var result = await Repositories.updateChargeable(
-                      selectedJob!.serviceRequestid ?? "0",
-                      isChargeablePickupCharges,
-                      !isChargeableTransportCharges,
-                      isChargeableSolutionCharges,
-                      isChargeableMiscellaneousCharges,
-                      isDiscountApplied,
-                      (selectedJob?.chargeableSparepartIds ?? []));
-                  await refreshJobDetails();
-                }
-              },
+                  ]),
             ),
+            SizedBox(
+              width: 10,
+            ),
+            SizedBox(
+              width: MediaQuery.of(context).size.width * 0.1,
+              height: 35.0,
+              child: ElevatedButton(
+                  child: const Padding(
+                      padding: EdgeInsets.all(0.0),
+                      child: Text(
+                        'Update',
+                        style: TextStyle(fontSize: 15, color: Colors.white),
+                      )),
+                  style: ButtonStyle(
+                      foregroundColor:
+                          MaterialStateProperty.all<Color>(Color(0xFF242A38)),
+                      backgroundColor:
+                          MaterialStateProperty.all<Color>(Color(0xFF242A38)),
+                      shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                          RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4.0),
+                              side:
+                                  const BorderSide(color: Color(0xFF242A38))))),
+                  onPressed: () async {
+                    openCharges(selectedJob?.productModelId.toString() ?? "",
+                        "transport", (id) async {
+                      return await fetchTransportCharges(id);
+                    }, false);
+                  }),
+            )
           ]),
-          SizedBox(height: MediaQuery.of(context).size.height * 0.05),
-          Container(
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(5),
-                  border: Border.all(color: Colors.black87, width: 1.0)),
-              child: Container(
-                  padding: EdgeInsets.all(10),
-                  child: Row(
+          Spacer(),
+          FlutterSwitch(
+            activeColor: Helpers.checkIfEditableByJobStatus(
+                        selectedJob, (selectedJob?.isMainEngineer ?? true)) &&
+                    !isStepper
+                ? Colors.green
+                : Colors.grey,
+            inactiveColor: Helpers.checkIfEditableByJobStatus(
+                        selectedJob, (selectedJob?.isMainEngineer ?? true)) &&
+                    !isStepper
+                ? Colors.red
+                : Colors.grey,
+            activeTextColor: Colors.white,
+            inactiveTextColor: Colors.white,
+            activeText: "Chargeable",
+            inactiveText: "Not Chargeable",
+            value: isChargeableTransportCharges,
+            valueFontSize: 14.0,
+            width: 150,
+            borderRadius: 30.0,
+            showOnOff: true,
+            onToggle: (val) async {
+              if (Helpers.checkIfEditableByJobStatus(
+                      selectedJob, (selectedJob?.isMainEngineer ?? true)) &&
+                  !isStepper) {
+                var result = await Repositories.updateChargeable(
+                    selectedJob!.serviceRequestid ?? "0",
+                    isChargeablePickupCharges,
+                    !isChargeableTransportCharges,
+                    isChargeableSolutionCharges,
+                    isChargeableMiscellaneousCharges,
+                    isDiscountApplied,
+                    (selectedJob?.chargeableSparepartIds ?? []));
+                await refreshJobDetails();
+              }
+            },
+          ),
+        ]),
+        SizedBox(height: MediaQuery.of(context).size.height * 0.05),
+        // Container(
+        //     decoration: BoxDecoration(
+        //         borderRadius: BorderRadius.circular(5),
+        //         border: Border.all(color: Colors.black87, width: 1.0)),
+        //     child: Container(
+        //         padding: EdgeInsets.all(10),
+        //         child: Row(
+        //           children: [
+        //             RichText(
+        //               text: TextSpan(
+        //                   style: TextStyle(
+        //                     fontSize: 15.0,
+        //                     color: Colors.black87,
+        //                   ),
+        //                   children: <TextSpan>[
+        //                     TextSpan(
+        //                       text: "Add Transport Charges",
+        //                     ),
+        //                   ]),
+        //             ),
+        //             Spacer(),
+        //             Icon(Icons.arrow_drop_down_outlined)
+        //           ],
+        //         ))),
+        isLoadingTransportCharges
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                    Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            height: 30,
+                          ),
+                          Container(
+                            alignment: Alignment.center,
+                            child: Padding(
+                              padding: const EdgeInsets.all(5.0),
+                              child: LoadingAnimationWidget.staggeredDotsWave(
+                                color: Color(0xFF000000),
+                                size: MediaQuery.of(context).size.height * 0.03,
+                              ),
+                            ),
+                          )
+                        ])
+                  ])
+            // : allTransportCharges == null
+            //     ? _renderLoadingErrorWidget(() {}, '"Transport Charges"')
+            //     : Column(
+            //         mainAxisAlignment: MainAxisAlignment.spaceAround,
+            //         crossAxisAlignment: CrossAxisAlignment.start,
+            //         mainAxisSize: MainAxisSize.min,
+            //         children: [
+            //           SizedBox(height: 25),
+            //           SizedBox(height: 10),
+            //           (isNewTransportCharge ||
+            //                       selectedJob?.transportCharge != null) &&
+            //                   Helpers.checkIfEditableByJobStatus(selectedJob,
+            //                       (selectedJob?.isMainEngineer ?? true)) &&
+            //                   !isStepper
+            //               ? DropdownButtonFormField<String>(
+            //                   isExpanded: true,
+            //                   value:
+            //                       selectedJob?.transportCharge?.description,
+            //                   items: allTransportCharges
+            //                       ?.map((TransportCharge value) {
+            //                     return DropdownMenuItem<String>(
+            //                       value: value.description,
+            //                       child: Text(value.description ?? ""),
+            //                     );
+            //                   }).toList(),
+            //                   onChanged: (element) async {
+            //                     var index = allTransportCharges
+            //                         ?.map((e) => e.description)
+            //                         .toList()
+            //                         .indexOf(element.toString());
+            //                     var res = await Repositories
+            //                         .addTransportChargesToJob(
+            //                       selectedJob!.serviceRequestid ?? "0",
+            //                       selectedJob?.productModelId ?? 0,
+            //                       allTransportCharges?[index ?? 0].id ?? 0,
+            //                     );
+            //                     await refreshJobDetails();
+            //                   },
+            //                   decoration: InputDecoration(
+            //                       contentPadding: EdgeInsets.symmetric(
+            //                           vertical: 7, horizontal: 3),
+            //                       border: OutlineInputBorder(
+            //                         borderRadius: const BorderRadius.all(
+            //                           const Radius.circular(5.0),
+            //                         ),
+            //                       ),
+            //                       filled: true,
+            //                       hintStyle:
+            //                           TextStyle(color: Colors.grey[800]),
+            //                       hintText: "Please Select a Solution",
+            //                       fillColor: Colors.white),
+            //                   //value: dropDownValue,
+            //                 )
+            //               : Helpers.checkIfEditableByJobStatus(
+            //                           selectedJob,
+            //                           (selectedJob?.isMainEngineer ??
+            //                               true)) &&
+            //                       !isStepper
+            //                   ? DropdownButtonFormField<String>(
+            //                       isExpanded: true,
+            //                       items: allTransportCharges
+            //                           ?.map((TransportCharge value) {
+            //                         return DropdownMenuItem<String>(
+            //                           child: Text(value.description ?? ""),
+            //                           value: value.description ?? "",
+            //                         );
+            //                       }).toList(),
+            //                       onChanged: (element) async {
+            //                         var index = allTransportCharges
+            //                             ?.map((e) => e.description)
+            //                             .toList()
+            //                             .indexOf(element.toString());
+            //                         var res = await Repositories
+            //                             .addTransportChargesToJob(
+            //                           selectedJob!.serviceRequestid ?? "0",
+            //                           selectedJob?.productModelId ?? 0,
+            //                           allTransportCharges?[index ?? 0].id ??
+            //                               0,
+            //                         );
+            //                         await refreshJobDetails();
+            //                       },
+            //                       decoration: InputDecoration(
+            //                           contentPadding: EdgeInsets.symmetric(
+            //                               vertical: 7, horizontal: 3),
+            //                           border: OutlineInputBorder(
+            //                             borderRadius: const BorderRadius.all(
+            //                               const Radius.circular(5.0),
+            //                             ),
+            //                           ),
+            //                           filled: true,
+            //                           hintStyle:
+            //                               TextStyle(color: Colors.grey[800]),
+            //                           hintText:
+            //                               "Please Select Transport charges",
+            //                           fillColor: Colors.white),
+            //                       //value: dropDownValue,
+            //                     )
+            //                   : new Container(),
+            //           SizedBox(height: 20),
+            : (isNewTransportCharge || selectedJob?.transportCharge != null)
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      RichText(
-                        text: TextSpan(
-                            style: TextStyle(
-                              fontSize: 15.0,
-                              color: Colors.black87,
-                            ),
-                            children: <TextSpan>[
-                              TextSpan(
-                                text: "Add Transport Charges",
-                              ),
-                            ]),
-                      ),
-                      Spacer(),
-                      Icon(Icons.arrow_drop_down_outlined)
-                    ],
-                  ))),
-          isLoadingTransportCharges
-              ? Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                      Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
+                      Container(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SizedBox(
-                              height: 30,
-                            ),
-                            Container(
-                              alignment: Alignment.center,
-                              child: Padding(
-                                padding: const EdgeInsets.all(5.0),
-                                child: LoadingAnimationWidget.staggeredDotsWave(
-                                  color: Color(0xFF000000),
-                                  size:
-                                      MediaQuery.of(context).size.height * 0.03,
-                                ),
-                              ),
-                            )
-                          ])
-                    ])
-              : allTransportCharges == null
-                  ? _renderLoadingErrorWidget(() {}, '"Transport Charges"')
-                  : Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(height: 25),
-                        SizedBox(height: 10),
-                        (isNewTransportCharge ||
-                                    selectedJob?.transportCharge != null) &&
-                                Helpers.checkIfEditableByJobStatus(selectedJob,
-                                    (selectedJob?.isMainEngineer ?? true)) &&
-                                !isStepper
-                            ? DropdownButtonFormField<String>(
-                                isExpanded: true,
-                                value:
-                                    selectedJob?.transportCharge?.description,
-                                items: allTransportCharges
-                                    ?.map((TransportCharge value) {
-                                  return DropdownMenuItem<String>(
-                                    value: value.description,
-                                    child: Text(value.description ?? ""),
-                                  );
-                                }).toList(),
-                                onChanged: (element) async {
-                                  var index = allTransportCharges
-                                      ?.map((e) => e.description)
-                                      .toList()
-                                      .indexOf(element.toString());
-                                  var res = await Repositories
-                                      .addTransportChargesToJob(
-                                    selectedJob!.serviceRequestid ?? "0",
-                                    selectedJob?.productModelId ?? 0,
-                                    allTransportCharges?[index ?? 0].id ?? 0,
-                                  );
-                                  await refreshJobDetails();
-                                },
-                                decoration: InputDecoration(
-                                    contentPadding: EdgeInsets.symmetric(
-                                        vertical: 7, horizontal: 3),
-                                    border: OutlineInputBorder(
-                                      borderRadius: const BorderRadius.all(
-                                        const Radius.circular(5.0),
+                            selectedJob?.transportCharge != null
+                                ? RichText(
+                                    text: const TextSpan(
+                                      style: TextStyle(
+                                        fontSize: 12.0,
+                                        color: Colors.black54,
                                       ),
-                                    ),
-                                    filled: true,
-                                    hintStyle:
-                                        TextStyle(color: Colors.grey[800]),
-                                    hintText: "Please Select a Solution",
-                                    fillColor: Colors.white),
-                                //value: dropDownValue,
-                              )
-                            : Helpers.checkIfEditableByJobStatus(
-                                        selectedJob,
-                                        (selectedJob?.isMainEngineer ??
-                                            true)) &&
-                                    !isStepper
-                                ? DropdownButtonFormField<String>(
-                                    isExpanded: true,
-                                    items: allTransportCharges
-                                        ?.map((TransportCharge value) {
-                                      return DropdownMenuItem<String>(
-                                        child: Text(value.description ?? ""),
-                                        value: value.description ?? "",
-                                      );
-                                    }).toList(),
-                                    onChanged: (element) async {
-                                      var index = allTransportCharges
-                                          ?.map((e) => e.description)
-                                          .toList()
-                                          .indexOf(element.toString());
-                                      var res = await Repositories
-                                          .addTransportChargesToJob(
-                                        selectedJob!.serviceRequestid ?? "0",
-                                        selectedJob?.productModelId ?? 0,
-                                        allTransportCharges?[index ?? 0].id ??
-                                            0,
-                                      );
-                                      await refreshJobDetails();
-                                    },
-                                    decoration: InputDecoration(
-                                        contentPadding: EdgeInsets.symmetric(
-                                            vertical: 7, horizontal: 3),
-                                        border: OutlineInputBorder(
-                                          borderRadius: const BorderRadius.all(
-                                            const Radius.circular(5.0),
-                                          ),
+                                      children: <TextSpan>[
+                                        const TextSpan(
+                                          text: 'TRANSPORT CHARGE CODE',
                                         ),
-                                        filled: true,
-                                        hintStyle:
-                                            TextStyle(color: Colors.grey[800]),
-                                        hintText:
-                                            "Please Select Transport charges",
-                                        fillColor: Colors.white),
-                                    //value: dropDownValue,
+                                      ],
+                                    ),
                                   )
                                 : new Container(),
-                        SizedBox(height: 20),
-                        (isNewTransportCharge ||
-                                selectedJob?.transportCharge != null)
-                            ? Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        selectedJob?.transportCharge != null
-                                            ? RichText(
-                                                text: const TextSpan(
-                                                  style: TextStyle(
-                                                    fontSize: 12.0,
-                                                    color: Colors.black54,
-                                                  ),
-                                                  children: <TextSpan>[
-                                                    const TextSpan(
-                                                      text:
-                                                          'TRANSPORT CHARGE CODE',
-                                                    ),
-                                                  ],
-                                                ),
-                                              )
-                                            : new Container(),
-                                        selectedJob?.transportCharge != null
-                                            ? SizedBox(
-                                                height: 5,
-                                              )
-                                            : new Container(),
-                                        selectedJob?.transportCharge != null
-                                            ? RichText(
-                                                text: TextSpan(
-                                                  style: TextStyle(
-                                                    fontSize: 14.0,
-                                                    color: Colors.black,
-                                                  ),
-                                                  children: <TextSpan>[
-                                                    TextSpan(
-                                                      text: selectedJob
-                                                          ?.transportCharge
-                                                          ?.code,
-                                                    ),
-                                                  ],
-                                                ),
-                                              )
-                                            : new Container(),
+                            selectedJob?.transportCharge != null
+                                ? SizedBox(
+                                    height: 5,
+                                  )
+                                : new Container(),
+                            selectedJob?.transportCharge != null
+                                ? RichText(
+                                    text: TextSpan(
+                                      style: TextStyle(
+                                        fontSize: 14.0,
+                                        color: Colors.black,
+                                      ),
+                                      children: <TextSpan>[
+                                        TextSpan(
+                                          text: selectedJob
+                                              ?.transportCharge?.code,
+                                        ),
                                       ],
                                     ),
-                                  ),
-                                  Container(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        selectedJob?.transportCharge != null
-                                            ? RichText(
-                                                text: const TextSpan(
-                                                  style: TextStyle(
-                                                    fontSize: 12.0,
-                                                    color: Colors.black54,
-                                                  ),
-                                                  children: <TextSpan>[
-                                                    const TextSpan(
-                                                      text: 'TRANSPORT CHARGE',
-                                                    ),
-                                                  ],
-                                                ),
-                                              )
-                                            : new Container(),
-                                        selectedJob?.transportCharge != null
-                                            ? SizedBox(
-                                                height: 5,
-                                              )
-                                            : new Container(),
-                                        selectedJob?.transportCharge != null
-                                            ? RichText(
-                                                text: TextSpan(
-                                                  style: TextStyle(
-                                                    fontSize: 14.0,
-                                                    color: Colors.black,
-                                                  ),
-                                                  children: <TextSpan>[
-                                                    TextSpan(
-                                                      text: selectedJob
-                                                          ?.transportCharge
-                                                          ?.description,
-                                                    ),
-                                                  ],
-                                                ),
-                                              )
-                                            : new Container(),
+                                  )
+                                : new Container(),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            selectedJob?.transportCharge != null
+                                ? RichText(
+                                    text: const TextSpan(
+                                      style: TextStyle(
+                                        fontSize: 12.0,
+                                        color: Colors.black54,
+                                      ),
+                                      children: <TextSpan>[
+                                        const TextSpan(
+                                          text: 'TRANSPORT CHARGE',
+                                        ),
                                       ],
                                     ),
-                                  ),
-                                  Container(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        selectedJob?.transportCharge != null
-                                            ? RichText(
-                                                text: const TextSpan(
-                                                  style: TextStyle(
-                                                    fontSize: 12.0,
-                                                    color: Colors.black54,
-                                                  ),
-                                                  children: <TextSpan>[
-                                                    const TextSpan(
-                                                      text: 'COST',
-                                                    ),
-                                                  ],
-                                                ),
-                                              )
-                                            : new Container(),
-                                        selectedJob?.transportCharge != null
-                                            ? SizedBox(
-                                                height: 5,
-                                              )
-                                            : new Container(),
-                                        selectedJob?.transportCharge != null
-                                            ? RichText(
-                                                text: TextSpan(
-                                                  style: TextStyle(
-                                                    fontSize: 14.0,
-                                                    color: Colors.black,
-                                                  ),
-                                                  children: <TextSpan>[
-                                                    TextSpan(
-                                                      text: selectedJob
-                                                          ?.transportCharge
-                                                          ?.priceFormatted,
-                                                    ),
-                                                  ],
-                                                ),
-                                              )
-                                            : new Container(),
+                                  )
+                                : new Container(),
+                            selectedJob?.transportCharge != null
+                                ? SizedBox(
+                                    height: 5,
+                                  )
+                                : new Container(),
+                            selectedJob?.transportCharge != null
+                                ? RichText(
+                                    text: TextSpan(
+                                      style: TextStyle(
+                                        fontSize: 14.0,
+                                        color: Colors.black,
+                                      ),
+                                      children: <TextSpan>[
+                                        TextSpan(
+                                          text: selectedJob
+                                              ?.transportCharge?.description,
+                                        ),
                                       ],
                                     ),
-                                  ),
+                                  )
+                                : new Container(),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            selectedJob?.transportCharge != null
+                                ? RichText(
+                                    text: const TextSpan(
+                                      style: TextStyle(
+                                        fontSize: 12.0,
+                                        color: Colors.black54,
+                                      ),
+                                      children: <TextSpan>[
+                                        const TextSpan(
+                                          text: 'COST',
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : new Container(),
+                            selectedJob?.transportCharge != null
+                                ? SizedBox(
+                                    height: 5,
+                                  )
+                                : new Container(),
+                            selectedJob?.transportCharge != null
+                                ? RichText(
+                                    text: TextSpan(
+                                      style: TextStyle(
+                                        fontSize: 14.0,
+                                        color: Colors.black,
+                                      ),
+                                      children: <TextSpan>[
+                                        TextSpan(
+                                          text: selectedJob
+                                              ?.transportCharge?.priceFormatted,
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : new Container(),
+                          ],
+                        ),
+                      ),
 
-                                  // Flexible(
-                                  //   fit: FlexFit.tight,
-                                  //   child: Padding(
-                                  //     padding: const EdgeInsets.all(0.0),
-                                  //     child: Column(
-                                  //       mainAxisAlignment:
-                                  //           MainAxisAlignment.spaceAround,
-                                  //       crossAxisAlignment:
-                                  //           CrossAxisAlignment.start,
-                                  //       mainAxisSize: MainAxisSize.min,
-                                  //       children: [
-                                  //         true
-                                  //             ? RichText(
-                                  //                 text: const TextSpan(
-                                  //                   style: TextStyle(
-                                  //                     fontSize: 12.0,
-                                  //                     color: Colors.black54,
-                                  //                   ),
-                                  //                   children: <TextSpan>[
-                                  //                     const TextSpan(
-                                  //                       text: 'SOLUTION',
-                                  //                     ),
-                                  //                   ],
-                                  //                 ),
-                                  //               )
-                                  //             : new Container(),
-                                  //         true
-                                  //             ? SizedBox(
-                                  //                 height: 5,
-                                  //               )
-                                  //             : new Container(),
-                                  //         true
-                                  //             ? RichText(
-                                  //                 text: TextSpan(
-                                  //                   style: TextStyle(
-                                  //                     fontSize: 14.0,
-                                  //                     color: Colors.black,
-                                  //                   ),
-                                  //                   children: <TextSpan>[
-                                  //                     TextSpan(
-                                  //                       text: "solu",
-                                  //                     ),
-                                  //                   ],
-                                  //                 ),
-                                  //               )
-                                  //             : new Container(),
-                                  //       ],
-                                  //     ),
-                                  //   ),
-                                  // ),
-                                  SizedBox(
-                                    width: 50,
-                                  ),
-                                  Helpers.checkIfEditableByJobStatus(
-                                              selectedJob,
-                                              (selectedJob?.isMainEngineer ??
-                                                  true)) &&
-                                          !isStepper
-                                      ? SizedBox(
-                                          width: 70,
-                                          height: 40.0,
-                                          child: ElevatedButton(
-                                              child: const Padding(
-                                                  padding: EdgeInsets.all(0.0),
-                                                  child: Text(
-                                                    'Clear',
-                                                    style: TextStyle(
-                                                        fontSize: 15,
-                                                        color: Colors.white),
-                                                  )),
-                                              style: ButtonStyle(
-                                                  foregroundColor:
-                                                      MaterialStateProperty.all<Color>(
-                                                          Color(0xFF242A38)),
-                                                  backgroundColor:
-                                                      MaterialStateProperty.all<Color>(
-                                                          Color(0xFF242A38)),
-                                                  shape: MaterialStateProperty.all<
-                                                          RoundedRectangleBorder>(
-                                                      RoundedRectangleBorder(
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                                  4.0),
-                                                          side: const BorderSide(
-                                                              color: Color(0xFF242A38))))),
-                                              onPressed: () async {
-                                                await Repositories
-                                                    .addTransportChargesToJob(
-                                                        selectedJob!
-                                                                .serviceRequestid ??
-                                                            "0",
-                                                        (selectedJob
-                                                                ?.productModelId ??
-                                                            0),
-                                                        null);
+                      // Flexible(
+                      //   fit: FlexFit.tight,
+                      //   child: Padding(
+                      //     padding: const EdgeInsets.all(0.0),
+                      //     child: Column(
+                      //       mainAxisAlignment:
+                      //           MainAxisAlignment.spaceAround,
+                      //       crossAxisAlignment:
+                      //           CrossAxisAlignment.start,
+                      //       mainAxisSize: MainAxisSize.min,
+                      //       children: [
+                      //         true
+                      //             ? RichText(
+                      //                 text: const TextSpan(
+                      //                   style: TextStyle(
+                      //                     fontSize: 12.0,
+                      //                     color: Colors.black54,
+                      //                   ),
+                      //                   children: <TextSpan>[
+                      //                     const TextSpan(
+                      //                       text: 'SOLUTION',
+                      //                     ),
+                      //                   ],
+                      //                 ),
+                      //               )
+                      //             : new Container(),
+                      //         true
+                      //             ? SizedBox(
+                      //                 height: 5,
+                      //               )
+                      //             : new Container(),
+                      //         true
+                      //             ? RichText(
+                      //                 text: TextSpan(
+                      //                   style: TextStyle(
+                      //                     fontSize: 14.0,
+                      //                     color: Colors.black,
+                      //                   ),
+                      //                   children: <TextSpan>[
+                      //                     TextSpan(
+                      //                       text: "solu",
+                      //                     ),
+                      //                   ],
+                      //                 ),
+                      //               )
+                      //             : new Container(),
+                      //       ],
+                      //     ),
+                      //   ),
+                      // ),
+                      SizedBox(
+                        width: 50,
+                      ),
+                      Helpers.checkIfEditableByJobStatus(selectedJob,
+                                  (selectedJob?.isMainEngineer ?? true)) &&
+                              !isStepper
+                          ? SizedBox(
+                              width: 70,
+                              height: 40.0,
+                              child: ElevatedButton(
+                                  child: const Padding(
+                                      padding: EdgeInsets.all(0.0),
+                                      child: Text(
+                                        'Clear',
+                                        style: TextStyle(
+                                            fontSize: 15, color: Colors.white),
+                                      )),
+                                  style: ButtonStyle(
+                                      foregroundColor:
+                                          MaterialStateProperty.all<Color>(
+                                              Color(0xFF242A38)),
+                                      backgroundColor:
+                                          MaterialStateProperty.all<Color>(
+                                              Color(0xFF242A38)),
+                                      shape: MaterialStateProperty.all<
+                                              RoundedRectangleBorder>(
+                                          RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(4.0),
+                                              side: const BorderSide(
+                                                  color: Color(0xFF242A38))))),
+                                  onPressed: () async {
+                                    await Repositories.addTransportChargesToJob(
+                                        selectedJob!.serviceRequestid ?? "0",
+                                        (selectedJob?.productModelId ?? 0),
+                                        null);
 
-                                                await refreshJobDetails();
-                                              }),
-                                        )
-                                      : new Container(),
-                                ],
-                              )
-                            : new Container(),
-                      ],
-                    ),
-        ]);
+                                    await refreshJobDetails();
+                                  }),
+                            )
+                          : new Container(),
+                    ],
+                  )
+                : new Container(),
+      ],
+    );
   }
 
   displayTransportChargesList() {}
@@ -7638,7 +7681,7 @@ class AddPartItemState extends State<AddPartItem> {
   showAlertDialog(BuildContext context) {
     // set up the button
     Widget okButton = TextButton(
-      child: Text("OK"),
+      child: Text("OKK"),
       onPressed: () async {
         await widget.onDeletePressed?.call(widget.part?.id);
         Navigator.pop(context);
@@ -7921,6 +7964,8 @@ class PickListItem extends StatelessWidget {
         //   }
         // }
         // await _AddSparePartsToJob(partList);
+        Navigator.pop(context);
+
         await onDeletePressed.call(part.id);
       },
     );
@@ -9292,63 +9337,235 @@ class MiscItem extends StatelessWidget {
   }
 }
 
-class TransportChargesPopup extends StatefulWidget {
+class ChargesPopup extends StatefulWidget {
   String? productModelId;
-  Function transportChargeSelected;
-  TransportChargesPopup(
-      {this.productModelId, required this.transportChargeSelected}) {}
+  double itemheight;
+  double width;
+  Function fetchFunction;
+  Function submitFunction;
+  String type;
+  bool searchEnabled;
+  ChargesPopup(
+      {this.productModelId,
+      required this.itemheight,
+      required this.fetchFunction,
+      required this.submitFunction,
+      required this.searchEnabled,
+      required this.type,
+      required this.width}) {}
 
   @override
-  _TransportChargesPopupState createState() => _TransportChargesPopupState();
+  _ChargesPopupState createState() => _ChargesPopupState();
 }
 
-class _TransportChargesPopupState extends State<TransportChargesPopup>
-    with AfterLayoutMixin {
-  List<TransportCharge>? charges = [];
-  bool isLoadingTransportCharges = false;
-  bool isTransportationChargesAvailable = false;
-  bool isTransportChargesLoading = false;
+class _ChargesPopupState extends State<ChargesPopup> with AfterLayoutMixin {
+  bool isLoadingData = false;
+  bool isDataAvailable = false;
+
+  bool isPressed = false;
+  int pressedIndex = 0;
+  String searchQuery = '';
+  TextEditingController? searchCT;
+  Timer? timer;
+  String currentSearchText = "";
+  bool isSearchInProgress = false;
+
+  List<Map<String, dynamic>> charges = [];
+  List<Map<String, dynamic>> filteredCharges = [];
+  ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    searchCT = new TextEditingController();
   }
 
-  Future<void> fetchTransportCharges() async {
-    isLoadingTransportCharges = true;
-    var transportCharges =
-        await Repositories.fetchTransportCharges(widget.productModelId);
-    isLoadingTransportCharges = false;
-    if (mounted) {
-      setState(() {
-        charges = transportCharges;
-        isTransportationChargesAvailable = transportCharges.length > 0;
-      });
+  @override
+  void dispose() {
+    searchCT?.dispose();
+    super.dispose();
+  }
+
+  _onChangeHandlerForCompletion(value) {
+    setState(() {
+      filteredCharges = charges;
+      isSearchInProgress = value != "";
+    });
+
+    if (isSearchInProgress) {
+      const duration = Duration(milliseconds: 500);
+
+      if (timer != null) {
+        setState(() => timer?.cancel());
+      }
+
+      setState(() => timer = new Timer(duration, () async {
+            if (currentSearchText != value) {
+              currentSearchText = value;
+              await searchBox(currentSearchText);
+            }
+          }));
     }
+  }
+
+  searchBox(String query) {
+    setState(() {
+      filteredCharges = filteredCharges.where((element) {
+        final code =
+            element["code"] != null ? element["code"].toLowerCase() : '';
+        final description = element["description"] != null
+            ? element["description"].toLowerCase()
+            : '';
+
+        final input = query.toLowerCase();
+        return (code.toString().toLowerCase().contains(input) ||
+            description.toString().toLowerCase().contains(input));
+      }).toList();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Popup Title'),
-      content: Center(
-          child: (charges != null && (charges?.length ?? 0) > 0)
-              ? ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: 100, maxHeight: 300),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: charges?.length,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemBuilder: (BuildContext context, int index) {
-                      return GestureDetector(
-                          onTap: () {
-                            widget.transportChargeSelected?.call();
+      title: Text(
+          '${widget.type?[0].toUpperCase()}${widget.type?.substring(1)} Charges'),
+      content: SizedBox(
+          height: (widget.itemheight ?? 1),
+          width: widget.width,
+          child: Center(
+              child: Column(mainAxisSize: MainAxisSize.max, children: [
+            widget.searchEnabled
+                ? TextField(
+                    controller: searchCT,
+                    decoration: InputDecoration(
+                      labelText: 'Search',
+                      hintText:
+                          '${widget.type?[0].toUpperCase()}${widget.type?.substring(1)} Charges...',
+                      prefixIcon: Icon(Icons.search),
+                    ),
+                    onChanged: _onChangeHandlerForCompletion,
+                  )
+                : new Container(),
+            widget.searchEnabled ? SizedBox(height: 8) : new Container(),
+            (filteredCharges != null && (filteredCharges?.length ?? 0) > 0)
+                ? ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: (widget.itemheight * 0.85 ?? 1),
+                      minHeight: widget.itemheight * 0.1,
+                      maxWidth: (widget.width ?? 1),
+                      minWidth: (widget.width ?? 1),
+                    ),
+                    child: Scrollbar(
+                        isAlwaysShown:
+                            true, // Set to true to always show the scrollbar
+                        controller: _scrollController,
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: filteredCharges?.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            return Container(
+                                child: Container(
+                                    child: GestureDetector(
+                              onTap: () async {
+                                await widget.submitFunction?.call(
+                                    widget.type, filteredCharges[index]["id"]);
+                              },
+                              onTapDown: (TapDownDetails details) {
+                                setState(() {
+                                  isPressed = true;
+                                  pressedIndex = index;
+                                });
+                              },
+                              onTapUp: (TapUpDetails details) {
+                                setState(() {
+                                  isPressed = false;
+                                  pressedIndex = index;
+                                });
+                              },
+                              child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    index == 0 ? Divider() : Container(),
+                                    Container(
+                                        color:
+                                            isPressed && pressedIndex == index
+                                                ? Color(0xFF242A38)
+                                                : Colors.white,
+                                        child: Container(
+                                          padding: EdgeInsets.all(5),
+                                          child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                SizedBox(
+                                                    height:
+                                                        MediaQuery.of(context)
+                                                                .size
+                                                                .height *
+                                                            0.005),
+                                                Row(children: [
+                                                  Text(
+                                                    filteredCharges?[index]
+                                                            ["description"] ??
+                                                        "",
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      color: isPressed &&
+                                                              pressedIndex ==
+                                                                  index
+                                                          ? Colors.white
+                                                          : Colors.black,
+                                                    ),
+                                                  ),
+                                                  widget.type == 'transport'
+                                                      ? Spacer()
+                                                      : new Container(),
+                                                  widget.type == 'transport'
+                                                      ? Text(
+                                                          filteredCharges?[
+                                                                  index][
+                                                              "priceFormatted"],
+                                                          style: TextStyle(
+                                                            fontSize: 14,
+                                                            color: isPressed &&
+                                                                    pressedIndex ==
+                                                                        index
+                                                                ? Colors.white
+                                                                : Colors.black,
+                                                          ),
+                                                        )
+                                                      : new Container()
+                                                ]),
+                                                Text(
+                                                  filteredCharges?[index]
+                                                      ["code"],
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    color: isPressed &&
+                                                            pressedIndex ==
+                                                                index
+                                                        ? Colors.white
+                                                        : Colors.black,
+                                                  ),
+                                                ),
+                                                SizedBox(
+                                                    height:
+                                                        MediaQuery.of(context)
+                                                                .size
+                                                                .height *
+                                                            0.005),
+                                              ]),
+                                        )),
+                                    Divider(),
+                                  ]),
+                            )));
                           },
-                          child: Text(charges?[index].description ?? ""));
-                    },
-                  ),
-                )
-              : Container()),
+                        )))
+                : Container()
+          ]))),
       actions: <Widget>[
         TextButton(
           child: Text('Close'),
@@ -9362,8 +9579,31 @@ class _TransportChargesPopupState extends State<TransportChargesPopup>
 
   @override
   FutureOr<void> afterFirstLayout(BuildContext context) async {
-    fetchTransportCharges();
-    throw UnimplementedError();
+    var res = await widget.fetchFunction.call();
+
+    setState(() {
+      switch (widget.type) {
+        case 'transport':
+          setState(() {
+            charges =
+                (res as List).map((e) => TransportCharge.toJson(e)).toList();
+            filteredCharges.addAll(charges);
+          });
+          break;
+        case 'problems':
+          setState(() {
+            charges = (res as List).map((e) => Problem.toJson(e)).toList();
+            filteredCharges.addAll(charges);
+          });
+          break;
+        case 'solutions':
+          setState(() {
+            charges = (res as List).map((e) => Solution.toJson(e)).toList();
+            filteredCharges.addAll(charges);
+          });
+          break;
+      }
+    });
   }
 }
 
