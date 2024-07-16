@@ -5,7 +5,7 @@ class TransportCharge {
   String? amount;
   String? currency;
   String? priceFormatted;
-  double? sstPercentage;
+  int? sstPercentage;
   double? sstTotal;
   double? lineTotal;
 
@@ -29,8 +29,8 @@ class TransportCharge {
     this.amount = json["transport_charges"]?["amount"];
     this.currency = json["transport_charges"]?["currency"];
     this.priceFormatted = json["transport_charges"]?["formatted"];
-    this.sstPercentage = json["sst_percentage"];
-    this.sstTotal = ((this.sstPercentage ?? 0.0) *
+    this.sstPercentage = ((json["sst_percentage"] as num) * 100).toInt();
+    this.sstTotal = (((this.sstPercentage ?? 0.0) / 100) *
         (double.parse(this.amount ?? "1") / 100));
     this.lineTotal = double.parse(
         ((double.parse(this.amount ?? "1") / 100) + (this.sstTotal ?? 0.0))

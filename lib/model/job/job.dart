@@ -203,10 +203,15 @@ class Job {
                 json["solution"]?["estimated"]?["charges"]?["amount"] ?? "1") /
             100)
         .toStringAsFixed(2);
-    this.estimatedSolutionSSTPercentage =
-        json["solution"]?["estimated"]?["sst_percentage"].toString();
+    this.estimatedSolutionSSTPercentage = json["solution"]?["estimated"]
+                        ?["sst_percentage"]
+                    .toString() !=
+                "0" &&
+            json["solution"]?["estimated"]?["sst_percentage"] != null
+        ? '${(json["solution"]?["estimated"]?["sst_percentage"] as num) * 100}'
+        : "0";
     this.estimatedSolutionTotalSST = json["solution"]?["estimated"] != null
-        ? (double.parse(this.estimatedSolutionSSTPercentage ?? "0.0") *
+        ? ((double.parse(this.estimatedSolutionSSTPercentage ?? "0.0") / 100) *
                 double.parse(this.estimatedSolutionChargesAmount ?? "0.0"))
             .toString()
         : "-";
@@ -225,9 +230,12 @@ class Job {
             100)
         .toStringAsFixed(2);
     this.actualSolutionSSTPercentage =
-        json["solution"]?["actual"]?["sst_percentage"].toString();
+        json["solution"]?["actual"]?["sst_percentage"].toString() != "0" &&
+                json["solution"]?["actual"]?["sst_percentage"] != null
+            ? '${(json["solution"]?["actual"]?["sst_percentage"] as num) * 100}'
+            : "0";
     this.actualSolutionTotalSST = json["solution"]?["actual"] != null
-        ? (double.parse(this.actualSolutionSSTPercentage ?? "0.0") *
+        ? ((double.parse(this.actualSolutionSSTPercentage ?? "0.0") / 100) *
                 double.parse(this.actualSolutionChargesAmount ?? "0.0"))
             .toString()
         : "-";

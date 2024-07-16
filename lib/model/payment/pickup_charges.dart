@@ -5,7 +5,7 @@ class PickupCharge {
   String? currency;
   String? priceFormatted;
   String? pickupDescription;
-  double? sstPercentage;
+  int? sstPercentage;
   double? sstTotal;
   double? lineTotal;
 
@@ -27,12 +27,12 @@ class PickupCharge {
     this.currency = json["pickup_charges"]?["currency"];
     this.priceFormatted = json["pickup_charges"]?["formatted"];
     this.pickupDescription = json["pickup_description"];
-    this.sstPercentage = json["sst_percentage"];
-    this.sstTotal = ((this.sstPercentage ?? 0.0) *
+    this.sstPercentage = (((json["sst_percentage"] ?? 1) as num) * 100).toInt();
+    this.sstTotal = (((this.sstPercentage ?? 0.0) / 100) *
         (double.parse(this.amount ?? "1")) /
         100);
     this.lineTotal = double.parse(
-        ((double.parse(this.amount ?? "1") / 100) + (this.sstTotal ?? 0.0))
+        ((double.parse(this.amount ?? "1") / 100) + (this.sstTotal ?? 1))
             .toStringAsFixed(2));
   }
 }

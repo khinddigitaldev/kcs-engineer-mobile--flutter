@@ -2559,16 +2559,12 @@ class _JobDetailsState extends State<JobDetails>
                     const SizedBox(height: 20),
                     buildIssueInfo(),
                     const SizedBox(height: 20),
-                    (rcpCost != null && rcpCost?.total != "MYR 0.00")
-                        ? Divider()
-                        : new Container(),
-                    (rcpCost != null && rcpCost?.total != "MYR 0.00")
+                    (rcpCost != null) ? Divider() : new Container(),
+                    (rcpCost != null)
                         ? const SizedBox(height: 20)
                         : new Container(),
-                    (rcpCost != null && rcpCost?.total != "MYR 0.00")
-                        ? _renderCost(false)
-                        : new Container(),
-                    (rcpCost != null && rcpCost?.total != "MYR 0.00")
+                    (rcpCost != null) ? _renderCost(false) : new Container(),
+                    (rcpCost != null)
                         ? const SizedBox(height: 10)
                         : new Container(),
                     Divider(),
@@ -2885,247 +2881,363 @@ class _JobDetailsState extends State<JobDetails>
                                 !isStepper
                             ? 0
                             : 40),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        ((isActual
-                                    ? selectedJob?.actualSolutionCode
-                                    : selectedJob?.estimatedSolutionCode) !=
-                                null)
-                            ? Container(
-                                child: Column(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    RichText(
-                                      text: TextSpan(
-                                        style: TextStyle(
-                                          fontSize: 12.0,
-                                          color: Colors.black54,
-                                        ),
-                                        children: <TextSpan>[
-                                          TextSpan(
-                                            text: (isActual
-                                                ? 'ACTUAL SOLUTION CODE'
-                                                : 'ESTIMATED SOLUTION CODE'),
+                    child: Column(children: [
+                      Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            ((isActual
+                                        ? selectedJob?.actualSolutionCode
+                                        : selectedJob?.estimatedSolutionCode) !=
+                                    null)
+                                ? Container(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceAround,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        RichText(
+                                          text: TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 12.0,
+                                              color: Colors.black54,
+                                            ),
+                                            children: <TextSpan>[
+                                              TextSpan(
+                                                text: isActual
+                                                    ? 'ACTUAL SOLUTION'
+                                                    : 'ESTIMATED SOLUTION',
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      height: 5,
-                                    ),
-                                    RichText(
-                                      text: TextSpan(
-                                        style: TextStyle(
-                                          fontSize: 14.0,
-                                          color: Colors.black,
                                         ),
-                                        children: <TextSpan>[
-                                          TextSpan(
-                                            text: isActual
-                                                ? selectedJob
-                                                    ?.actualSolutionCode
-                                                : selectedJob
-                                                    ?.estimatedSolutionCode,
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  ],
-                                ),
-                              )
-                            : new Container(),
-                        ((isActual
-                                    ? selectedJob?.actualSolutionCode
-                                    : selectedJob?.estimatedSolutionCode) !=
-                                null)
-                            ? Container(
-                                child: Column(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    RichText(
-                                      text: TextSpan(
-                                        style: TextStyle(
-                                          fontSize: 12.0,
-                                          color: Colors.black54,
+                                        SizedBox(
+                                          height: 5,
                                         ),
-                                        children: <TextSpan>[
-                                          TextSpan(
-                                            text: isActual
-                                                ? 'ACTUAL SOLUTION'
-                                                : 'ESTIMATED SOLUTION',
+                                        RichText(
+                                          text: TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 14.0,
+                                              color: Colors.black,
+                                            ),
+                                            children: <TextSpan>[
+                                              TextSpan(
+                                                text: isActual
+                                                    ? selectedJob
+                                                        ?.actualSolutionDescription
+                                                    : selectedJob
+                                                        ?.estimatedSolutionDescription,
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      height: 5,
-                                    ),
-                                    RichText(
-                                      text: TextSpan(
-                                        style: TextStyle(
-                                          fontSize: 14.0,
-                                          color: Colors.black,
                                         ),
-                                        children: <TextSpan>[
-                                          TextSpan(
-                                            text: isActual
-                                                ? selectedJob
-                                                    ?.actualSolutionDescription
-                                                : selectedJob
-                                                    ?.estimatedSolutionDescription,
-                                          ),
-                                        ],
-                                      ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                              )
-                            : new Container(),
-                        (isActual
-                                    ? selectedJob?.actualSolutionCharges
-                                    : selectedJob?.estimatedSolutionCharges) !=
-                                null
-                            ? Container(
-                                child: Column(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    RichText(
-                                      text: const TextSpan(
-                                        style: TextStyle(
-                                          fontSize: 12.0,
-                                          color: Colors.black54,
+                                  )
+                                : new Container(),
+                          ]),
+                      SizedBox(
+                          height: MediaQuery.of(context).size.width * 0.02),
+                      Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            ((isActual
+                                        ? selectedJob?.actualSolutionCode
+                                        : selectedJob?.estimatedSolutionCode) !=
+                                    null)
+                                ? Container(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceAround,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        RichText(
+                                          text: TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 12.0,
+                                              color: Colors.black54,
+                                            ),
+                                            children: <TextSpan>[
+                                              TextSpan(text: 'CODE'),
+                                            ],
+                                          ),
                                         ),
-                                        children: <TextSpan>[
-                                          const TextSpan(
-                                            text: 'COST',
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      height: 5,
-                                    ),
-                                    RichText(
-                                      text: TextSpan(
-                                        style: TextStyle(
-                                          fontSize: 14.0,
-                                          color: Colors.black,
+                                        SizedBox(
+                                          height: 5,
                                         ),
-                                        children: <TextSpan>[
-                                          TextSpan(
-                                            text: isActual
-                                                ? selectedJob
-                                                    ?.actualSolutionCharges
-                                                : selectedJob
-                                                    ?.estimatedSolutionCharges,
+                                        RichText(
+                                          text: TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 14.0,
+                                              color: Colors.black,
+                                            ),
+                                            children: <TextSpan>[
+                                              TextSpan(
+                                                text: isActual
+                                                    ? selectedJob
+                                                        ?.actualSolutionCode
+                                                    : selectedJob
+                                                        ?.estimatedSolutionCode,
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
-                                    )
-                                  ],
-                                ),
-                              )
-                            : new Container(),
-                        (isActual
-                                    ? selectedJob?.actualSolutionCharges
-                                    : selectedJob?.estimatedSolutionCharges) !=
-                                null
-                            ? Container(
-                                child: Column(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    RichText(
-                                      text: const TextSpan(
-                                        style: TextStyle(
-                                          fontSize: 12.0,
-                                          color: Colors.black54,
-                                        ),
-                                        children: <TextSpan>[
-                                          const TextSpan(
-                                            text: 'COST (Incl. Tax)',
-                                          ),
-                                        ],
-                                      ),
+                                        )
+                                      ],
                                     ),
-                                    SizedBox(
-                                      height: 5,
-                                    ),
-                                    RichText(
-                                      text: TextSpan(
-                                        style: TextStyle(
-                                          fontSize: 14.0,
-                                          color: Colors.black,
-                                        ),
-                                        children: <TextSpan>[
-                                          TextSpan(
-                                            text:
-                                                'MYR ${isActual ? selectedJob?.actualSolutionTotalLineVal : selectedJob?.estimatedSolutionTotalLineVal}',
+                                  )
+                                : new Container(),
+                            SizedBox(
+                                height:
+                                    MediaQuery.of(context).size.width * .02),
+                            (isActual
+                                        ? selectedJob?.actualSolutionCharges
+                                        : selectedJob
+                                            ?.estimatedSolutionCharges) !=
+                                    null
+                                ? Container(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceAround,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        RichText(
+                                          text: const TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 12.0,
+                                              color: Colors.black54,
+                                            ),
+                                            children: <TextSpan>[
+                                              const TextSpan(
+                                                text: 'SUB TOTAL',
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
-                                    )
-                                  ],
-                                ),
-                              )
-                            : new Container(),
-                        Helpers.checkIfEditableByJobStatusForSolution(
-                                    isActual,
-                                    selectedJob,
-                                    (selectedJob?.isMainEngineer ?? false)) &&
-                                !isStepper
-                            ? SizedBox(
-                                width: 70,
-                                height: 40.0,
-                                child: ElevatedButton(
-                                    child: const Padding(
-                                        padding: EdgeInsets.all(0.0),
-                                        child: Text(
-                                          'Clear',
-                                          style: TextStyle(
-                                              fontSize: 15,
-                                              color: Colors.white),
-                                        )),
-                                    style: ButtonStyle(
-                                        foregroundColor:
-                                            MaterialStateProperty.all<Color>(
-                                                Color(0xFF242A38)),
-                                        backgroundColor:
-                                            MaterialStateProperty.all<Color>(
-                                                Color(0xFF242A38)),
-                                        shape: MaterialStateProperty.all<
-                                                RoundedRectangleBorder>(
-                                            RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(4.0),
-                                                side: const BorderSide(
-                                                    color:
-                                                        Color(0xFF242A38))))),
-                                    onPressed: () async {
-                                      await Repositories.addSolutionToJob(
-                                          selectedJob!.serviceRequestid ?? "0",
-                                          null,
-                                          !isActual);
+                                        ),
+                                        SizedBox(
+                                          height: 5,
+                                        ),
+                                        RichText(
+                                          text: TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 14.0,
+                                              color: Colors.black,
+                                            ),
+                                            children: <TextSpan>[
+                                              TextSpan(
+                                                text: isActual
+                                                    ? selectedJob
+                                                        ?.actualSolutionCharges
+                                                    : selectedJob
+                                                        ?.estimatedSolutionCharges,
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      ],
+                                    ),
+                                  )
+                                : new Container(),
+                            (isActual
+                                        ? selectedJob?.actualSolutionCharges
+                                        : selectedJob
+                                            ?.estimatedSolutionCharges) !=
+                                    null
+                                ? Container(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceAround,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        RichText(
+                                          text: const TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 12.0,
+                                              color: Colors.black54,
+                                            ),
+                                            children: <TextSpan>[
+                                              const TextSpan(
+                                                text: 'SST (PERCENTAGE)',
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          height: 5,
+                                        ),
+                                        RichText(
+                                          text: TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 14.0,
+                                              color: Colors.black,
+                                            ),
+                                            children: <TextSpan>[
+                                              TextSpan(
+                                                text:
+                                                    '${isActual ? selectedJob?.actualSolutionSSTPercentage : selectedJob?.estimatedSolutionSSTPercentage}%',
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      ],
+                                    ),
+                                  )
+                                : new Container(),
+                            (isActual
+                                        ? selectedJob?.actualSolutionCharges
+                                        : selectedJob
+                                            ?.estimatedSolutionCharges) !=
+                                    null
+                                ? Container(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceAround,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        RichText(
+                                          text: const TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 12.0,
+                                              color: Colors.black54,
+                                            ),
+                                            children: <TextSpan>[
+                                              const TextSpan(
+                                                text: 'SST AMOUNT',
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          height: 5,
+                                        ),
+                                        RichText(
+                                          text: TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 14.0,
+                                              color: Colors.black,
+                                            ),
+                                            children: <TextSpan>[
+                                              TextSpan(
+                                                text:
+                                                    'MYR ${isActual ? selectedJob?.actualSolutionTotalSST : selectedJob?.estimatedSolutionTotalSST}',
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      ],
+                                    ),
+                                  )
+                                : new Container(),
+                            (isActual
+                                        ? selectedJob?.actualSolutionCharges
+                                        : selectedJob
+                                            ?.estimatedSolutionCharges) !=
+                                    null
+                                ? Container(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceAround,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        RichText(
+                                          text: const TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 12.0,
+                                              color: Colors.black54,
+                                            ),
+                                            children: <TextSpan>[
+                                              const TextSpan(
+                                                text: 'COST (Incl. Tax)',
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          height: 5,
+                                        ),
+                                        RichText(
+                                          text: TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 14.0,
+                                              color: Colors.black,
+                                            ),
+                                            children: <TextSpan>[
+                                              TextSpan(
+                                                text:
+                                                    'MYR ${isActual ? selectedJob?.actualSolutionTotalLineVal : selectedJob?.estimatedSolutionTotalLineVal}',
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      ],
+                                    ),
+                                  )
+                                : new Container(),
+                          ]),
+                      SizedBox(
+                          height: MediaQuery.of(context).size.width * 0.02),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Spacer(),
+                          Helpers.checkIfEditableByJobStatusForSolution(
+                                      isActual,
+                                      selectedJob,
+                                      (selectedJob?.isMainEngineer ?? false)) &&
+                                  !isStepper
+                              ? SizedBox(
+                                  width: 70,
+                                  height: 40.0,
+                                  child: ElevatedButton(
+                                      child: const Padding(
+                                          padding: EdgeInsets.all(0.0),
+                                          child: Text(
+                                            'Clear',
+                                            style: TextStyle(
+                                                fontSize: 15,
+                                                color: Colors.white),
+                                          )),
+                                      style: ButtonStyle(
+                                          foregroundColor:
+                                              MaterialStateProperty.all<Color>(
+                                                  Color(0xFF242A38)),
+                                          backgroundColor:
+                                              MaterialStateProperty.all<Color>(
+                                                  Color(0xFF242A38)),
+                                          shape: MaterialStateProperty.all<
+                                                  RoundedRectangleBorder>(
+                                              RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(
+                                                      4.0),
+                                                  side: const BorderSide(
+                                                      color: Color(0xFF242A38))))),
+                                      onPressed: () async {
+                                        await Repositories.addSolutionToJob(
+                                            selectedJob!.serviceRequestid ??
+                                                "0",
+                                            null,
+                                            !isActual);
 
-                                      await refreshJobDetails();
-                                    }),
-                              )
-                            : new Container()
-                      ],
-                    ))
+                                        await refreshJobDetails();
+                                      }),
+                                )
+                              : new Container()
+                        ],
+                      )
+                    ]))
                 : (isActual
                         ? isErrorActualSolutionSelection
                         : isErrorEstimatedSolutionSelection)
@@ -3272,7 +3384,7 @@ class _JobDetailsState extends State<JobDetails>
                               minWidth: MediaQuery.of(context).size.width * 1,
                               maxWidth: MediaQuery.of(context).size.width * 1,
                               maxHeight:
-                                  MediaQuery.of(context).size.height * .13,
+                                  MediaQuery.of(context).size.height * .25,
                               minHeight:
                                   MediaQuery.of(context).size.height * .1),
                           child: TabBarView(
@@ -4849,324 +4961,441 @@ class _JobDetailsState extends State<JobDetails>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(height: 25),
-                    SizedBox(height: 10),
-                    (isNewTransportCharge ||
-                                selectedJob?.transportCharge != null) &&
-                            Helpers.checkIfEditableByJobStatus(selectedJob,
-                                (selectedJob?.isMainEngineer ?? true)) &&
-                            !isStepper
-                        ? DropdownButtonFormField<String>(
-                            isExpanded: true,
-                            value: selectedJob?.transportCharge?.description,
-                            items: allTransportCharges
-                                ?.map((TransportCharge value) {
-                              return DropdownMenuItem<String>(
-                                value: value.description,
-                                child: Text(value.description ?? ""),
-                              );
-                            }).toList(),
-                            onChanged: (element) async {
-                              var index = allTransportCharges
-                                  ?.map((e) => e.description)
-                                  .toList()
-                                  .indexOf(element.toString());
-                              var res =
-                                  await Repositories.addTransportChargesToJob(
-                                selectedJob!.serviceRequestid ?? "0",
-                                selectedJob?.productModelId ?? 0,
-                                allTransportCharges?[index ?? 0].id ?? 0,
-                              );
-                              await refreshJobDetails();
-                            },
-                            decoration: InputDecoration(
-                                contentPadding: EdgeInsets.symmetric(
-                                    vertical: 7, horizontal: 3),
-                                border: OutlineInputBorder(
-                                  borderRadius: const BorderRadius.all(
-                                    const Radius.circular(5.0),
+                      SizedBox(height: 25),
+                      SizedBox(height: 10),
+                      (isNewTransportCharge ||
+                                  selectedJob?.transportCharge != null) &&
+                              Helpers.checkIfEditableByJobStatus(selectedJob,
+                                  (selectedJob?.isMainEngineer ?? true)) &&
+                              !isStepper
+                          ? DropdownButtonFormField<String>(
+                              isExpanded: true,
+                              value: selectedJob?.transportCharge?.description,
+                              items: allTransportCharges
+                                  ?.map((TransportCharge value) {
+                                return DropdownMenuItem<String>(
+                                  value: value.description,
+                                  child: Text(value.description ?? ""),
+                                );
+                              }).toList(),
+                              onChanged: (element) async {
+                                var index = allTransportCharges
+                                    ?.map((e) => e.description)
+                                    .toList()
+                                    .indexOf(element.toString());
+                                var res =
+                                    await Repositories.addTransportChargesToJob(
+                                  selectedJob!.serviceRequestid ?? "0",
+                                  selectedJob?.productModelId ?? 0,
+                                  allTransportCharges?[index ?? 0].id ?? 0,
+                                );
+                                await refreshJobDetails();
+                              },
+                              decoration: InputDecoration(
+                                  contentPadding: EdgeInsets.symmetric(
+                                      vertical: 7, horizontal: 3),
+                                  border: OutlineInputBorder(
+                                    borderRadius: const BorderRadius.all(
+                                      const Radius.circular(5.0),
+                                    ),
                                   ),
-                                ),
-                                filled: true,
-                                hintStyle: TextStyle(color: Colors.grey[800]),
-                                hintText: "Please Select a Solution",
-                                fillColor: Colors.white),
-                            //value: dropDownValue,
-                          )
-                        : Helpers.checkIfEditableByJobStatus(selectedJob,
-                                    (selectedJob?.isMainEngineer ?? true)) &&
-                                !isStepper
-                            ? DropdownButtonFormField<String>(
-                                isExpanded: true,
-                                items: allTransportCharges
-                                    ?.map((TransportCharge value) {
-                                  return DropdownMenuItem<String>(
-                                    child: Text(value.description ?? ""),
-                                    value: value.description ?? "",
-                                  );
-                                }).toList(),
-                                onChanged: (element) async {
-                                  var index = allTransportCharges
-                                      ?.map((e) => e.description)
-                                      .toList()
-                                      .indexOf(element.toString());
-                                  var res = await Repositories
-                                      .addTransportChargesToJob(
-                                    selectedJob!.serviceRequestid ?? "0",
-                                    selectedJob?.productModelId ?? 0,
-                                    allTransportCharges?[index ?? 0].id ?? 0,
-                                  );
-                                  await refreshJobDetails();
-                                },
-                                decoration: InputDecoration(
-                                    contentPadding: EdgeInsets.symmetric(
-                                        vertical: 7, horizontal: 3),
-                                    border: OutlineInputBorder(
-                                      borderRadius: const BorderRadius.all(
-                                        const Radius.circular(5.0),
+                                  filled: true,
+                                  hintStyle: TextStyle(color: Colors.grey[800]),
+                                  hintText: "Please Select a Solution",
+                                  fillColor: Colors.white),
+                              //value: dropDownValue,
+                            )
+                          : Helpers.checkIfEditableByJobStatus(selectedJob,
+                                      (selectedJob?.isMainEngineer ?? true)) &&
+                                  !isStepper
+                              ? DropdownButtonFormField<String>(
+                                  isExpanded: true,
+                                  items: allTransportCharges
+                                      ?.map((TransportCharge value) {
+                                    return DropdownMenuItem<String>(
+                                      child: Text(value.description ?? ""),
+                                      value: value.description ?? "",
+                                    );
+                                  }).toList(),
+                                  onChanged: (element) async {
+                                    var index = allTransportCharges
+                                        ?.map((e) => e.description)
+                                        .toList()
+                                        .indexOf(element.toString());
+                                    var res = await Repositories
+                                        .addTransportChargesToJob(
+                                      selectedJob!.serviceRequestid ?? "0",
+                                      selectedJob?.productModelId ?? 0,
+                                      allTransportCharges?[index ?? 0].id ?? 0,
+                                    );
+                                    await refreshJobDetails();
+                                  },
+                                  decoration: InputDecoration(
+                                      contentPadding: EdgeInsets.symmetric(
+                                          vertical: 7, horizontal: 3),
+                                      border: OutlineInputBorder(
+                                        borderRadius: const BorderRadius.all(
+                                          const Radius.circular(5.0),
+                                        ),
+                                      ),
+                                      filled: true,
+                                      hintStyle:
+                                          TextStyle(color: Colors.grey[800]),
+                                      hintText:
+                                          "Please Select Transport charges",
+                                      fillColor: Colors.white),
+                                  //value: dropDownValue,
+                                )
+                              : new Container(),
+                      SizedBox(height: 20),
+                      (isNewTransportCharge ||
+                              selectedJob?.transportCharge != null)
+                          ? Column(
+                              children: [
+                                Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            selectedJob?.transportCharge != null
+                                                ? RichText(
+                                                    text: const TextSpan(
+                                                      style: TextStyle(
+                                                        fontSize: 12.0,
+                                                        color: Colors.black54,
+                                                      ),
+                                                      children: <TextSpan>[
+                                                        const TextSpan(
+                                                          text: 'CHARGE',
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  )
+                                                : new Container(),
+                                            selectedJob?.transportCharge != null
+                                                ? SizedBox(
+                                                    height: 5,
+                                                  )
+                                                : new Container(),
+                                            selectedJob?.transportCharge != null
+                                                ? RichText(
+                                                    text: TextSpan(
+                                                      style: TextStyle(
+                                                        fontSize: 14.0,
+                                                        color: Colors.black,
+                                                      ),
+                                                      children: <TextSpan>[
+                                                        TextSpan(
+                                                          text: selectedJob
+                                                              ?.transportCharge
+                                                              ?.description
+                                                              ?.trim(),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  )
+                                                : new Container(),
+                                          ],
+                                        ),
+                                      ),
+                                    ]),
+                                SizedBox(
+                                    height: MediaQuery.of(context).size.height *
+                                        0.02),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          selectedJob?.transportCharge != null
+                                              ? RichText(
+                                                  text: const TextSpan(
+                                                    style: TextStyle(
+                                                      fontSize: 12.0,
+                                                      color: Colors.black54,
+                                                    ),
+                                                    children: <TextSpan>[
+                                                      const TextSpan(
+                                                        text: 'CHARGE CODE',
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )
+                                              : new Container(),
+                                          selectedJob?.transportCharge != null
+                                              ? SizedBox(
+                                                  height: 5,
+                                                )
+                                              : new Container(),
+                                          selectedJob?.transportCharge != null
+                                              ? RichText(
+                                                  text: TextSpan(
+                                                    style: TextStyle(
+                                                      fontSize: 14.0,
+                                                      color: Colors.black,
+                                                    ),
+                                                    children: <TextSpan>[
+                                                      TextSpan(
+                                                        text: selectedJob
+                                                            ?.transportCharge
+                                                            ?.code,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )
+                                              : new Container(),
+                                        ],
                                       ),
                                     ),
-                                    filled: true,
-                                    hintStyle:
-                                        TextStyle(color: Colors.grey[800]),
-                                    hintText: "Please Select Transport charges",
-                                    fillColor: Colors.white),
-                                //value: dropDownValue,
-                              )
-                            : new Container(),
-                    SizedBox(height: 20),
-                    (isNewTransportCharge ||
-                            selectedJob?.transportCharge != null)
-                        ? Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Container(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    selectedJob?.transportCharge != null
-                                        ? RichText(
-                                            text: const TextSpan(
-                                              style: TextStyle(
-                                                fontSize: 12.0,
-                                                color: Colors.black54,
-                                              ),
-                                              children: <TextSpan>[
-                                                const TextSpan(
-                                                  text: 'CHARGE CODE',
-                                                ),
-                                              ],
-                                            ),
-                                          )
-                                        : new Container(),
-                                    selectedJob?.transportCharge != null
-                                        ? SizedBox(
-                                            height: 5,
-                                          )
-                                        : new Container(),
-                                    selectedJob?.transportCharge != null
-                                        ? RichText(
-                                            text: TextSpan(
-                                              style: TextStyle(
-                                                fontSize: 14.0,
-                                                color: Colors.black,
-                                              ),
-                                              children: <TextSpan>[
-                                                TextSpan(
-                                                  text: selectedJob
-                                                      ?.transportCharge?.code,
-                                                ),
-                                              ],
-                                            ),
-                                          )
-                                        : new Container(),
+                                    Container(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          selectedJob?.transportCharge != null
+                                              ? RichText(
+                                                  text: const TextSpan(
+                                                    style: TextStyle(
+                                                      fontSize: 12.0,
+                                                      color: Colors.black54,
+                                                    ),
+                                                    children: <TextSpan>[
+                                                      const TextSpan(
+                                                        text: 'SUB TOTAL',
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )
+                                              : new Container(),
+                                          selectedJob?.transportCharge != null
+                                              ? SizedBox(
+                                                  height: 5,
+                                                )
+                                              : new Container(),
+                                          selectedJob?.transportCharge != null
+                                              ? RichText(
+                                                  text: TextSpan(
+                                                    style: TextStyle(
+                                                      fontSize: 14.0,
+                                                      color: Colors.black,
+                                                    ),
+                                                    children: <TextSpan>[
+                                                      TextSpan(
+                                                        text: selectedJob
+                                                            ?.transportCharge
+                                                            ?.priceFormatted,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )
+                                              : new Container(),
+                                        ],
+                                      ),
+                                    ),
+                                    Container(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          selectedJob?.transportCharge != null
+                                              ? RichText(
+                                                  text: const TextSpan(
+                                                    style: TextStyle(
+                                                      fontSize: 12.0,
+                                                      color: Colors.black54,
+                                                    ),
+                                                    children: <TextSpan>[
+                                                      const TextSpan(
+                                                        text:
+                                                            'SST (PERCENTAGE)',
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )
+                                              : new Container(),
+                                          selectedJob?.transportCharge != null
+                                              ? SizedBox(
+                                                  height: 5,
+                                                )
+                                              : new Container(),
+                                          selectedJob?.transportCharge != null
+                                              ? RichText(
+                                                  text: TextSpan(
+                                                    style: TextStyle(
+                                                      fontSize: 14.0,
+                                                      color: Colors.black,
+                                                    ),
+                                                    children: <TextSpan>[
+                                                      TextSpan(
+                                                        text:
+                                                            '${selectedJob?.transportCharge?.sstPercentage}%',
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )
+                                              : new Container(),
+                                        ],
+                                      ),
+                                    ),
+                                    Container(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          selectedJob?.transportCharge != null
+                                              ? RichText(
+                                                  text: const TextSpan(
+                                                    style: TextStyle(
+                                                      fontSize: 12.0,
+                                                      color: Colors.black54,
+                                                    ),
+                                                    children: <TextSpan>[
+                                                      const TextSpan(
+                                                        text: 'SST AMOUNT',
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )
+                                              : new Container(),
+                                          selectedJob?.transportCharge != null
+                                              ? SizedBox(
+                                                  height: 5,
+                                                )
+                                              : new Container(),
+                                          selectedJob?.transportCharge != null
+                                              ? RichText(
+                                                  text: TextSpan(
+                                                    style: TextStyle(
+                                                      fontSize: 14.0,
+                                                      color: Colors.black,
+                                                    ),
+                                                    children: <TextSpan>[
+                                                      TextSpan(
+                                                        text:
+                                                            'MYR ${selectedJob?.transportCharge?.sstTotal?.toStringAsFixed(2).trim()}',
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )
+                                              : new Container(),
+                                        ],
+                                      ),
+                                    ),
+                                    Container(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          selectedJob?.transportCharge != null
+                                              ? RichText(
+                                                  text: const TextSpan(
+                                                    style: TextStyle(
+                                                      fontSize: 12.0,
+                                                      color: Colors.black54,
+                                                    ),
+                                                    children: <TextSpan>[
+                                                      const TextSpan(
+                                                        text:
+                                                            'COST (Incl. SST)',
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )
+                                              : new Container(),
+                                          selectedJob?.transportCharge != null
+                                              ? SizedBox(
+                                                  height: 5,
+                                                )
+                                              : new Container(),
+                                          selectedJob?.transportCharge != null
+                                              ? RichText(
+                                                  text: TextSpan(
+                                                    style: TextStyle(
+                                                      fontSize: 14.0,
+                                                      color: Colors.black,
+                                                    ),
+                                                    children: <TextSpan>[
+                                                      TextSpan(
+                                                        text:
+                                                            'MYR ${selectedJob?.transportCharge?.lineTotal?.toStringAsFixed(2).trim()}',
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )
+                                              : new Container(),
+                                        ],
+                                      ),
+                                    ),
                                   ],
                                 ),
-                              ),
-                              Container(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    selectedJob?.transportCharge != null
-                                        ? RichText(
-                                            text: const TextSpan(
-                                              style: TextStyle(
-                                                fontSize: 12.0,
-                                                color: Colors.black54,
-                                              ),
-                                              children: <TextSpan>[
-                                                const TextSpan(
-                                                  text: 'CHARGE',
-                                                ),
-                                              ],
-                                            ),
-                                          )
-                                        : new Container(),
-                                    selectedJob?.transportCharge != null
-                                        ? SizedBox(
-                                            height: 5,
-                                          )
-                                        : new Container(),
-                                    selectedJob?.transportCharge != null
-                                        ? RichText(
-                                            text: TextSpan(
-                                              style: TextStyle(
-                                                fontSize: 14.0,
-                                                color: Colors.black,
-                                              ),
-                                              children: <TextSpan>[
-                                                TextSpan(
-                                                  text: selectedJob
-                                                      ?.transportCharge
-                                                      ?.description
-                                                      ?.trim(),
-                                                ),
-                                              ],
-                                            ),
-                                          )
-                                        : new Container(),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    selectedJob?.transportCharge != null
-                                        ? RichText(
-                                            text: const TextSpan(
-                                              style: TextStyle(
-                                                fontSize: 12.0,
-                                                color: Colors.black54,
-                                              ),
-                                              children: <TextSpan>[
-                                                const TextSpan(
-                                                  text: 'COST',
-                                                ),
-                                              ],
-                                            ),
-                                          )
-                                        : new Container(),
-                                    selectedJob?.transportCharge != null
-                                        ? SizedBox(
-                                            height: 5,
-                                          )
-                                        : new Container(),
-                                    selectedJob?.transportCharge != null
-                                        ? RichText(
-                                            text: TextSpan(
-                                              style: TextStyle(
-                                                fontSize: 14.0,
-                                                color: Colors.black,
-                                              ),
-                                              children: <TextSpan>[
-                                                TextSpan(
-                                                  text: selectedJob
-                                                      ?.transportCharge
-                                                      ?.priceFormatted,
-                                                ),
-                                              ],
-                                            ),
-                                          )
-                                        : new Container(),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    selectedJob?.transportCharge != null
-                                        ? RichText(
-                                            text: const TextSpan(
-                                              style: TextStyle(
-                                                fontSize: 12.0,
-                                                color: Colors.black54,
-                                              ),
-                                              children: <TextSpan>[
-                                                const TextSpan(
-                                                  text: 'COST (Incl. SST)',
-                                                ),
-                                              ],
-                                            ),
-                                          )
-                                        : new Container(),
-                                    selectedJob?.transportCharge != null
-                                        ? SizedBox(
-                                            height: 5,
-                                          )
-                                        : new Container(),
-                                    selectedJob?.transportCharge != null
-                                        ? RichText(
-                                            text: TextSpan(
-                                              style: TextStyle(
-                                                fontSize: 14.0,
-                                                color: Colors.black,
-                                              ),
-                                              children: <TextSpan>[
-                                                TextSpan(
-                                                  text:
-                                                      'MYR ${selectedJob?.transportCharge?.lineTotal?.toStringAsFixed(2).trim()}',
-                                                ),
-                                              ],
-                                            ),
-                                          )
-                                        : new Container(),
-                                  ],
-                                ),
-                              ),
-                              Helpers.checkIfEditableByJobStatus(
-                                          selectedJob,
-                                          (selectedJob?.isMainEngineer ??
-                                              true)) &&
-                                      !isStepper
-                                  ? SizedBox(
-                                      width: 70,
-                                      height: 40.0,
-                                      child: ElevatedButton(
-                                          child: const Padding(
-                                              padding: EdgeInsets.all(0.0),
-                                              child: Text(
-                                                'Clear',
-                                                style: TextStyle(
-                                                    fontSize: 15,
-                                                    color: Colors.white),
-                                              )),
-                                          style: ButtonStyle(
-                                              foregroundColor:
-                                                  MaterialStateProperty.all<Color>(
-                                                      Color(0xFF242A38)),
-                                              backgroundColor:
-                                                  MaterialStateProperty.all<Color>(
-                                                      Color(0xFF242A38)),
-                                              shape: MaterialStateProperty.all<
-                                                      RoundedRectangleBorder>(
-                                                  RoundedRectangleBorder(
-                                                      borderRadius: BorderRadius.circular(
-                                                          4.0),
-                                                      side: const BorderSide(
-                                                          color: Color(0xFF242A38))))),
-                                          onPressed: () async {
-                                            await Repositories
-                                                .addTransportChargesToJob(
-                                                    selectedJob!
-                                                            .serviceRequestid ??
-                                                        "0",
-                                                    (selectedJob
-                                                            ?.productModelId ??
-                                                        0),
-                                                    null);
+                                SizedBox(
+                                    height: MediaQuery.of(context).size.height *
+                                        0.02),
+                                Row(children: [
+                                  Spacer(),
+                                  Helpers.checkIfEditableByJobStatus(
+                                              selectedJob,
+                                              (selectedJob?.isMainEngineer ??
+                                                  true)) &&
+                                          !isStepper
+                                      ? SizedBox(
+                                          width: 70,
+                                          height: 40.0,
+                                          child: ElevatedButton(
+                                              child: const Padding(
+                                                  padding: EdgeInsets.all(0.0),
+                                                  child: Text(
+                                                    'Clear',
+                                                    style: TextStyle(
+                                                        fontSize: 15,
+                                                        color: Colors.white),
+                                                  )),
+                                              style: ButtonStyle(
+                                                  foregroundColor:
+                                                      MaterialStateProperty.all<Color>(
+                                                          Color(0xFF242A38)),
+                                                  backgroundColor:
+                                                      MaterialStateProperty.all<Color>(
+                                                          Color(0xFF242A38)),
+                                                  shape: MaterialStateProperty.all<
+                                                          RoundedRectangleBorder>(
+                                                      RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                  4.0),
+                                                          side: const BorderSide(
+                                                              color: Color(0xFF242A38))))),
+                                              onPressed: () async {
+                                                await Repositories
+                                                    .addTransportChargesToJob(
+                                                        selectedJob!
+                                                                .serviceRequestid ??
+                                                            "0",
+                                                        (selectedJob
+                                                                ?.productModelId ??
+                                                            0),
+                                                        null);
 
-                                            await refreshJobDetails();
-                                          }),
-                                    )
-                                  : new Container(),
-                            ],
-                          )
-                        : new Container(),
-                  ],
-                ),
+                                                await refreshJobDetails();
+                                              }),
+                                        )
+                                      : new Container(),
+                                ])
+                              ],
+                            )
+                          : new Container(),
+                    ]),
         ]);
   }
 
@@ -5342,237 +5571,356 @@ class _JobDetailsState extends State<JobDetails>
                           : new Container(),
                   SizedBox(height: 20),
                   selectedJob?.pickupCharge != null
-                      ? Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Container(
-                              child: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  selectedJob?.pickupCharge != null
-                                      ? RichText(
-                                          text: const TextSpan(
-                                            style: TextStyle(
-                                              fontSize: 12.0,
-                                              color: Colors.black54,
-                                            ),
-                                            children: <TextSpan>[
-                                              const TextSpan(
-                                                text: 'CHARGE CODE',
+                      ? Column(children: [
+                          Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  child: Column(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceAround,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      selectedJob?.pickupCharge != null
+                                          ? RichText(
+                                              text: const TextSpan(
+                                                style: TextStyle(
+                                                  fontSize: 12.0,
+                                                  color: Colors.black54,
+                                                ),
+                                                children: <TextSpan>[
+                                                  const TextSpan(
+                                                    text: 'CHARGE',
+                                                  ),
+                                                ],
                                               ),
-                                            ],
-                                          ),
-                                        )
-                                      : new Container(),
-                                  selectedJob?.pickupCharge != null
-                                      ? SizedBox(
-                                          height: 5,
-                                        )
-                                      : new Container(),
-                                  selectedJob?.pickupCharge != null
-                                      ? RichText(
-                                          text: TextSpan(
-                                            style: TextStyle(
-                                              fontSize: 14.0,
-                                              color: Colors.black,
-                                            ),
-                                            children: <TextSpan>[
-                                              TextSpan(
-                                                text: selectedJob
-                                                    ?.pickupCharge?.code,
+                                            )
+                                          : new Container(),
+                                      selectedJob?.pickupCharge != null
+                                          ? SizedBox(
+                                              height: 5,
+                                            )
+                                          : new Container(),
+                                      selectedJob?.pickupCharge != null
+                                          ? RichText(
+                                              text: TextSpan(
+                                                style: TextStyle(
+                                                  fontSize: 14.0,
+                                                  color: Colors.black,
+                                                ),
+                                                children: <TextSpan>[
+                                                  TextSpan(
+                                                    text: selectedJob
+                                                        ?.pickupCharge
+                                                        ?.pickupDescription,
+                                                  ),
+                                                ],
                                               ),
-                                            ],
-                                          ),
-                                        )
-                                      : new Container(),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              child: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  selectedJob?.pickupCharge != null
-                                      ? RichText(
-                                          text: const TextSpan(
-                                            style: TextStyle(
-                                              fontSize: 12.0,
-                                              color: Colors.black54,
-                                            ),
-                                            children: <TextSpan>[
-                                              const TextSpan(
-                                                text: 'CHARGE',
+                                            )
+                                          : new Container(),
+                                    ],
+                                  ),
+                                ),
+                              ]),
+                          SizedBox(
+                              height:
+                                  MediaQuery.of(context).size.height * 0.02),
+                          Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  child: Column(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceAround,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      selectedJob?.pickupCharge != null
+                                          ? RichText(
+                                              text: const TextSpan(
+                                                style: TextStyle(
+                                                  fontSize: 12.0,
+                                                  color: Colors.black54,
+                                                ),
+                                                children: <TextSpan>[
+                                                  const TextSpan(
+                                                    text: 'CHARGE CODE',
+                                                  ),
+                                                ],
                                               ),
-                                            ],
-                                          ),
-                                        )
-                                      : new Container(),
-                                  selectedJob?.pickupCharge != null
-                                      ? SizedBox(
-                                          height: 5,
-                                        )
-                                      : new Container(),
-                                  selectedJob?.pickupCharge != null
-                                      ? RichText(
-                                          text: TextSpan(
-                                            style: TextStyle(
-                                              fontSize: 14.0,
-                                              color: Colors.black,
-                                            ),
-                                            children: <TextSpan>[
-                                              TextSpan(
-                                                text: selectedJob?.pickupCharge
-                                                    ?.pickupDescription,
+                                            )
+                                          : new Container(),
+                                      selectedJob?.pickupCharge != null
+                                          ? SizedBox(
+                                              height: 5,
+                                            )
+                                          : new Container(),
+                                      selectedJob?.pickupCharge != null
+                                          ? RichText(
+                                              text: TextSpan(
+                                                style: TextStyle(
+                                                  fontSize: 14.0,
+                                                  color: Colors.black,
+                                                ),
+                                                children: <TextSpan>[
+                                                  TextSpan(
+                                                    text: selectedJob
+                                                        ?.pickupCharge?.code,
+                                                  ),
+                                                ],
                                               ),
-                                            ],
-                                          ),
-                                        )
-                                      : new Container(),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              child: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  selectedJob?.pickupCharge != null
-                                      ? RichText(
-                                          text: const TextSpan(
-                                            style: TextStyle(
-                                              fontSize: 12.0,
-                                              color: Colors.black54,
-                                            ),
-                                            children: <TextSpan>[
-                                              const TextSpan(
-                                                text: 'COST',
+                                            )
+                                          : new Container(),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  child: Column(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceAround,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      selectedJob?.pickupCharge != null
+                                          ? RichText(
+                                              text: const TextSpan(
+                                                style: TextStyle(
+                                                  fontSize: 12.0,
+                                                  color: Colors.black54,
+                                                ),
+                                                children: <TextSpan>[
+                                                  const TextSpan(
+                                                    text: 'SUB TOTAL',
+                                                  ),
+                                                ],
                                               ),
-                                            ],
-                                          ),
-                                        )
-                                      : new Container(),
-                                  selectedJob?.pickupCharge != null
-                                      ? SizedBox(
-                                          height: 5,
-                                        )
-                                      : new Container(),
-                                  selectedJob?.pickupCharge != null
-                                      ? RichText(
-                                          text: TextSpan(
-                                            style: TextStyle(
-                                              fontSize: 14.0,
-                                              color: Colors.black,
-                                            ),
-                                            children: <TextSpan>[
-                                              TextSpan(
-                                                text: selectedJob?.pickupCharge
-                                                    ?.priceFormatted,
+                                            )
+                                          : new Container(),
+                                      selectedJob?.pickupCharge != null
+                                          ? SizedBox(
+                                              height: 5,
+                                            )
+                                          : new Container(),
+                                      selectedJob?.pickupCharge != null
+                                          ? RichText(
+                                              text: TextSpan(
+                                                style: TextStyle(
+                                                  fontSize: 14.0,
+                                                  color: Colors.black,
+                                                ),
+                                                children: <TextSpan>[
+                                                  TextSpan(
+                                                    text: selectedJob
+                                                        ?.pickupCharge
+                                                        ?.priceFormatted,
+                                                  ),
+                                                ],
                                               ),
-                                            ],
-                                          ),
-                                        )
-                                      : new Container(),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              child: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  selectedJob?.pickupCharge != null
-                                      ? RichText(
-                                          text: const TextSpan(
-                                            style: TextStyle(
-                                              fontSize: 12.0,
-                                              color: Colors.black54,
-                                            ),
-                                            children: <TextSpan>[
-                                              const TextSpan(
-                                                text: 'COST (Incl. SST)',
+                                            )
+                                          : new Container(),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  child: Column(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceAround,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      selectedJob?.pickupCharge != null
+                                          ? RichText(
+                                              text: const TextSpan(
+                                                style: TextStyle(
+                                                  fontSize: 12.0,
+                                                  color: Colors.black54,
+                                                ),
+                                                children: <TextSpan>[
+                                                  const TextSpan(
+                                                    text: 'SST (PERCENTAGE)',
+                                                  ),
+                                                ],
                                               ),
-                                            ],
-                                          ),
-                                        )
-                                      : new Container(),
-                                  selectedJob?.pickupCharge != null
-                                      ? SizedBox(
-                                          height: 5,
-                                        )
-                                      : new Container(),
-                                  selectedJob?.pickupCharge != null
-                                      ? RichText(
-                                          text: TextSpan(
-                                            style: TextStyle(
-                                              fontSize: 14.0,
-                                              color: Colors.black,
-                                            ),
-                                            children: <TextSpan>[
-                                              TextSpan(
-                                                text:
-                                                    ' MYR ${selectedJob?.pickupCharge?.lineTotal?.toStringAsFixed(2)}',
+                                            )
+                                          : new Container(),
+                                      selectedJob?.pickupCharge != null
+                                          ? SizedBox(
+                                              height: 5,
+                                            )
+                                          : new Container(),
+                                      selectedJob?.pickupCharge != null
+                                          ? RichText(
+                                              text: TextSpan(
+                                                style: TextStyle(
+                                                  fontSize: 14.0,
+                                                  color: Colors.black,
+                                                ),
+                                                children: <TextSpan>[
+                                                  TextSpan(
+                                                    text:
+                                                        '${selectedJob?.pickupCharge?.sstPercentage}%',
+                                                  ),
+                                                ],
                                               ),
-                                            ],
-                                          ),
-                                        )
-                                      : new Container(),
-                                ],
-                              ),
-                            ),
-                            selectedJob?.pickupCharge != null &&
-                                    Helpers.checkIfEditableByJobStatus(
-                                        selectedJob,
-                                        (selectedJob?.isMainEngineer ??
-                                            true)) &&
-                                    !isStepper
-                                ? SizedBox(
-                                    width: 70,
-                                    height: 40.0,
-                                    child: ElevatedButton(
-                                        child: const Padding(
-                                            padding: EdgeInsets.all(0.0),
-                                            child: Text(
-                                              'Clear',
-                                              style: TextStyle(
-                                                  fontSize: 15,
-                                                  color: Colors.white),
-                                            )),
-                                        style: ButtonStyle(
-                                            foregroundColor:
-                                                MaterialStateProperty.all<Color>(
-                                                    Color(0xFF242A38)),
-                                            backgroundColor:
-                                                MaterialStateProperty.all<Color>(
-                                                    Color(0xFF242A38)),
-                                            shape: MaterialStateProperty.all<
-                                                    RoundedRectangleBorder>(
-                                                RoundedRectangleBorder(
-                                                    borderRadius: BorderRadius.circular(
-                                                        4.0),
-                                                    side: const BorderSide(
-                                                        color: Color(0xFF242A38))))),
-                                        onPressed: () async {
-                                          await Repositories.addPickupCharges(
-                                              selectedJob!.serviceRequestid ??
-                                                  "0",
-                                              null);
-                                          await refreshJobDetails();
-                                        }),
-                                  )
-                                : new Container(),
-                          ],
-                        )
+                                            )
+                                          : new Container(),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  child: Column(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceAround,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      selectedJob?.pickupCharge != null
+                                          ? RichText(
+                                              text: const TextSpan(
+                                                style: TextStyle(
+                                                  fontSize: 12.0,
+                                                  color: Colors.black54,
+                                                ),
+                                                children: <TextSpan>[
+                                                  const TextSpan(
+                                                    text: 'SST AMOUNT',
+                                                  ),
+                                                ],
+                                              ),
+                                            )
+                                          : new Container(),
+                                      selectedJob?.pickupCharge != null
+                                          ? SizedBox(
+                                              height: 5,
+                                            )
+                                          : new Container(),
+                                      selectedJob?.pickupCharge != null
+                                          ? RichText(
+                                              text: TextSpan(
+                                                style: TextStyle(
+                                                  fontSize: 14.0,
+                                                  color: Colors.black,
+                                                ),
+                                                children: <TextSpan>[
+                                                  TextSpan(
+                                                    text:
+                                                        'MYR ${selectedJob?.pickupCharge?.sstTotal?.toStringAsFixed(2)}',
+                                                  ),
+                                                ],
+                                              ),
+                                            )
+                                          : new Container(),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  child: Column(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceAround,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      selectedJob?.pickupCharge != null
+                                          ? RichText(
+                                              text: const TextSpan(
+                                                style: TextStyle(
+                                                  fontSize: 12.0,
+                                                  color: Colors.black54,
+                                                ),
+                                                children: <TextSpan>[
+                                                  const TextSpan(
+                                                    text: 'COST (Incl. SST)',
+                                                  ),
+                                                ],
+                                              ),
+                                            )
+                                          : new Container(),
+                                      selectedJob?.pickupCharge != null
+                                          ? SizedBox(
+                                              height: 5,
+                                            )
+                                          : new Container(),
+                                      selectedJob?.pickupCharge != null
+                                          ? RichText(
+                                              text: TextSpan(
+                                                style: TextStyle(
+                                                  fontSize: 14.0,
+                                                  color: Colors.black,
+                                                ),
+                                                children: <TextSpan>[
+                                                  TextSpan(
+                                                    text:
+                                                        ' MYR ${selectedJob?.pickupCharge?.lineTotal?.toStringAsFixed(2)}',
+                                                  ),
+                                                ],
+                                              ),
+                                            )
+                                          : new Container(),
+                                    ],
+                                  ),
+                                ),
+                              ]),
+                          SizedBox(
+                              height:
+                                  MediaQuery.of(context).size.height * 0.02),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Spacer(),
+                              selectedJob?.pickupCharge != null &&
+                                      Helpers.checkIfEditableByJobStatus(
+                                          selectedJob,
+                                          (selectedJob?.isMainEngineer ??
+                                              true)) &&
+                                      !isStepper
+                                  ? SizedBox(
+                                      width: 70,
+                                      height: 40.0,
+                                      child: ElevatedButton(
+                                          child: const Padding(
+                                              padding: EdgeInsets.all(0.0),
+                                              child: Text(
+                                                'Clear',
+                                                style: TextStyle(
+                                                    fontSize: 15,
+                                                    color: Colors.white),
+                                              )),
+                                          style: ButtonStyle(
+                                              foregroundColor:
+                                                  MaterialStateProperty.all<Color>(
+                                                      Color(0xFF242A38)),
+                                              backgroundColor:
+                                                  MaterialStateProperty.all<Color>(
+                                                      Color(0xFF242A38)),
+                                              shape: MaterialStateProperty.all<
+                                                      RoundedRectangleBorder>(
+                                                  RoundedRectangleBorder(
+                                                      borderRadius: BorderRadius.circular(
+                                                          4.0),
+                                                      side: const BorderSide(
+                                                          color: Color(0xFF242A38))))),
+                                          onPressed: () async {
+                                            await Repositories.addPickupCharges(
+                                                selectedJob!.serviceRequestid ??
+                                                    "0",
+                                                null);
+                                            await refreshJobDetails();
+                                          }),
+                                    )
+                                  : new Container(),
+                            ],
+                          )
+                        ])
                       : new Container(),
                 ],
               ),
