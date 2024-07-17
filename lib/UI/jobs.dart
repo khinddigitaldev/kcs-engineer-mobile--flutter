@@ -516,6 +516,7 @@ class _JobListState extends State<JobList>
         () => searchOnInProgressStoppedTyping = new Timer(duration, () async {
               if (currentSearchTextInProgress != value || value == "") {
                 currentSearchText = value;
+                currentPage = 1;
                 await _fetchJobs(true);
               }
             }));

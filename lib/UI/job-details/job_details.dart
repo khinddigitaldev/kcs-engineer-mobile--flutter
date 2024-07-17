@@ -2559,14 +2559,6 @@ class _JobDetailsState extends State<JobDetails>
                     const SizedBox(height: 20),
                     buildIssueInfo(),
                     const SizedBox(height: 20),
-                    (rcpCost != null) ? Divider() : new Container(),
-                    (rcpCost != null)
-                        ? const SizedBox(height: 20)
-                        : new Container(),
-                    (rcpCost != null) ? _renderCost(false) : new Container(),
-                    (rcpCost != null)
-                        ? const SizedBox(height: 10)
-                        : new Container(),
                     Divider(),
                     const SizedBox(height: 20),
                     _renderPickList(false),
@@ -2610,6 +2602,14 @@ class _JobDetailsState extends State<JobDetails>
                     const SizedBox(height: 20),
                     _renderSolutions(false),
                     const SizedBox(height: 20),
+                    (rcpCost != null) ? Divider() : new Container(),
+                    (rcpCost != null)
+                        ? const SizedBox(height: 20)
+                        : new Container(),
+                    (rcpCost != null) ? _renderCost(false) : new Container(),
+                    (rcpCost != null)
+                        ? const SizedBox(height: 10)
+                        : new Container(),
                     checkActionsEnabled('start') ? Divider() : new Container(),
                     checkActionsEnabled('start')
                         ? const SizedBox(height: 20)
@@ -3383,8 +3383,13 @@ class _JobDetailsState extends State<JobDetails>
                           constraints: BoxConstraints(
                               minWidth: MediaQuery.of(context).size.width * 1,
                               maxWidth: MediaQuery.of(context).size.width * 1,
-                              maxHeight:
-                                  MediaQuery.of(context).size.height * .25,
+                              maxHeight: Helpers.checkIfEditableByJobStatus(
+                                          selectedJob,
+                                          (selectedJob?.isMainEngineer ??
+                                              true)) &&
+                                      !isStepper
+                                  ? MediaQuery.of(context).size.height * .25
+                                  : MediaQuery.of(context).size.height * .17,
                               minHeight:
                                   MediaQuery.of(context).size.height * .1),
                           child: TabBarView(

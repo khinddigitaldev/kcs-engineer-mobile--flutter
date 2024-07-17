@@ -213,7 +213,7 @@ class Job {
     this.estimatedSolutionTotalSST = json["solution"]?["estimated"] != null
         ? ((double.parse(this.estimatedSolutionSSTPercentage ?? "0.0") / 100) *
                 double.parse(this.estimatedSolutionChargesAmount ?? "0.0"))
-            .toString()
+            .toStringAsFixed(2)
         : "-";
     this.estimatedSolutionTotalLineVal = json["solution"]?["estimated"] != null
         ? (double.parse(this.estimatedSolutionTotalSST ?? "0.0") +
@@ -222,7 +222,6 @@ class Job {
         : "-";
     this.actualSolutionCode = json["solution"]?["actual"]?["code"];
     this.actualSolutionDescription = json["solution"]?["actual"]?["solution"];
-
     this.actualSolutionCharges =
         json["solution"]?["actual"]?["charges"]?["formatted"];
     this.actualSolutionChargesAmount = (double.parse(
@@ -237,14 +236,13 @@ class Job {
     this.actualSolutionTotalSST = json["solution"]?["actual"] != null
         ? ((double.parse(this.actualSolutionSSTPercentage ?? "0.0") / 100) *
                 double.parse(this.actualSolutionChargesAmount ?? "0.0"))
-            .toString()
+            .toStringAsFixed(2)
         : "-";
     this.actualSolutionTotalLineVal = json["solution"]?["actual"] != null
         ? (double.parse(this.actualSolutionTotalSST ?? "0.0") +
                 double.parse(this.actualSolutionChargesAmount ?? "0.0"))
             .toStringAsFixed(2)
         : "-";
-
     this.remarks = json["remarks"]?["remarks"];
     this.adminRemarks = json["remarks"]?["admin_remarks"];
     this.engineerRemarks = json["remarks"]?["engineer_remarks"];
@@ -253,10 +251,10 @@ class Job {
     this.serialNo = json["warranty_info"]?["serial_no"];
     this.purchaseDate = json["warranty_info"]?["purchase_date"];
     this.isPaid = json["payment"] != null && json["payment"]?["is_paid"];
-    // this.paymentMethods =
-    //     (json["payment"] != null && json["payment"]?["payment_method"] != null)
-    //         ? (json["payment"]?["payment_method"] as List<dynamic>).join(",")
-    //         : null;
+    this.paymentMethods =
+        (json["payment"] != null && json["payment"]?["payment_method"] != null)
+            ? (json["payment"]?["payment_method"] as List<dynamic>).join(",")
+            : null;
     this.isRTOOrder = json["has_sales_order_connection"];
     this.productId = json["product"]?["id"];
     this.serviceTypeId = json["service_type_id"];
