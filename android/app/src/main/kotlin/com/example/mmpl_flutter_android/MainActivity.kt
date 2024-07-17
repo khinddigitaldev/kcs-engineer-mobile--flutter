@@ -1,4 +1,4 @@
-package com.kcsengineerstaging.app
+package com.kcsengineer.app
 
 import io.flutter.embedding.android.FlutterActivity
 
