@@ -57,8 +57,7 @@ class _SignInState extends State<SignIn> {
 
   void validateToken() async {
     try {
-      final accessToken = 
-      await storage.read(key: TOKEN);
+      final accessToken = await storage.read(key: TOKEN);
 
       if (accessToken != null && accessToken != "") {
         Navigator.pushReplacementNamed(context, 'home');
@@ -197,8 +196,6 @@ class _SignInState extends State<SignIn> {
                     SizedBox(width: 5),
                     RichText(
                       text: TextSpan(
-                          // Note: Styles for TextSpans must be explicitly defined.
-                          // Child text spans will inherit styles from parent
                           style: const TextStyle(
                             fontSize: 13.0,
                             color: Colors.red,
@@ -279,8 +276,6 @@ class _SignInState extends State<SignIn> {
                     SizedBox(width: 5),
                     RichText(
                       text: TextSpan(
-                          // Note: Styles for TextSpans must be explicitly defined.
-                          // Child text spans will inherit styles from parent
                           style: const TextStyle(
                             fontSize: 13.0,
                             color: Colors.red,
@@ -323,8 +318,6 @@ class _SignInState extends State<SignIn> {
               ),
               RichText(
                 text: TextSpan(
-                    // Note: Styles for TextSpans must be explicitly defined.
-                    // Child text spans will inherit styles from parent
                     style: const TextStyle(
                       fontSize: 15,
                       color: Color(0xFF3FA2F7),

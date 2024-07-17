@@ -124,8 +124,6 @@ class _PaymentState extends State<Payment> {
                   new BoxDecoration(color: Colors.white.withOpacity(0.0)),
               child: RichText(
                 text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
                   style: const TextStyle(
                     fontSize: 25.0,
                     color: Colors.black,
@@ -147,8 +145,6 @@ class _PaymentState extends State<Payment> {
               child: RichText(
                 textAlign: TextAlign.center,
                 text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
                   style: const TextStyle(
                     fontSize: 17.0,
                     color: Colors.black54,
@@ -189,8 +185,8 @@ class _PaymentState extends State<Payment> {
             //       new BoxDecoration(color: Colors.white.withOpacity(0.0)),
             //   child: RichText(
             //     text: TextSpan(
-            //       // Note: Styles for TextSpans must be explicitly defined.
-            //       // Child text spans will inherit styles from parent
+            //
+            //
             //       style: const TextStyle(
             //         fontSize: 20.0,
             //         color: Colors.black,
@@ -210,8 +206,6 @@ class _PaymentState extends State<Payment> {
                   new BoxDecoration(color: Colors.white.withOpacity(0.0)),
               child: RichText(
                 text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
                   style: TextStyle(
                     fontSize: 28.0,
                     color: Colors.black,
@@ -241,8 +235,6 @@ class _PaymentState extends State<Payment> {
                   ),
                   RichText(
                     text: TextSpan(
-                      // Note: Styles for TextSpans must be explicitly defined.
-                      // Child text spans will inherit styles from parent
                       style: const TextStyle(
                         fontSize: 15.0,
                         color: Colors.white,
@@ -259,8 +251,6 @@ class _PaymentState extends State<Payment> {
                   ),
                   RichText(
                     text: TextSpan(
-                      // Note: Styles for TextSpans must be explicitly defined.
-                      // Child text spans will inherit styles from parent
                       style: const TextStyle(
                         fontSize: 15.0,
                         color: Colors.blue,

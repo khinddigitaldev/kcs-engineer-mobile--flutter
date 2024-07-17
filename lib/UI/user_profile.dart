@@ -151,8 +151,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
               alignment: Alignment.centerLeft,
               child: RichText(
                 text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
                   style: const TextStyle(
                     fontSize: 29.0,
                     color: Colors.black,
@@ -285,8 +283,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
               alignment: Alignment.centerLeft,
               child: RichText(
                 text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
                   style: const TextStyle(
                     fontSize: 45.0,
                     color: Colors.black,
@@ -304,8 +300,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
               alignment: Alignment.centerLeft,
               child: RichText(
                 text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
                   style: const TextStyle(
                     fontSize: 20.0,
                     color: Colors.grey,
@@ -345,8 +339,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
               alignment: Alignment.centerLeft,
               child: RichText(
                 text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
                   style: const TextStyle(
                     fontSize: 28.0,
                     color: Colors.black,
@@ -373,8 +365,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                       children: [
                         RichText(
                           text: TextSpan(
-                              // Note: Styles for TextSpans must be explicitly defined.
-                              // Child text spans will inherit styles from parent
                               style: const TextStyle(
                                 fontSize: 14.0,
                                 color: Colors.grey,
@@ -388,8 +378,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                         ),
                         RichText(
                           text: TextSpan(
-                              // Note: Styles for TextSpans must be explicitly defined.
-                              // Child text spans will inherit styles from parent
                               style: const TextStyle(
                                 fontSize: 20.0,
                                 color: Colors.black,
@@ -405,8 +393,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                         SizedBox(height: 10),
                         RichText(
                           text: TextSpan(
-                              // Note: Styles for TextSpans must be explicitly defined.
-                              // Child text spans will inherit styles from parent
                               style: const TextStyle(
                                 fontSize: 14.0,
                                 color: Colors.grey,
@@ -420,8 +406,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                         ),
                         RichText(
                           text: TextSpan(
-                              // Note: Styles for TextSpans must be explicitly defined.
-                              // Child text spans will inherit styles from parent
                               style: const TextStyle(
                                 fontSize: 20.0,
                                 color: Colors.black,
@@ -448,8 +432,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                         SizedBox(height: 20),
                         RichText(
                           text: TextSpan(
-                              // Note: Styles for TextSpans must be explicitly defined.
-                              // Child text spans will inherit styles from parent
                               style: const TextStyle(
                                 color: Colors.grey,
                               ),
@@ -468,8 +450,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                               alignment: Alignment.centerLeft,
                               child: RichText(
                                 text: TextSpan(
-                                    // Note: Styles for TextSpans must be explicitly defined.
-                                    // Child text spans will inherit styles from parent
                                     style: const TextStyle(
                                       fontSize: 20.0,
                                       color: Colors.black,
@@ -486,8 +466,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                         SizedBox(height: 10),
                         RichText(
                           text: TextSpan(
-                              // Note: Styles for TextSpans must be explicitly defined.
-                              // Child text spans will inherit styles from parent
                               style: const TextStyle(
                                 fontSize: 14.0,
                                 color: Colors.grey,
@@ -501,8 +479,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                         ),
                         RichText(
                           text: TextSpan(
-                              // Note: Styles for TextSpans must be explicitly defined.
-                              // Child text spans will inherit styles from parent
                               style: const TextStyle(
                                 fontSize: 20.0,
                                 color: Colors.black,
@@ -549,8 +525,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                       children: [
                         RichText(
                           text: TextSpan(
-                              // Note: Styles for TextSpans must be explicitly defined.
-                              // Child text spans will inherit styles from parent
                               style: const TextStyle(
                                 color: Colors.grey,
                               ),
@@ -567,8 +541,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                           alignment: Alignment.centerLeft,
                           child: RichText(
                             text: TextSpan(
-                                // Note: Styles for TextSpans must be explicitly defined.
-                                // Child text spans will inherit styles from parent
                                 style: const TextStyle(
                                   fontSize: 20.0,
                                   color: Colors.black,

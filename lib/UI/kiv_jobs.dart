@@ -569,8 +569,6 @@ class _KIVJobListState extends State<KIVJobList>
                       ),
                       RichText(
                         text: TextSpan(
-                          // Note: Styles for TextSpans must be explicitly defined.
-                          // Child text spans will inherit styles from parent
                           style: const TextStyle(
                             fontSize: 32.0,
                             color: Colors.black,
@@ -590,8 +588,6 @@ class _KIVJobListState extends State<KIVJobList>
                         child: RichText(
                           textAlign: TextAlign.center,
                           text: TextSpan(
-                            // Note: Styles for TextSpans must be explicitly defined.
-                            // Child text spans will inherit styles from parent
                             style: const TextStyle(
                               fontSize: 16.0,
                               color: Colors.black54,

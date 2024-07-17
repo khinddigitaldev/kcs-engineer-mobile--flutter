@@ -129,8 +129,6 @@ class _PaymentHistoryState extends State<PaymentHistory> {
             alignment: Alignment.centerLeft,
             child: RichText(
               text: TextSpan(
-                // Note: Styles for TextSpans must be explicitly defined.
-                // Child text spans will inherit styles from parent
                 style: const TextStyle(
                   fontSize: 29.0,
                   color: Colors.black,
@@ -154,8 +152,6 @@ class _PaymentHistoryState extends State<PaymentHistory> {
               alignment: Alignment.centerLeft,
               child: RichText(
                 text: TextSpan(
-                    // Note: Styles for TextSpans must be explicitly defined.
-                    // Child text spans will inherit styles from parent
                     style: const TextStyle(
                       fontSize: 25.0,
                       color: Colors.black,

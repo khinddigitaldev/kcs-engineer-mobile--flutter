@@ -113,8 +113,6 @@ class _PickListState extends State<PickList> with AfterLayoutMixin {
               alignment: Alignment.centerLeft,
               child: RichText(
                 text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
                   style: const TextStyle(
                     fontSize: 29.0,
                     color: Colors.black,
@@ -192,8 +190,6 @@ class _PickListState extends State<PickList> with AfterLayoutMixin {
                             alignment: Alignment.centerLeft,
                             child: RichText(
                               text: TextSpan(
-                                // Note: Styles for TextSpans must be explicitly defined.
-                                // Child text spans will inherit styles from parent
                                 style: const TextStyle(
                                   fontSize: 18.0,
                                   color: Colors.black87,
@@ -290,8 +286,6 @@ class _PickListState extends State<PickList> with AfterLayoutMixin {
                                                             textAlign: TextAlign
                                                                 .center,
                                                             text: TextSpan(
-                                                              // Note: Styles for TextSpans must be explicitly defined.
-                                                              // Child text spans will inherit styles from parent
                                                               style:
                                                                   const TextStyle(
                                                                 fontSize: 15.0,
@@ -330,8 +324,6 @@ class _PickListState extends State<PickList> with AfterLayoutMixin {
                             alignment: Alignment.centerLeft,
                             child: RichText(
                               text: TextSpan(
-                                // Note: Styles for TextSpans must be explicitly defined.
-                                // Child text spans will inherit styles from parent
                                 style: const TextStyle(
                                   fontSize: 18.0,
                                   color: Colors.black87,
@@ -426,8 +418,6 @@ class _PickListState extends State<PickList> with AfterLayoutMixin {
                                                             textAlign: TextAlign
                                                                 .center,
                                                             text: TextSpan(
-                                                              // Note: Styles for TextSpans must be explicitly defined.
-                                                              // Child text spans will inherit styles from parent
                                                               style:
                                                                   const TextStyle(
                                                                 fontSize: 15.0,
@@ -508,8 +498,6 @@ class _PickListState extends State<PickList> with AfterLayoutMixin {
                     ),
                     RichText(
                       text: TextSpan(
-                        // Note: Styles for TextSpans must be explicitly defined.
-                        // Child text spans will inherit styles from parent
                         style: const TextStyle(
                           fontSize: 32.0,
                           color: Colors.black,
@@ -529,8 +517,6 @@ class _PickListState extends State<PickList> with AfterLayoutMixin {
                       child: RichText(
                         textAlign: TextAlign.center,
                         text: TextSpan(
-                          // Note: Styles for TextSpans must be explicitly defined.
-                          // Child text spans will inherit styles from parent
                           style: const TextStyle(
                             fontSize: 16.0,
                             color: Colors.black54,

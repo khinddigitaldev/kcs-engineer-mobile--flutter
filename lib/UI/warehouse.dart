@@ -233,8 +233,6 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                     children: [
                       RichText(
                         text: TextSpan(
-                            // Note: Styles for TextSpans must be explicitly defined.
-                            // Child text spans will inherit styles from parent
                             style: const TextStyle(
                               fontSize: 25.0,
                               color: Colors.black,
@@ -590,8 +588,6 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                                                                           .center,
                                                                   text:
                                                                       TextSpan(
-                                                                    // Note: Styles for TextSpans must be explicitly defined.
-                                                                    // Child text spans will inherit styles from parent
                                                                     style:
                                                                         const TextStyle(
                                                                       fontSize:
@@ -616,8 +612,6 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                                                                           .center,
                                                                   text:
                                                                       TextSpan(
-                                                                    // Note: Styles for TextSpans must be explicitly defined.
-                                                                    // Child text spans will inherit styles from parent
                                                                     style:
                                                                         const TextStyle(
                                                                       fontSize:
@@ -692,8 +686,6 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                                                                   RichText(
                                                                     text:
                                                                         TextSpan(
-                                                                      // Note: Styles for TextSpans must be explicitly defined.
-                                                                      // Child text spans will inherit styles from parent
                                                                       style:
                                                                           const TextStyle(
                                                                         fontSize:
@@ -753,8 +745,6 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                                                                     RichText(
                                                                       text:
                                                                           TextSpan(
-                                                                        // Note: Styles for TextSpans must be explicitly defined.
-                                                                        // Child text spans will inherit styles from parent
                                                                         style:
                                                                             const TextStyle(
                                                                           fontSize:
@@ -798,8 +788,6 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                       ),
                       RichText(
                         text: TextSpan(
-                          // Note: Styles for TextSpans must be explicitly defined.
-                          // Child text spans will inherit styles from parent
                           style: const TextStyle(
                             fontSize: 32.0,
                             color: Colors.black,
@@ -819,8 +807,6 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                         child: RichText(
                           textAlign: TextAlign.center,
                           text: TextSpan(
-                            // Note: Styles for TextSpans must be explicitly defined.
-                            // Child text spans will inherit styles from parent
                             style: const TextStyle(
                               fontSize: 16.0,
                               color: Colors.black54,
