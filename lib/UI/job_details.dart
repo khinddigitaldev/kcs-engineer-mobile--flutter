@@ -73,10 +73,10 @@ class _JobDetailsState extends State<JobDetails>
   bool isChargeableMiscellaneousCharges = false;
 
   Job? selectedJob;
-  late FocusNode serialNoFocusNode;
-  late FocusNode remarksFocusNode;
-  late FocusNode adminRemarksFocusNode;
-  late FocusNode engineerRemarksFocusNode;
+  FocusNode _serialNoFocusNode = FocusNode();
+  FocusNode _remarksFocusNode = FocusNode();
+  FocusNode _adminRemarksFocusNode = FocusNode();
+  FocusNode _engineerRemarksFocusNode = FocusNode();
 
   List<Solution> solutions = [];
   List<Problem> problems = [];
@@ -126,7 +126,8 @@ class _JobDetailsState extends State<JobDetails>
   bool isErrorProblemSelection = false;
   bool isErrorEstimatedSolutionSelection = false;
   bool isErrorActualSolutionSelection = false;
-  bool isErrorSerialNo = false;
+  bool isErrorSerialNoMandatory = false;
+  bool isErrorSerialNoLengthInsufficient = false;
   bool isPendingItemsInPickList = false;
 
   bool isPreviousJobsSelected = false;
@@ -157,7 +158,7 @@ class _JobDetailsState extends State<JobDetails>
     await fetchJobDetails();
     await Future.wait([
       //ones which can be taken out
-      fetchPickUpCharges(),
+      // fetchPickUpCharges(),
       fetchCancellationReasons(),
       fetchRejecReasons(),
       fetchKIVReasons(),
@@ -179,10 +180,23 @@ class _JobDetailsState extends State<JobDetails>
 
     if (selectedJob != null && mounted) {
       setState(() {
-        serialNoController.text = selectedJob?.serialNo ?? "-";
-        remarksController.text = selectedJob?.remarks ?? "";
-        adminRemarksController.text = selectedJob?.adminRemarks ?? "";
-        engineerRemarksController.text = selectedJob?.engineerRemarks ?? "";
+        serialNoController.text =
+            (selectedJob?.serialNo ?? "")?.trim().replaceAll(" ", "") == ""
+                ? "-"
+                : selectedJob?.serialNo ?? "-";
+        remarksController.text =
+            (selectedJob?.remarks ?? "")?.trim().replaceAll(" ", "") == ""
+                ? "-"
+                : selectedJob?.engineerRemarks ?? "-";
+        adminRemarksController.text =
+            (selectedJob?.adminRemarks ?? "")?.trim().replaceAll(" ", "") == ""
+                ? "-"
+                : selectedJob?.adminRemarks ?? "-";
+        engineerRemarksController.text =
+            (selectedJob?.engineerRemarks ?? "")?.trim().replaceAll(" ", "") ==
+                    ""
+                ? "-"
+                : selectedJob?.engineerRemarks ?? "-";
       });
     }
   }
@@ -337,12 +351,9 @@ class _JobDetailsState extends State<JobDetails>
     WidgetsBinding.instance.addObserver(this);
 
     super.initState();
-
-    serialNoFocusNode = FocusNode();
-    remarksFocusNode = FocusNode();
-    adminRemarksFocusNode = FocusNode();
-    engineerRemarksFocusNode = FocusNode();
     _loadVersion();
+
+    // _serialNoFocusNode.addListener(_onFocusChange);
     //_loadToken();
     //_checkPermisions();
   }
@@ -534,10 +545,10 @@ class _JobDetailsState extends State<JobDetails>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    serialNoFocusNode.dispose();
-    remarksFocusNode.dispose();
-    adminRemarksFocusNode.dispose();
-    engineerRemarksFocusNode.dispose();
+    _serialNoFocusNode.dispose();
+    _remarksFocusNode.dispose();
+    _adminRemarksFocusNode.dispose();
+    _engineerRemarksFocusNode.dispose();
     super.dispose();
   }
 
@@ -620,69 +631,69 @@ class _JobDetailsState extends State<JobDetails>
 
   void _handleSignIn() async {}
 
-  Widget buildProductInfo() {
-    final fullWidth = MediaQuery.of(context).size.width;
-    final rowWidth = fullWidth * 0.77; //90%
+  // Widget buildProductInfo() {
+  //   final fullWidth = MediaQuery.of(context).size.width;
+  //   final rowWidth = fullWidth * 0.77; //90%
 
-    return Container(
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: <Widget>[
-          Container(
-            alignment: Alignment.centerLeft,
-            width: rowWidth,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: <Widget>[
-                    Container(
-                      width: MediaQuery.of(context).size.width * 0.32,
-                      child: selectedJob?.warrantyAdditionalInfo != null
-                          ? Column(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                RichText(
-                                  text: const TextSpan(
-                                      style: TextStyle(
-                                        fontSize: 15.0,
-                                        color: Colors.black54,
-                                      ),
-                                      children: <TextSpan>[
-                                        const TextSpan(
-                                          text: 'WARRANTY ADDITIONAL INFO',
-                                        ),
-                                      ]),
-                                ),
-                                RichText(
-                                  text: TextSpan(
-                                      style: const TextStyle(
-                                        fontSize: 15.0,
-                                        color: Colors.black,
-                                      ),
-                                      children: <TextSpan>[
-                                        TextSpan(
-                                          text:
-                                              '${selectedJob?.warrantyAdditionalInfo}',
-                                        ),
-                                      ]),
-                                )
-                              ],
-                            )
-                          : new Container(),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  //   return Container(
+  //     child: Row(
+  //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //       crossAxisAlignment: CrossAxisAlignment.end,
+  //       children: <Widget>[
+  //         Container(
+  //           alignment: Alignment.centerLeft,
+  //           width: rowWidth,
+  //           child: Column(
+  //             crossAxisAlignment: CrossAxisAlignment.start,
+  //             children: <Widget>[
+  //               Row(
+  //                 mainAxisAlignment: MainAxisAlignment.spaceAround,
+  //                 children: <Widget>[
+  //                   Container(
+  //                     width: MediaQuery.of(context).size.width * 0.32,
+  //                     child: selectedJob?.warrantyAdditionalInfo != null
+  //                         ? Column(
+  //                             mainAxisAlignment: MainAxisAlignment.start,
+  //                             crossAxisAlignment: CrossAxisAlignment.start,
+  //                             children: <Widget>[
+  //                               RichText(
+  //                                 text: const TextSpan(
+  //                                     style: TextStyle(
+  //                                       fontSize: 15.0,
+  //                                       color: Colors.black54,
+  //                                     ),
+  //                                     children: <TextSpan>[
+  //                                       const TextSpan(
+  //                                         text: 'WARRANTY ADDITIONAL INFO',
+  //                                       ),
+  //                                     ]),
+  //                               ),
+  //                               RichText(
+  //                                 text: TextSpan(
+  //                                     style: const TextStyle(
+  //                                       fontSize: 15.0,
+  //                                       color: Colors.black,
+  //                                     ),
+  //                                     children: <TextSpan>[
+  //                                       TextSpan(
+  //                                         text:
+  //                                             '${selectedJob?.warrantyAdditionalInfo}',
+  //                                       ),
+  //                                     ]),
+  //                               )
+  //                             ],
+  //                           )
+  //                         : new Container(),
+  //                   ),
+  //                 ],
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   bool validateIfEditedValuesAreSaved() {
     if (isRemarksEditable ||
@@ -758,15 +769,30 @@ class _JobDetailsState extends State<JobDetails>
                   isRemarksEditable = false;
                 });
               }
-
               if (isSerialNoEditable) {
-                var res = await Repositories.updateSerialNo(
-                    selectedJob!.serviceRequestid ?? "0",
-                    serialNoController.text.toString());
-
-                setState(() {
-                  isSerialNoEditable = false;
-                });
+                if (serialNoController.text.trim().length >= 4) {
+                  var res = await Repositories.updateSerialNo(
+                      selectedJob!.serviceRequestid ?? "0",
+                      serialNoController.text.toString());
+                } else {
+                  if (selectedJob != null &&
+                      (selectedJob?.isUnderWarranty ?? true)) {
+                    if (serialNoController.text.trim() == "") {
+                      setState(() {
+                        isErrorSerialNoMandatory = true;
+                      });
+                    } else {
+                      if (serialNoController.text.trim().length < 4) {
+                        setState(() {
+                          isErrorSerialNoLengthInsufficient = true;
+                        });
+                      }
+                    }
+                  }
+                  setState(() {
+                    isSerialNoEditable = false;
+                  });
+                }
               }
 
               if (isEngineerRemarksEditable) {
@@ -816,281 +842,281 @@ class _JobDetailsState extends State<JobDetails>
     }
   }
 
-  Widget buildIssueInfo() {
-    final fullWidth = MediaQuery.of(context).size.width;
-    final rowWidth = fullWidth * 0.75; //90%
-    final containerWidth =
-        rowWidth / 3; //Could also use this to set the containers individually
+  // Widget buildIssueInfo() {
+  //   final fullWidth = MediaQuery.of(context).size.width;
+  //   final rowWidth = fullWidth * 0.75; //90%
+  //   final containerWidth =
+  //       rowWidth / 3; //Could also use this to set the containers individually
 
-    return Container(
-      child: Padding(
-        padding: const EdgeInsets.all(0.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: <Widget>[
-            Container(
-              width: rowWidth,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: <Widget>[
-                      Container(
-                        width: MediaQuery.of(context).size.width * 0.5,
-                        child: Row(
-                          children: [
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[],
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(),
-                    ],
-                  ),
-                  Row(children: [
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(0, 0, 0, 0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          RichText(
-                            text: const TextSpan(
-                                style: TextStyle(
-                                  fontSize: 15.0,
-                                  color: Colors.black54,
-                                ),
-                                children: <TextSpan>[
-                                  TextSpan(
-                                    text: 'PURCHASE DATE',
-                                  ),
-                                ]),
-                          ),
-                          SizedBox(
-                            height: 5,
-                          ),
-                          RichText(
-                            text: TextSpan(
-                                style: TextStyle(
-                                  fontSize: 15.0,
-                                  color: Colors.black87,
-                                ),
-                                children: <TextSpan>[
-                                  TextSpan(
-                                      text: selectedJob?.purchaseDate ?? "-"),
-                                ]),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Spacer(),
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(0, 0, 0, 0),
-                      child: Container(
-                        child: Row(
-                          children: [
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                const Icon(
-                                  // <-- Icon
-                                  Icons.payment_outlined,
-                                  color: Colors.black54,
-                                  size: 25.0,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(
-                              width: 10,
-                            ),
-                            RichText(
-                              text: TextSpan(
-                                  style: TextStyle(
-                                    fontSize: 15.0,
-                                    color: Colors.black54,
-                                  ),
-                                  children: <TextSpan>[
-                                    TextSpan(
-                                        text: '${selectedJob?.paymentMethods}')
-                                  ]),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  ]),
+  //   return Container(
+  //     child: Padding(
+  //       padding: const EdgeInsets.all(0.0),
+  //       child: Row(
+  //         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //         crossAxisAlignment: CrossAxisAlignment.end,
+  //         children: <Widget>[
+  //           Container(
+  //             width: rowWidth,
+  //             child: Column(
+  //               crossAxisAlignment: CrossAxisAlignment.start,
+  //               children: <Widget>[
+  //                 Row(
+  //                   mainAxisAlignment: MainAxisAlignment.spaceAround,
+  //                   children: <Widget>[
+  //                     Container(
+  //                       width: MediaQuery.of(context).size.width * 0.5,
+  //                       child: Row(
+  //                         children: [
+  //                           Column(
+  //                             mainAxisAlignment: MainAxisAlignment.start,
+  //                             crossAxisAlignment: CrossAxisAlignment.start,
+  //                             children: <Widget>[],
+  //                           ),
+  //                         ],
+  //                       ),
+  //                     ),
+  //                     Container(),
+  //                   ],
+  //                 ),
+  //                 Row(children: [
+  //                   Padding(
+  //                     padding: EdgeInsets.fromLTRB(0, 0, 0, 0),
+  //                     child: Column(
+  //                       mainAxisAlignment: MainAxisAlignment.start,
+  //                       crossAxisAlignment: CrossAxisAlignment.start,
+  //                       children: <Widget>[
+  //                         RichText(
+  //                           text: const TextSpan(
+  //                               style: TextStyle(
+  //                                 fontSize: 15.0,
+  //                                 color: Colors.black54,
+  //                               ),
+  //                               children: <TextSpan>[
+  //                                 TextSpan(
+  //                                   text: 'PURCHASE DATE',
+  //                                 ),
+  //                               ]),
+  //                         ),
+  //                         SizedBox(
+  //                           height: 5,
+  //                         ),
+  //                         RichText(
+  //                           text: TextSpan(
+  //                               style: TextStyle(
+  //                                 fontSize: 15.0,
+  //                                 color: Colors.black87,
+  //                               ),
+  //                               children: <TextSpan>[
+  //                                 TextSpan(
+  //                                     text: selectedJob?.purchaseDate ?? "-"),
+  //                               ]),
+  //                         ),
+  //                       ],
+  //                     ),
+  //                   ),
+  //                   const Spacer(),
+  //                   Padding(
+  //                     padding: EdgeInsets.fromLTRB(0, 0, 0, 0),
+  //                     child: Container(
+  //                       child: Row(
+  //                         children: [
+  //                           Column(
+  //                             mainAxisAlignment: MainAxisAlignment.start,
+  //                             crossAxisAlignment: CrossAxisAlignment.start,
+  //                             children: <Widget>[
+  //                               const Icon(
+  //                                 // <-- Icon
+  //                                 Icons.payment_outlined,
+  //                                 color: Colors.black54,
+  //                                 size: 25.0,
+  //                               ),
+  //                             ],
+  //                           ),
+  //                           const SizedBox(
+  //                             width: 10,
+  //                           ),
+  //                           RichText(
+  //                             text: TextSpan(
+  //                                 style: TextStyle(
+  //                                   fontSize: 15.0,
+  //                                   color: Colors.black54,
+  //                                 ),
+  //                                 children: <TextSpan>[
+  //                                   TextSpan(
+  //                                       text: '${selectedJob?.paymentMethods}')
+  //                                 ]),
+  //                           ),
+  //                         ],
+  //                       ),
+  //                     ),
+  //                   )
+  //                 ]),
 
-                  Row(
-                    children: [
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          RichText(
-                            text: const TextSpan(
-                                style: TextStyle(
-                                  fontSize: 15.0,
-                                  color: Colors.black54,
-                                ),
-                                children: <TextSpan>[
-                                  const TextSpan(
-                                    text: 'ADMIN REMARKS',
-                                  ),
-                                ]),
-                          ),
-                          SizedBox(
-                            width: MediaQuery.of(context).size.width * 0.4,
-                            height: MediaQuery.of(context).size.height * 0.05,
-                            child: SizedBox(
-                              width: 100,
-                              height: 40,
-                              child: TextFormField(
-                                enabled: false,
-                                textInputAction: TextInputAction.newline,
-                                minLines: 1,
-                                maxLines: 5,
-                                keyboardType: TextInputType.multiline,
-                                onChanged: (str) {
-                                  setState(() {
-                                    isAdminRemarksEditable = true;
-                                  });
-                                },
-                                controller: adminRemarksController,
-                                focusNode: adminRemarksFocusNode,
-                                decoration: InputDecoration(
-                                  border: InputBorder.none,
-                                ),
-                                style: TextStyle(
-                                  fontSize: 15.0,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                            ),
-                          )
-                        ],
-                      ),
-                      const SizedBox(
-                        width: 5,
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          RichText(
-                            text: const TextSpan(
-                                style: TextStyle(
-                                  fontSize: 15.0,
-                                  color: Colors.black54,
-                                ),
-                                children: <TextSpan>[
-                                  const TextSpan(
-                                    text: 'ENGINEER REMARKS',
-                                  ),
-                                ]),
-                          ),
-                          SizedBox(
-                            width: MediaQuery.of(context).size.width * 0.4,
-                            height: MediaQuery.of(context).size.height * 0.05,
-                            child: SizedBox(
-                              width: 100,
-                              height: 40,
-                              child: TextFormField(
-                                enabled: isEngineerRemarksEditable,
-                                textInputAction: TextInputAction.newline,
-                                minLines: 1,
-                                maxLines: 5,
-                                keyboardType: TextInputType.multiline,
-                                onChanged: (str) {
-                                  setState(() {
-                                    isEngineerRemarksEditable = true;
-                                  });
-                                },
-                                controller: engineerRemarksController,
-                                focusNode: engineerRemarksFocusNode,
-                                decoration: InputDecoration(
-                                  border: InputBorder.none,
-                                ),
-                                style: TextStyle(
-                                  fontSize: 15.0,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                            ),
-                          )
-                        ],
-                      ),
-                      const SizedBox(
-                        width: 5,
-                      ),
-                      Helpers.checkIfEditableByJobStatus(selectedJob,
-                              (selectedJob?.isMainEngineer ?? true))
-                          ? GestureDetector(
-                              onTap: () async {
-                                if (isEngineerRemarksEditable) {
-                                  var res =
-                                      await Repositories.updateEngineerRemarks(
-                                          selectedJob!.serviceRequestid ?? "0",
-                                          engineerRemarksController.text
-                                              .toString());
+  //                 Row(
+  //                   children: [
+  //                     Column(
+  //                       mainAxisAlignment: MainAxisAlignment.start,
+  //                       crossAxisAlignment: CrossAxisAlignment.start,
+  //                       children: <Widget>[
+  //                         RichText(
+  //                           text: const TextSpan(
+  //                               style: TextStyle(
+  //                                 fontSize: 15.0,
+  //                                 color: Colors.black54,
+  //                               ),
+  //                               children: <TextSpan>[
+  //                                 const TextSpan(
+  //                                   text: 'ADMIN REMARKS',
+  //                                 ),
+  //                               ]),
+  //                         ),
+  //                         SizedBox(
+  //                           width: MediaQuery.of(context).size.width * 0.4,
+  //                           height: MediaQuery.of(context).size.height * 0.05,
+  //                           child: SizedBox(
+  //                             width: 100,
+  //                             height: 40,
+  //                             child: TextFormField(
+  //                               enabled: false,
+  //                               textInputAction: TextInputAction.newline,
+  //                               minLines: 1,
+  //                               maxLines: 5,
+  //                               keyboardType: TextInputType.multiline,
+  //                               onChanged: (str) {
+  //                                 setState(() {
+  //                                   isAdminRemarksEditable = true;
+  //                                 });
+  //                               },
+  //                               controller: adminRemarksController,
+  //                               focusNode: _adminRemarksFocusNode,
+  //                               decoration: InputDecoration(
+  //                                 border: InputBorder.none,
+  //                               ),
+  //                               style: TextStyle(
+  //                                 fontSize: 15.0,
+  //                                 color: Colors.black87,
+  //                               ),
+  //                             ),
+  //                           ),
+  //                         )
+  //                       ],
+  //                     ),
+  //                     const SizedBox(
+  //                       width: 5,
+  //                     ),
+  //                   ],
+  //                 ),
+  //                 Row(
+  //                   children: [
+  //                     Column(
+  //                       mainAxisAlignment: MainAxisAlignment.start,
+  //                       crossAxisAlignment: CrossAxisAlignment.start,
+  //                       children: <Widget>[
+  //                         RichText(
+  //                           text: const TextSpan(
+  //                               style: TextStyle(
+  //                                 fontSize: 15.0,
+  //                                 color: Colors.black54,
+  //                               ),
+  //                               children: <TextSpan>[
+  //                                 const TextSpan(
+  //                                   text: 'ENGINEER REMARKS',
+  //                                 ),
+  //                               ]),
+  //                         ),
+  //                         SizedBox(
+  //                           width: MediaQuery.of(context).size.width * 0.4,
+  //                           height: MediaQuery.of(context).size.height * 0.05,
+  //                           child: SizedBox(
+  //                             width: 100,
+  //                             height: 40,
+  //                             child: TextFormField(
+  //                               enabled: isEngineerRemarksEditable,
+  //                               textInputAction: TextInputAction.newline,
+  //                               minLines: 1,
+  //                               maxLines: 5,
+  //                               keyboardType: TextInputType.multiline,
+  //                               onChanged: (str) {
+  //                                 setState(() {
+  //                                   isEngineerRemarksEditable = true;
+  //                                 });
+  //                               },
+  //                               controller: engineerRemarksController,
+  //                               focusNode: _engineerRemarksFocusNode,
+  //                               decoration: InputDecoration(
+  //                                 border: InputBorder.none,
+  //                               ),
+  //                               style: TextStyle(
+  //                                 fontSize: 15.0,
+  //                                 color: Colors.black87,
+  //                               ),
+  //                             ),
+  //                           ),
+  //                         )
+  //                       ],
+  //                     ),
+  //                     const SizedBox(
+  //                       width: 5,
+  //                     ),
+  //                     Helpers.checkIfEditableByJobStatus(selectedJob,
+  //                             (selectedJob?.isMainEngineer ?? true))
+  //                         ? GestureDetector(
+  //                             onTap: () async {
+  //                               if (isEngineerRemarksEditable) {
+  //                                 var res =
+  //                                     await Repositories.updateEngineerRemarks(
+  //                                         selectedJob!.serviceRequestid ?? "0",
+  //                                         engineerRemarksController.text
+  //                                             .toString());
 
-                                  setState(() {
-                                    isEngineerRemarksEditable = false;
-                                  });
-                                  FocusManager.instance.primaryFocus?.unfocus();
-                                  await refreshJobDetails();
-                                } else {
-                                  setState(() {
-                                    isEngineerRemarksEditable = true;
-                                  });
+  //                                 setState(() {
+  //                                   isEngineerRemarksEditable = false;
+  //                                 });
+  //                                 FocusManager.instance.primaryFocus?.unfocus();
+  //                                 await refreshJobDetails();
+  //                               } else {
+  //                                 setState(() {
+  //                                   isEngineerRemarksEditable = true;
+  //                                 });
 
-                                  Future.delayed(Duration.zero, () {
-                                    engineerRemarksFocusNode.requestFocus();
-                                  });
-                                }
-                              },
-                              child: isEngineerRemarksEditable
-                                  ? Icon(
-                                      // <-- Icon
-                                      Icons.check,
-                                      color: Colors.black54,
-                                      size: 25.0,
-                                    )
-                                  : Icon(
-                                      // <-- Icon
-                                      Icons.edit,
-                                      color: Colors.black54,
-                                      size: 25.0,
-                                    ))
-                          : new Container()
-                    ],
-                  ),
-                  // Row(
-                  //   //mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  //   children: <Widget>[
+  //                                 Future.delayed(Duration.zero, () {
+  //                                   _engineerRemarksFocusNode.requestFocus();
+  //                                 });
+  //                               }
+  //                             },
+  //                             child: isEngineerRemarksEditable
+  //                                 ? Icon(
+  //                                     // <-- Icon
+  //                                     Icons.check,
+  //                                     color: Colors.black54,
+  //                                     size: 25.0,
+  //                                   )
+  //                                 : Icon(
+  //                                     // <-- Icon
+  //                                     Icons.edit,
+  //                                     color: Colors.black54,
+  //                                     size: 25.0,
+  //                                   ))
+  //                         : new Container()
+  //                   ],
+  //                 ),
+  //                 // Row(
+  //                 //   //mainAxisAlignment: MainAxisAlignment.spaceAround,
+  //                 //   children: <Widget>[
 
-                  //   ],
-                  // ),
-                  const SizedBox(
-                    height: 30,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  //                 //   ],
+  //                 // ),
+  //                 const SizedBox(
+  //                   height: 30,
+  //                 ),
+  //               ],
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 
   _renderHeader() {
     return Container(
@@ -1226,7 +1252,7 @@ class _JobDetailsState extends State<JobDetails>
                                     borderRadius: BorderRadius.circular(15),
                                   ),
                                   child: Padding(
-                                    padding: EdgeInsets.all(5),
+                                    padding: EdgeInsets.all(8),
                                     child: Center(
                                       child: Text(
                                         selectedJob?.serviceType ?? "",
@@ -1296,7 +1322,7 @@ class _JobDetailsState extends State<JobDetails>
                                   width: 10,
                                 ),
                                 const Text(
-                                  'Cancel Job',
+                                  'Cancel',
                                   style: TextStyle(
                                       fontSize: 15, color: Colors.white),
                                 )
@@ -1410,7 +1436,7 @@ class _JobDetailsState extends State<JobDetails>
                                   width: 10,
                                 ),
                                 const Text(
-                                  'Complete Job',
+                                  'Complete',
                                   style: TextStyle(
                                       fontSize: 15, color: Colors.white),
                                 )
@@ -1433,15 +1459,23 @@ class _JobDetailsState extends State<JobDetails>
                             isErrorEstimatedSolutionSelection = false;
                             isErrorActualSolutionSelection = false;
                             isPendingItemsInPickList = false;
-                            isErrorSerialNo = false;
+                            isErrorSerialNoMandatory = false;
+                            isErrorSerialNoLengthInsufficient = false;
                           });
 
                           if (selectedJob != null &&
-                              !(selectedJob?.isUnderWarranty ?? true) &&
-                              serialNoController.text == "") {
-                            setState(() {
-                              isErrorSerialNo = true;
-                            });
+                              (selectedJob?.isUnderWarranty ?? true)) {
+                            if (serialNoController.text.trim() == "") {
+                              setState(() {
+                                isErrorSerialNoMandatory = true;
+                              });
+                            } else {
+                              if (serialNoController.text.trim().length < 4) {
+                                setState(() {
+                                  isErrorSerialNoLengthInsufficient = true;
+                                });
+                              }
+                            }
                           }
 
                           var res = validateIfEditedValuesAreSaved();
@@ -1484,7 +1518,10 @@ class _JobDetailsState extends State<JobDetails>
                               curve: Curves.easeOut,
                             );
 
-                            tabController?.animateTo(2);
+                            tabController?.animateTo(
+                              1,
+                              duration: Duration(milliseconds: 300),
+                            );
                           }
 
                           if ((selectedJob?.picklistNotCollected?.length ?? 0) >
@@ -1496,7 +1533,8 @@ class _JobDetailsState extends State<JobDetails>
 
                           if (res &&
                               !isEmptySolutionOrProblem &&
-                              !isErrorSerialNo &&
+                              !isErrorSerialNoMandatory &&
+                              !isErrorSerialNoLengthInsufficient &&
                               !isPendingItemsInPickList) {
                             Helpers.showAlert(context,
                                 title: "Confirm to Complete Job?",
@@ -1526,7 +1564,7 @@ class _JobDetailsState extends State<JobDetails>
                                     : "Please fill in all the required information",
                                 type: "error", onPressed: () async {
                               Navigator.pop(context);
-                              await refreshJobDetails();
+                              // await refreshJobDetails();
                             });
                           }
                         })
@@ -1584,139 +1622,117 @@ class _JobDetailsState extends State<JobDetails>
                       )
                     : new Container(),
                 checkActionsEnabled("kiv")
-                    ? SizedBox(
-                        width: MediaQuery.of(context).size.width *
-                            0.2, // <-- match_parent
-                        height: MediaQuery.of(context).size.width *
-                            0.05, // <-- match-parent
-                        child: true
-                            ? ElevatedButton(
-                                child: Padding(
-                                    padding: const EdgeInsets.all(0.0),
-                                    child: Row(children: [
-                                      const Icon(
-                                        // <-- Icon
-                                        Icons.camera_alt_outlined,
-                                        color: Colors.white,
-                                        size: 18.0,
-                                      ),
-                                      const SizedBox(
-                                        width: 10,
-                                      ),
-                                      Text(
-                                        'KIV Job ${selectedJob?.currentKIVCount}/${((selectedJob?.maxKIVCount ?? 0) + 1)}',
-                                        style: const TextStyle(
-                                            fontSize: 15, color: Colors.white),
-                                      )
-                                    ])),
-                                style: ButtonStyle(
-                                    foregroundColor:
-                                        MaterialStateProperty.all<Color>(
-                                            Colors.lightBlue),
-                                    backgroundColor:
-                                        MaterialStateProperty.all<Color>(
-                                            Colors.lightBlue),
-                                    shape: MaterialStateProperty.all<
-                                            RoundedRectangleBorder>(
-                                        RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(4.0),
-                                            side: const BorderSide(
-                                                color: Colors.lightBlue)))),
-                                onPressed: () async {
-                                  var res = validateIfEditedValuesAreSaved();
+                    ? ElevatedButton(
+                        child: Padding(
+                            padding: const EdgeInsets.all(0.0),
+                            child: Row(children: [
+                              const Icon(
+                                // <-- Icon
+                                Icons.camera_alt_outlined,
+                                color: Colors.white,
+                                size: 18.0,
+                              ),
+                              const SizedBox(
+                                width: 10,
+                              ),
+                              Text(
+                                'KIV ${selectedJob?.currentKIVCount}/${((selectedJob?.maxKIVCount ?? 0) + 1)}',
+                                style: const TextStyle(
+                                    fontSize: 15, color: Colors.white),
+                              )
+                            ])),
+                        style: ButtonStyle(
+                            foregroundColor: MaterialStateProperty.all<Color>(
+                                Colors.lightBlue),
+                            backgroundColor: MaterialStateProperty.all<Color>(
+                                Colors.lightBlue),
+                            shape: MaterialStateProperty.all<
+                                    RoundedRectangleBorder>(
+                                RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4.0),
+                                    side: const BorderSide(
+                                        color: Colors.lightBlue)))),
+                        onPressed: () async {
+                          var res = validateIfEditedValuesAreSaved();
 
-                                  if (res) {
-                                    Helpers.showAlert(context,
-                                        title:
-                                            "Are you sure you want to move this job to KIV?",
-                                        child: Column(children: [
-                                          SizedBox(
-                                            height: MediaQuery.of(context)
-                                                    .size
-                                                    .height *
-                                                .03,
-                                          ),
-                                          Container(
-                                              child: DropdownButtonFormField<
-                                                  String>(
-                                            isExpanded: true,
-                                            items:
-                                                KIVReasons?.map((Reason value) {
-                                              return DropdownMenuItem<String>(
-                                                value: value.reason,
-                                                child: Text(value.reason ?? ""),
-                                              );
-                                            }).toList(),
-                                            onChanged: (element) async {
-                                              if (isErrorKIVReason) {
-                                                setState(() {
-                                                  isErrorKIVReason = false;
-                                                });
-                                              }
-
-                                              var index = KIVReasons?.map(
-                                                      (e) => e.reason)
-                                                  .toList()
-                                                  .indexOf(element.toString());
-
-                                              setState(() {
-                                                selectedKIVReason =
-                                                    KIVReasons?[index ?? 0].id;
-                                              });
-                                              // var res = Repositories
-                                              //     .cancelJob(selectedJob?.serviceRequestid , );
-                                            },
-                                            decoration: InputDecoration(
-                                                contentPadding:
-                                                    EdgeInsets.symmetric(
-                                                        vertical: 7,
-                                                        horizontal: 3),
-                                                border: OutlineInputBorder(
-                                                  borderRadius:
-                                                      const BorderRadius.all(
-                                                    const Radius.circular(5.0),
-                                                  ),
-                                                ),
-                                                filled: true,
-                                                hintStyle: TextStyle(
-                                                    color: Colors.grey[800]),
-                                                hintText:
-                                                    "Please Select a Reason",
-                                                fillColor: Colors.white),
-                                            //value: dropDownValue,
-                                          )),
-                                          SizedBox(height: 5),
-                                        ]),
-                                        hasAction: true,
-                                        okTitle: "Yes",
-                                        noTitle: "No",
-                                        customImage: Image(
-                                            image: AssetImage(
-                                                'assets/images/info.png'),
-                                            width: 50,
-                                            height: 50),
-                                        hasCancel: true, onPressed: () async {
-                                      if (selectedKIVReason != null) {
-                                        await pickImage(true, false, false,
-                                                false, false, false)
-                                            .then((value) =>
-                                                Navigator.pop(context));
-                                      } else {
-                                        Helpers.showAlert(context,
-                                            hasAction: true,
-                                            type: "error",
-                                            title:
-                                                "A Reason should be selected",
-                                            onPressed: () async {
-                                          Navigator.pop(context);
+                          if (res) {
+                            Helpers.showAlert(context,
+                                title:
+                                    "Are you sure you want to move this job to KIV?",
+                                child: Column(children: [
+                                  SizedBox(
+                                    height: MediaQuery.of(context).size.height *
+                                        .03,
+                                  ),
+                                  Container(
+                                      child: DropdownButtonFormField<String>(
+                                    isExpanded: true,
+                                    items: KIVReasons?.map((Reason value) {
+                                      return DropdownMenuItem<String>(
+                                        value: value.reason,
+                                        child: Text(value.reason ?? ""),
+                                      );
+                                    }).toList(),
+                                    onChanged: (element) async {
+                                      if (isErrorKIVReason) {
+                                        setState(() {
+                                          isErrorKIVReason = false;
                                         });
                                       }
-                                    });
-                                  }
-                                })
-                            : new Container(),
-                      )
+
+                                      var index =
+                                          KIVReasons?.map((e) => e.reason)
+                                              .toList()
+                                              .indexOf(element.toString());
+
+                                      setState(() {
+                                        selectedKIVReason =
+                                            KIVReasons?[index ?? 0].id;
+                                      });
+                                      // var res = Repositories
+                                      //     .cancelJob(selectedJob?.serviceRequestid , );
+                                    },
+                                    decoration: InputDecoration(
+                                        contentPadding: EdgeInsets.symmetric(
+                                            vertical: 7, horizontal: 3),
+                                        border: OutlineInputBorder(
+                                          borderRadius: const BorderRadius.all(
+                                            const Radius.circular(5.0),
+                                          ),
+                                        ),
+                                        filled: true,
+                                        hintStyle:
+                                            TextStyle(color: Colors.grey[800]),
+                                        hintText: "Please Select a Reason",
+                                        fillColor: Colors.white),
+                                    //value: dropDownValue,
+                                  )),
+                                  SizedBox(height: 5),
+                                ]),
+                                hasAction: true,
+                                okTitle: "Yes",
+                                noTitle: "No",
+                                customImage: Image(
+                                    image: AssetImage('assets/images/info.png'),
+                                    width: 50,
+                                    height: 50),
+                                hasCancel: true, onPressed: () async {
+                              if (selectedKIVReason != null) {
+                                await pickImage(
+                                        true, false, false, false, false, false)
+                                    .then((value) => Navigator.pop(context));
+                              } else {
+                                Helpers.showAlert(context,
+                                    hasAction: true,
+                                    type: "error",
+                                    title: "A Reason should be selected",
+                                    onPressed: () async {
+                                  Navigator.pop(context);
+                                });
+                              }
+                            });
+                          }
+                        })
                     : new Container(),
                 SizedBox(height: 5),
                 checkActionsEnabled('reject')
@@ -1734,7 +1750,7 @@ class _JobDetailsState extends State<JobDetails>
                                 width: 10,
                               ),
                               const Text(
-                                'Reject Job',
+                                'Reject',
                                 style: const TextStyle(
                                     fontSize: 15, color: Colors.white),
                               )
@@ -1884,12 +1900,31 @@ class _JobDetailsState extends State<JobDetails>
                     mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      const Icon(
-                        // <-- Icon
-                        Icons.phone,
-                        color: Colors.black54,
-                        size: 25.0,
-                      ),
+                      Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Icon(
+                              Icons.phone,
+                              color: Colors.black54,
+                              size: 25.0,
+                            ),
+                            Container(
+                              alignment: Alignment.bottomCenter,
+                              padding: EdgeInsets.all(5),
+                              decoration: BoxDecoration(
+                                color: Color(0xFF323F4B),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Text(
+                                '1', // Replace with your actual number
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ),
+                          ])
                     ],
                   ),
                   const SizedBox(
@@ -1949,12 +1984,33 @@ class _JobDetailsState extends State<JobDetails>
                     mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      const Icon(
-                        // <-- Icon
-                        Icons.phone,
-                        color: Colors.black54,
-                        size: 25.0,
-                      ),
+                      Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Icon(
+                              Icons.phone,
+                              color: Colors.black54,
+                              size: 25.0,
+                            ),
+                            Container(
+                              child: Container(
+                                alignment: Alignment.bottomCenter,
+                                padding: EdgeInsets.all(5),
+                                decoration: BoxDecoration(
+                                  color: Color(0xFF323F4B),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  '2', // Replace with your actual number
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ),
+                            )
+                          ])
                     ],
                   ),
                   const SizedBox(
@@ -2249,129 +2305,196 @@ class _JobDetailsState extends State<JobDetails>
             ),
           ]),
           SizedBox(height: MediaQuery.of(context).size.height * 0.015),
-          Container(
-              width: MediaQuery.of(context).size.width * 0.6,
-              child: Container(
-                width: MediaQuery.of(context).size.width * 0.5,
-                child: Row(
+          selectedJob?.warrantyAdditionalInfo != null
+              ? Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        RichText(
-                          text: const TextSpan(
-                              style: TextStyle(
-                                fontSize: 15.0,
+                      Container(
+                          alignment: Alignment.topCenter,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              RichText(
+                                text: const TextSpan(
+                                    style: TextStyle(
+                                      fontSize: 13.0,
+                                      color: Color(0xFFC4C4C4),
+                                    ),
+                                    children: <TextSpan>[
+                                      const TextSpan(
+                                        text: 'WARRANTY ADDITIONAL INFO',
+                                      ),
+                                    ]),
+                              ),
+                              RichText(
+                                text: TextSpan(
+                                    style: const TextStyle(
+                                      fontSize: 15.0,
+                                      color: Colors.black,
+                                    ),
+                                    children: <TextSpan>[
+                                      TextSpan(
+                                        text:
+                                            '${selectedJob?.warrantyAdditionalInfo}',
+                                      ),
+                                    ]),
+                              )
+                            ],
+                          ))
+                    ])
+              : new Container(),
+          SizedBox(height: MediaQuery.of(context).size.height * 0.015),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(children: [
+                RichText(
+                  text: const TextSpan(
+                      style: TextStyle(
+                        fontSize: 13.0,
+                        color: Color(0xFFC4C4C4),
+                      ),
+                      children: <TextSpan>[
+                        const TextSpan(
+                          text: 'SERIAL NO',
+                        ),
+                      ]),
+                ),
+                SizedBox(
+                  width: 5,
+                ),
+                Helpers.checkIfEditableByJobStatus(
+                        selectedJob, (selectedJob?.isMainEngineer ?? true))
+                    ? GestureDetector(
+                        onTap: () async {
+                          if (isSerialNoEditable) {
+                            if (serialNoController.text.trim().length >= 4) {
+                              var res = await Repositories.updateSerialNo(
+                                  selectedJob!.serviceRequestid ?? "0",
+                                  serialNoController.text.toString());
+
+                              setState(() {
+                                isSerialNoEditable = false;
+                              });
+
+                              FocusManager.instance.primaryFocus?.unfocus();
+                              await refreshJobDetails();
+                            } else {
+                              if (selectedJob != null &&
+                                  (selectedJob?.isUnderWarranty ?? true)) {
+                                if (serialNoController.text.trim() == "") {
+                                  setState(() {
+                                    isErrorSerialNoMandatory = true;
+                                  });
+                                } else {
+                                  if (serialNoController.text.trim().length <
+                                      4) {
+                                    setState(() {
+                                      isErrorSerialNoLengthInsufficient = true;
+                                    });
+                                  }
+                                }
+                              }
+                            }
+                          } else {
+                            setState(() {
+                              isSerialNoEditable = true;
+                            });
+                            // FocusManager.instance.primaryFocus
+                            //     ?.unfocus();
+                            // FocusScope.of(context)
+                            //     .requestFocus(_serialNoFocusNode);
+                            // _serialNoFocusNode.requestFocus();
+                            FocusManager.instance.primaryFocus?.unfocus();
+
+                            Timer(const Duration(milliseconds: 1), () {
+                              FocusScope.of(context)
+                                  .requestFocus(_serialNoFocusNode);
+                              _serialNoFocusNode.requestFocus();
+                            });
+                          }
+                        },
+                        child: isSerialNoEditable
+                            ? Icon(
+                                Icons.check,
                                 color: Colors.black54,
+                                size: 25.0,
+                              )
+                            : Icon(
+                                Icons.edit,
+                                color: Colors.black54,
+                                size: 25.0,
+                              ))
+                    : new Container()
+              ]),
+              Container(
+                width: MediaQuery.of(context).size.width * 0.7,
+                child: TextFormField(
+                  scrollPadding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom),
+                  keyboardType: TextInputType.multiline,
+                  minLines: 1,
+                  maxLines: 3,
+                  onChanged: (str) {
+                    setState(() {
+                      isSerialNoEditable = true;
+                      isErrorSerialNoMandatory = false;
+                      isErrorSerialNoLengthInsufficient = false;
+                    });
+                  },
+                  onFieldSubmitted: (value) {
+                    // FocusScope.of(context)
+                    //     .requestFocus(_serialNoFocusNode);
+                  },
+                  enabled: isSerialNoEditable,
+                  controller: serialNoController,
+                  //     readOnly: isSerialNoEditable,
+                  focusNode: _serialNoFocusNode,
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                  ),
+                  style: TextStyle(
+                    fontSize: 15.0,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          isErrorSerialNoMandatory || isErrorSerialNoLengthInsufficient
+              ? SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.9,
+                  child: Row(children: [
+                    Container(
+                        child: Row(children: [
+                      Icon(
+                        Icons.warning,
+                        color: Colors.red,
+                        size: 20,
+                      ),
+                      SizedBox(width: 10),
+                      Container(
+                        child: RichText(
+                          text: TextSpan(
+                              style: const TextStyle(
+                                fontSize: 14.0,
+                                color: Colors.red,
                               ),
                               children: <TextSpan>[
                                 TextSpan(
-                                  text: 'SERIAL NO',
+                                  text: isErrorSerialNoMandatory
+                                      ? "Serial Number cannot be empty."
+                                      : "Serial Number should have at least 4 characters.",
                                 ),
                               ]),
                         ),
-                        Container(
-                          width: 120,
-                          height: 65,
-                          child: TextFormField(
-                            keyboardType: TextInputType.multiline,
-                            minLines: 1,
-                            maxLines: 2,
-                            onChanged: (str) {
-                              setState(() {
-                                isSerialNoEditable = true;
-                                isErrorSerialNo = false;
-                              });
-                            },
-                            enabled: isSerialNoEditable,
-                            controller: serialNoController,
-                            //     readOnly: isSerialNoEditable,
-                            focusNode: serialNoFocusNode,
-                            decoration: InputDecoration(
-                              border: InputBorder.none,
-                            ),
-                            style: TextStyle(
-                              fontSize: 15.0,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                        isErrorSerialNo
-                            ? SizedBox(
-                                width: MediaQuery.of(context).size.width * 0.25,
-                                child: Row(children: [
-                                  Container(
-                                      child: Row(children: [
-                                    Icon(
-                                      Icons.warning,
-                                      color: Colors.red,
-                                      size: 20,
-                                    ),
-                                    SizedBox(width: 10),
-                                    Container(
-                                      child: RichText(
-                                        text: TextSpan(
-                                            style: const TextStyle(
-                                              fontSize: 14.0,
-                                              color: Colors.red,
-                                            ),
-                                            children: <TextSpan>[
-                                              TextSpan(
-                                                text:
-                                                    "Please fill in the serial number before proceeding.",
-                                              ),
-                                            ]),
-                                      ),
-                                    ),
-                                  ]))
-                                ]))
-                            : new Container()
-                      ],
-                    ),
-                    const SizedBox(
-                      width: 30,
-                    ),
-                    Helpers.checkIfEditableByJobStatus(
-                            selectedJob, (selectedJob?.isMainEngineer ?? true))
-                        ? GestureDetector(
-                            onTap: () async {
-                              if (isSerialNoEditable) {
-                                var res = await Repositories.updateSerialNo(
-                                    selectedJob!.serviceRequestid ?? "0",
-                                    serialNoController.text.toString());
-
-                                setState(() {
-                                  isSerialNoEditable = false;
-                                });
-                                FocusManager.instance.primaryFocus?.unfocus();
-                                await refreshJobDetails();
-                              } else {
-                                setState(() {
-                                  isSerialNoEditable = true;
-                                });
-                                Future.delayed(Duration.zero, () {
-                                  serialNoFocusNode.requestFocus();
-                                });
-                              }
-                            },
-                            child: isSerialNoEditable
-                                ? Icon(
-                                    // <-- Icon
-                                    Icons.check,
-                                    color: Colors.black54,
-                                    size: 25.0,
-                                  )
-                                : Icon(
-                                    // <-- Icon
-                                    Icons.edit,
-                                    color: Colors.black54,
-                                    size: 25.0,
-                                  ))
-                        : new Container()
-                  ],
-                ),
-              ))
+                      ),
+                    ]))
+                  ]))
+              : new Container()
         ]);
   }
 
@@ -2380,6 +2503,48 @@ class _JobDetailsState extends State<JobDetails>
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                RichText(
+                  text: const TextSpan(
+                      style: TextStyle(
+                        fontSize: 13.0,
+                        color: Color(0xFFC4C4C4),
+                      ),
+                      children: <TextSpan>[
+                        const TextSpan(
+                          text: 'PAYMENT METHOD',
+                        ),
+                      ]),
+                ),
+                Row(
+                  children: [
+                    const Icon(
+                      // <-- Icon
+                      Icons.payment_outlined,
+                      color: Colors.black54,
+                      size: 20.0,
+                    ),
+                    SizedBox(
+                      width: 10,
+                    ),
+                    RichText(
+                      text: TextSpan(
+                          style: TextStyle(
+                            fontSize: 15.0,
+                            color: Colors.black54,
+                          ),
+                          children: <TextSpan>[
+                            TextSpan(
+                                text: '${selectedJob?.paymentMethods ?? "-"}')
+                          ]),
+                    ),
+                  ],
+                )
+              ]),
+          SizedBox(height: MediaQuery.of(context).size.height * 0.015),
           Row(children: [
             Container(
               width: MediaQuery.of(context).size.width * 0.4,
@@ -2485,7 +2650,7 @@ class _JobDetailsState extends State<JobDetails>
                       });
                     },
                     controller: remarksController,
-                    focusNode: remarksFocusNode,
+                    focusNode: _remarksFocusNode,
                     decoration: InputDecoration(
                       border: InputBorder.none,
                     ),
@@ -2532,7 +2697,7 @@ class _JobDetailsState extends State<JobDetails>
                       });
                     },
                     controller: adminRemarksController,
-                    focusNode: adminRemarksFocusNode,
+                    focusNode: _adminRemarksFocusNode,
                     decoration: InputDecoration(
                       border: InputBorder.none,
                     ),
@@ -2547,25 +2712,77 @@ class _JobDetailsState extends State<JobDetails>
           ),
           SizedBox(height: MediaQuery.of(context).size.height * 0.015),
           Container(
-            width: MediaQuery.of(context).size.width * 0.4,
+            width: MediaQuery.of(context).size.width * 0.7,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                RichText(
-                  text: const TextSpan(
-                      style: TextStyle(
-                        fontSize: 13.0,
-                        color: Color(0xFFC4C4C4),
-                      ),
-                      children: <TextSpan>[
-                        const TextSpan(
-                          text: 'ENGINEER REMARKS',
+                Row(children: [
+                  RichText(
+                    text: const TextSpan(
+                        style: TextStyle(
+                          fontSize: 13.0,
+                          color: Color(0xFFC4C4C4),
                         ),
-                      ]),
-                ),
+                        children: <TextSpan>[
+                          const TextSpan(
+                            text: 'ENGINEER REMARKS',
+                          ),
+                        ]),
+                  ),
+                  const SizedBox(
+                    width: 5,
+                  ),
+                  Helpers.checkIfEditableByJobStatus(
+                          selectedJob, (selectedJob?.isMainEngineer ?? true))
+                      ? GestureDetector(
+                          onTap: () async {
+                            if (isEngineerRemarksEditable) {
+                              var res =
+                                  await Repositories.updateEngineerRemarks(
+                                      selectedJob!.serviceRequestid ?? "0",
+                                      engineerRemarksController.text
+                                          .toString());
+
+                              setState(() {
+                                isEngineerRemarksEditable = false;
+                              });
+                              FocusManager.instance.primaryFocus?.unfocus();
+                              await refreshJobDetails();
+                            } else {
+                              setState(() {
+                                isEngineerRemarksEditable = true;
+                              });
+
+                              FocusManager.instance.primaryFocus?.unfocus();
+                              // FocusNode currentFocus =
+                              //     _engineerRemarksFocusNode.hasFocus
+                              //         ? _engineerRemarksFocusNode
+                              //         : _serialNoFocusNode;
+                              Timer(const Duration(milliseconds: 1), () {
+                                FocusScope.of(context)
+                                    .requestFocus(_engineerRemarksFocusNode);
+                                _engineerRemarksFocusNode.requestFocus();
+                              });
+                            }
+                          },
+                          child: isEngineerRemarksEditable
+                              ? Icon(
+                                  // <-- Icon
+                                  Icons.check,
+                                  color: Colors.black54,
+                                  size: 25.0,
+                                )
+                              : Icon(
+                                  // <-- Icon
+                                  Icons.edit,
+                                  color: Colors.black54,
+                                  size: 25.0,
+                                ))
+                      : new Container()
+                ]),
                 SizedBox(
-                  width: MediaQuery.of(context).size.width * 0.4,
+                  width: MediaQuery.of(context).size.width * 0.7,
                   height: MediaQuery.of(context).size.height * 0.05,
                   child: SizedBox(
                     width: 100,
@@ -2582,7 +2799,7 @@ class _JobDetailsState extends State<JobDetails>
                         });
                       },
                       controller: engineerRemarksController,
-                      focusNode: engineerRemarksFocusNode,
+                      focusNode: _engineerRemarksFocusNode,
                       decoration: InputDecoration(
                         border: InputBorder.none,
                       ),
@@ -2597,6 +2814,11 @@ class _JobDetailsState extends State<JobDetails>
             ),
           )
         ]);
+  }
+
+  void _onFocusChange() {
+    bool serialHasFocus = _serialNoFocusNode.hasFocus;
+    debugPrint('TextFormField inFocus? ${_serialNoFocusNode.hasFocus}');
   }
 
   Widget _renderForm() {
@@ -2790,11 +3012,11 @@ class _JobDetailsState extends State<JobDetails>
                         ),
                         const SizedBox(height: 20),
                         // buildProductInfo(),
+                        // const SizedBox(height: 20),
+                        // Divider(),
                         const SizedBox(height: 20),
-                        Divider(),
-                        const SizedBox(height: 20),
-                        buildIssueInfo(),
-                        const SizedBox(height: 20),
+                        // buildIssueInfo(),
+                        // const SizedBox(height: 20),
                         (rcpCost != null) ? Divider() : new Container(),
                         (rcpCost != null)
                             ? const SizedBox(height: 20)
@@ -3435,34 +3657,43 @@ class _JobDetailsState extends State<JobDetails>
               SizedBox(
                 width: 10,
               ),
-              SizedBox(
-                width: MediaQuery.of(context).size.width * 0.1,
-                height: 35.0,
-                child: ElevatedButton(
-                    child: const Padding(
-                        padding: EdgeInsets.all(0.0),
-                        child: Text(
-                          'Update',
-                          style: TextStyle(fontSize: 15, color: Colors.white),
-                        )),
-                    style: ButtonStyle(
-                        foregroundColor:
-                            MaterialStateProperty.all<Color>(Color(0xFF242A38)),
-                        backgroundColor:
-                            MaterialStateProperty.all<Color>(Color(0xFF242A38)),
-                        shape:
-                            MaterialStateProperty.all<RoundedRectangleBorder>(
-                                RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(4.0),
-                                    side: const BorderSide(
-                                        color: Color(0xFF242A38))))),
-                    onPressed: () async {
-                      openCharges(selectedJob?.productGroupdId.toString() ?? "",
-                          "solutions", (id) async {
-                        return await fetchSolutionsByProduct();
-                      }, tabController?.index == 1);
-                    }),
-              ),
+              GestureDetector(
+                  child:
+                      Icon(Icons.add_circle_rounded, color: Color(0xFF242A38)),
+                  onTap: () {
+                    openCharges(selectedJob?.productGroupdId.toString() ?? "",
+                        "solutions", (id) async {
+                      return await fetchSolutionsByProduct();
+                    }, tabController?.index == 1);
+                  }),
+              // SizedBox(
+              //   width: MediaQuery.of(context).size.width * 0.1,
+              //   height: 35.0,
+              //   child: ElevatedButton(
+              //       child: const Padding(
+              //           padding: EdgeInsets.all(0.0),
+              //           child: Text(
+              //             'Update',
+              //             style: TextStyle(fontSize: 15, color: Colors.white),
+              //           )),
+              //       style: ButtonStyle(
+              //           foregroundColor:
+              //               MaterialStateProperty.all<Color>(Color(0xFF242A38)),
+              //           backgroundColor:
+              //               MaterialStateProperty.all<Color>(Color(0xFF242A38)),
+              //           shape:
+              //               MaterialStateProperty.all<RoundedRectangleBorder>(
+              //                   RoundedRectangleBorder(
+              //                       borderRadius: BorderRadius.circular(4.0),
+              //                       side: const BorderSide(
+              //                           color: Color(0xFF242A38))))),
+              //       onPressed: () async {
+              //         openCharges(selectedJob?.productGroupdId.toString() ?? "",
+              //             "solutions", (id) async {
+              //           return await fetchSolutionsByProduct();
+              //         }, tabController?.index == 1);
+              //       }),
+              // ),
             ]),
             Spacer(),
             FlutterSwitch(
@@ -3621,33 +3852,45 @@ class _JobDetailsState extends State<JobDetails>
           SizedBox(
             width: 10,
           ),
-          SizedBox(
-            width: MediaQuery.of(context).size.width * 0.1,
-            height: 35.0,
-            child: ElevatedButton(
-                child: const Padding(
-                    padding: EdgeInsets.all(0.0),
-                    child: Text(
-                      'Update',
-                      style: TextStyle(fontSize: 15, color: Colors.white),
-                    )),
-                style: ButtonStyle(
-                    foregroundColor:
-                        MaterialStateProperty.all<Color>(Color(0xFF242A38)),
-                    backgroundColor:
-                        MaterialStateProperty.all<Color>(Color(0xFF242A38)),
-                    shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-                        RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4.0),
-                            side: const BorderSide(color: Color(0xFF242A38))))),
-                onPressed: () async {
-                  openCharges(
-                      selectedJob?.productGroupdId.toString() ?? "", "problems",
-                      (id) async {
-                    return await fetchProblems(id.toString());
-                  }, false);
-                }),
-          )
+          GestureDetector(
+              child: Icon(Icons.add_circle_rounded, color: Color(0xFF242A38)),
+              onTap: () {
+                openCharges(
+                    selectedJob?.productGroupdId.toString() ?? "", "problems",
+                    (id) async {
+                  return await fetchProblems(id.toString());
+                }, false);
+              }),
+          // SizedBox(
+          //   width: MediaQuery.of(context).size.width * 0.06,
+          //   height: 35.0,
+          //   child: ElevatedButton(
+          //       child: const Padding(
+          //           padding: EdgeInsets.all(0.0),
+          //           child: Icon(Icons.add_circle_rounded, color: Color(0xFF242A38)
+          //               // Text(
+          //               //   'Update',
+          //               //   style: TextStyle(fontSize: 15, color: Colors.white),
+          //               // )
+
+          //               )),
+          //       style: ButtonStyle(
+          //           foregroundColor:
+          //               MaterialStateProperty.all<Color>(Color(0xFF242A38)),
+          //           backgroundColor:
+          //               MaterialStateProperty.all<Color>(Color(0xFF242A38)),
+          //           shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+          //               RoundedRectangleBorder(
+          //                   borderRadius: BorderRadius.circular(4.0),
+          //                   side: const BorderSide(color: Color(0xFF242A38))))),
+          //       onPressed: () async {
+          //         openCharges(
+          //             selectedJob?.productGroupdId.toString() ?? "", "problems",
+          //             (id) async {
+          //           return await fetchProblems(id.toString());
+          //         }, false);
+          //       }),
+          // )
         ]),
         Column(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -4338,9 +4581,7 @@ class _JobDetailsState extends State<JobDetails>
           const SizedBox(height: 40),
           ConstrainedBox(
               constraints: BoxConstraints(
-                  maxHeight: rcpCost?.total != "MYR 0.00"
-                      ? MediaQuery.of(context).size.height * .2
-                      : MediaQuery.of(context).size.height * .08,
+                  maxHeight: RCPCost.determineContainerHeight(rcpCost, context),
                   minHeight: MediaQuery.of(context).size.height * .08),
               child: Container(
                 child: ListView(
@@ -5252,33 +5493,42 @@ class _JobDetailsState extends State<JobDetails>
             SizedBox(
               width: 10,
             ),
-            SizedBox(
-              width: MediaQuery.of(context).size.width * 0.1,
-              height: 35.0,
-              child: ElevatedButton(
-                  child: const Padding(
-                      padding: EdgeInsets.all(0.0),
-                      child: Text(
-                        'Update',
-                        style: TextStyle(fontSize: 15, color: Colors.white),
-                      )),
-                  style: ButtonStyle(
-                      foregroundColor:
-                          MaterialStateProperty.all<Color>(Color(0xFF242A38)),
-                      backgroundColor:
-                          MaterialStateProperty.all<Color>(Color(0xFF242A38)),
-                      shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-                          RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4.0),
-                              side:
-                                  const BorderSide(color: Color(0xFF242A38))))),
-                  onPressed: () async {
-                    openCharges(selectedJob?.productModelId.toString() ?? "",
-                        "transport", (id) async {
-                      return await fetchTransportCharges(id);
-                    }, false);
-                  }),
-            )
+            GestureDetector(
+                child: Icon(Icons.add_circle_rounded, color: Color(0xFF242A38)),
+                onTap: () {
+                  openCharges(
+                      selectedJob?.productModelId.toString() ?? "", "transport",
+                      (id) async {
+                    return await fetchTransportCharges(id);
+                  }, false);
+                }),
+            // SizedBox(
+            //   width: MediaQuery.of(context).size.width * 0.1,
+            //   height: 35.0,
+            //   child: ElevatedButton(
+            //       child: const Padding(
+            //           padding: EdgeInsets.all(0.0),
+            //           child: Text(
+            //             'Update',
+            //             style: TextStyle(fontSize: 15, color: Colors.white),
+            //           )),
+            //       style: ButtonStyle(
+            //           foregroundColor:
+            //               MaterialStateProperty.all<Color>(Color(0xFF242A38)),
+            //           backgroundColor:
+            //               MaterialStateProperty.all<Color>(Color(0xFF242A38)),
+            //           shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+            //               RoundedRectangleBorder(
+            //                   borderRadius: BorderRadius.circular(4.0),
+            //                   side:
+            //                       const BorderSide(color: Color(0xFF242A38))))),
+            //       onPressed: () async {
+            //         // openCharges(selectedJob?.productModelId.toString() ?? "",
+            //         //     "transport", (id) async {
+            //         //   return await fetchTransportCharges(id);
+            //         // }, false);
+            //       }),
+            // )
           ]),
           Spacer(),
           FlutterSwitch(
@@ -6374,7 +6624,7 @@ class _JobDetailsState extends State<JobDetails>
               await this.refreshJobDetails();
             },
             child: Scaffold(
-                backgroundColor: Colors.white,
+                backgroundColor: Color(0xFFFAFAFA),
                 key: _scaffoldKey,
                 appBar: Helpers.customAppBar(context, _scaffoldKey,
                     title: "",
@@ -7356,10 +7606,9 @@ class AddPartItemState extends State<AddPartItem> {
   showAlertDialog(BuildContext context) {
     // set up the button
     Widget okButton = TextButton(
-      child: Text("OKK"),
+      child: Text("OK"),
       onPressed: () async {
         await widget.onDeletePressed?.call(widget.part?.id);
-        Navigator.pop(context);
       },
     );
 

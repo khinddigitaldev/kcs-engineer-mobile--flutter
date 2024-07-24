@@ -514,6 +514,9 @@ class _JobHistoryListState extends State<JobHistoryList>
                                     arguments:
                                         inProgressJobs[index].serviceRequestid)
                                 .then((value) async {
+                              setState(() {
+                                currentPage = 1;
+                              });
                               await _fetchKIVJobs(true);
                             });
                           } else {

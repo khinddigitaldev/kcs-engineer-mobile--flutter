@@ -199,6 +199,10 @@ class _JobListState extends State<JobList>
       setState(() {
         existingJobData = jobData;
       });
+    } else {
+      setState(() {
+        currentPage = 1;
+      });
     }
 
     if (Helpers.loggedInUser != null) {
@@ -1016,8 +1020,8 @@ class _JobListState extends State<JobList>
           (inProgressJobs != null && inProgressJobs.length > 0)
               ? ConstrainedBox(
                   constraints: BoxConstraints(
-                      maxHeight: MediaQuery.of(context).size.height * .48,
-                      minHeight: MediaQuery.of(context).size.height * .1),
+                      maxHeight: MediaQuery.of(context).size.height * .5,
+                      minHeight: MediaQuery.of(context).size.height * .45),
                   child: ReorderableListView.builder(
                     onReorder: ((oldIndex, newIndex) async {
                       var res = await Repositories.changeSequence(

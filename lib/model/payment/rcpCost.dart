@@ -1,4 +1,4 @@
-import 'package:kcs_engineer/model/spareparts/sparepart.dart';
+import 'package:flutter/material.dart';
 
 class RCPCost {
   bool? isDiscountValid;
@@ -117,6 +117,30 @@ class RCPCost {
     this.solutionCost = convertToCurrency((json["solution"] != null)
         ? (json["solution"]?["amount"]?["amount"].toString())
         : "0");
+  }
+
+  static Map<String, dynamic> toJson(RCPCost? cost) {
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    data["sparePartCost"] = cost?.sparePartCost;
+    data["solutionCost"] = cost?.solutionCost;
+    data["miscCost"] = cost?.miscCost;
+    data["transportCost"] = cost?.transportCost;
+    data["pickupCost"] = cost?.pickupCost;
+
+    return data;
+  }
+
+  static double determineContainerHeight(RCPCost? cost, BuildContext context) {
+    double singleContainerHeight = MediaQuery.of(context).size.height * 0.02;
+    double height = singleContainerHeight;
+    Map<String, dynamic> map = toJson(cost);
+
+    map.keys.forEach((element) {
+      if (map[element] != 0) {
+        height = height + singleContainerHeight;
+      }
+    });
+    return height;
   }
 
   String convertToCurrency(String? input) {
