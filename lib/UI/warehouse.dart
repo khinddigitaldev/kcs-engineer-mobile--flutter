@@ -880,7 +880,7 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
             : (code != "" ? '&q=' + code.toString() : "")) +
         (searchByCode ? '&search_only_by_code=1' : '&search_only_by_code=0') +
         (!searchByCode ? '&product_id=${selectedJob?.productId}' : '') +
-        (!searchByCode ? '&service_request_id=${jobId}' : '');
+        '&service_request_id=${jobId}';
     final response = await Api.bearerGet('general/spareparts?per_page=15' +
         '&page=$sparePartsCurrentPage' +
         (!searchByCode
@@ -890,7 +890,7 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
             : (code != "" ? '&q=' + code.toString() : "")) +
         (searchByCode ? '&search_only_by_code=1' : '&search_only_by_code=0') +
         (!searchByCode ? '&product_id=${selectedJob?.productId}' : '') +
-        (!searchByCode ? '&service_request_id=${jobId}' : ''));
+        '&service_request_id=${jobId}');
 
     print("#Resp: ${jsonEncode(response)}");
     Navigator.pop(context);
