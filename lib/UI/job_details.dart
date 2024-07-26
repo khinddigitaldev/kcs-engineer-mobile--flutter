@@ -158,7 +158,7 @@ class _JobDetailsState extends State<JobDetails>
     await fetchJobDetails();
     await Future.wait([
       //ones which can be taken out
-      // fetchPickUpCharges(),
+      fetchPickUpCharges(),
       fetchCancellationReasons(),
       fetchRejecReasons(),
       fetchKIVReasons(),
