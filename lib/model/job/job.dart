@@ -48,9 +48,17 @@ class Job {
   String? estimatedSolutionCode;
   String? estimatedSolutionDescription;
   String? estimatedSolutionCharges;
+  String? estimatedSolutionChargesAmount;
+  String? estimatedSolutionSSTPercentage;
+  String? estimatedSolutionTotalSST;
+  String? estimatedSolutionTotalLineVal;
   String? actualSolutionCode;
   String? actualSolutionDescription;
   String? actualSolutionCharges;
+  String? actualSolutionChargesAmount;
+  String? actualSolutionSSTPercentage;
+  String? actualSolutionTotalSST;
+  String? actualSolutionTotalLineVal;
   String? remarks;
   String? adminRemarks;
   String? engineerRemarks;
@@ -93,6 +101,10 @@ class Job {
   int? currentKIVCount;
   int? maxKIVCount;
 
+  String? jobInsertedDate;
+
+  String? secondaryContactNo;
+
   Job(
       {this.serviceRequestid,
       this.serviceJobNo,
@@ -115,9 +127,17 @@ class Job {
       this.estimatedSolutionCode,
       this.estimatedSolutionDescription,
       this.estimatedSolutionCharges,
+      this.estimatedSolutionChargesAmount,
+      this.estimatedSolutionSSTPercentage,
+      this.estimatedSolutionTotalLineVal,
+      this.estimatedSolutionTotalSST,
       this.actualSolutionCode,
       this.actualSolutionDescription,
       this.actualSolutionCharges,
+      this.actualSolutionChargesAmount,
+      this.actualSolutionSSTPercentage,
+      this.actualSolutionTotalLineVal,
+      this.actualSolutionTotalSST,
       this.remarks,
       this.paymentMethods,
       this.adminRemarks,
@@ -152,7 +172,9 @@ class Job {
       this.isDiscountApplied,
       this.productGroupdId,
       this.picklistCollected,
-      this.isMainEngineer});
+      this.isMainEngineer,
+      this.secondaryContactNo,
+      this.jobInsertedDate});
 
   Job.fromJson(Map<String, dynamic> json) {
     this.serviceRequestid = json["service_request_id"];
@@ -168,6 +190,9 @@ class Job {
     this.customerName = json["customer"]?["name"];
     this.customerTelephone = json["customer"]?["telephone"];
     this.customerEmail = json["customer"]?["email"];
+    this.secondaryContactNo =
+        json["customer"]?["additional_info"]?["contact_number"] ?? "";
+
     // this.customerAddressName = json["customer"]?["address_name"];
     this.serviceAddressStreet = json["service_address"]?["street"];
     this.serviceAddressCity = json["service_address"]?["city"];
@@ -183,12 +208,50 @@ class Job {
         json["solution"]?["estimated"]?["solution"];
     this.estimatedSolutionCharges =
         json["solution"]?["estimated"]?["charges"]?["formatted"];
-
+    this.estimatedSolutionChargesAmount = (double.parse(
+                json["solution"]?["estimated"]?["charges"]?["amount"] ?? "1") /
+            100)
+        .toStringAsFixed(2);
+    this.estimatedSolutionSSTPercentage = json["solution"]?["estimated"]
+                        ?["sst_percentage"]
+                    .toString() !=
+                "0" &&
+            json["solution"]?["estimated"]?["sst_percentage"] != null
+        ? '${(json["solution"]?["estimated"]?["sst_percentage"] as num) * 100}'
+        : "0";
+    this.estimatedSolutionTotalSST = json["solution"]?["estimated"] != null
+        ? ((double.parse(this.estimatedSolutionSSTPercentage ?? "0.0") / 100) *
+                double.parse(this.estimatedSolutionChargesAmount ?? "0.0"))
+            .toStringAsFixed(2)
+        : "-";
+    this.estimatedSolutionTotalLineVal = json["solution"]?["estimated"] != null
+        ? (double.parse(this.estimatedSolutionTotalSST ?? "0.0") +
+                double.parse(this.estimatedSolutionChargesAmount ?? "0.0"))
+            .toStringAsFixed(2)
+        : "-";
     this.actualSolutionCode = json["solution"]?["actual"]?["code"];
     this.actualSolutionDescription = json["solution"]?["actual"]?["solution"];
-
     this.actualSolutionCharges =
         json["solution"]?["actual"]?["charges"]?["formatted"];
+    this.actualSolutionChargesAmount = (double.parse(
+                json["solution"]?["actual"]?["charges"]?["amount"] ?? "1") /
+            100)
+        .toStringAsFixed(2);
+    this.actualSolutionSSTPercentage =
+        json["solution"]?["actual"]?["sst_percentage"].toString() != "0" &&
+                json["solution"]?["actual"]?["sst_percentage"] != null
+            ? '${(json["solution"]?["actual"]?["sst_percentage"] as num) * 100}'
+            : "0";
+    this.actualSolutionTotalSST = json["solution"]?["actual"] != null
+        ? ((double.parse(this.actualSolutionSSTPercentage ?? "0.0") / 100) *
+                double.parse(this.actualSolutionChargesAmount ?? "0.0"))
+            .toStringAsFixed(2)
+        : "-";
+    this.actualSolutionTotalLineVal = json["solution"]?["actual"] != null
+        ? (double.parse(this.actualSolutionTotalSST ?? "0.0") +
+                double.parse(this.actualSolutionChargesAmount ?? "0.0"))
+            .toStringAsFixed(2)
+        : "-";
     this.remarks = json["remarks"]?["remarks"];
     this.adminRemarks = json["remarks"]?["admin_remarks"];
     this.engineerRemarks = json["remarks"]?["engineer_remarks"];
@@ -197,10 +260,10 @@ class Job {
     this.serialNo = json["warranty_info"]?["serial_no"];
     this.purchaseDate = json["warranty_info"]?["purchase_date"];
     this.isPaid = json["payment"] != null && json["payment"]?["is_paid"];
-    // this.paymentMethods =
-    //     (json["payment"] != null && json["payment"]?["payment_method"] != null)
-    //         ? (json["payment"]?["payment_method"] as List<dynamic>).join(",")
-    //         : null;
+    this.paymentMethods =
+        (json["payment"] != null && json["payment"]?["payment_method"] != null)
+            ? (json["payment"]?["payment_method"] as List<dynamic>).join(",")
+            : null;
     this.isRTOOrder = json["has_sales_order_connection"];
     this.productId = json["product"]?["id"];
     this.serviceTypeId = json["service_type_id"];
@@ -321,6 +384,9 @@ class Job {
       });
     }
     this.isMainEngineer = json["is_main_engineer"];
+
+    this.jobInsertedDate =
+        (json["inserted_at"] ?? "T").toString().split("T")[0];
 
     var list = [];
   }

@@ -184,11 +184,12 @@ class Repositories {
     return data;
   }
 
-  static Future<List<Job>?> fetchJobHistory(String jobId) async {
+  static Future<List<Job>?> fetchJobHistory(
+      String jobId, String insertedAt) async {
     List<Job>? data = [];
 
     final response = await Api.bearerGet(
-        'job/service-jobs-history-by-warranty?service_request_id=${jobId}');
+        'job/service-jobs-history-by-warranty?service_request_id=${jobId}&inserted_at=$insertedAt');
     print("#Resp: ${jsonEncode(response)}");
     // Navigator.pop(context);
     if (response["success"]) {
@@ -237,12 +238,10 @@ class Repositories {
     return data;
   }
 
-  static Future<JobData?> fetchOrderStatuses() async {
+  static Future<JobData?> fetchOrderStatusesInitial() async {
     JobData? data;
-
     final response = await Api.bearerGet('job/service-jobs');
     print("#Resp: ${jsonEncode(response)}");
-    // Navigator.pop(context);
     if (response["success"]) {
       data = await JobData.selectedJobFromJson(response);
     }
@@ -413,20 +412,6 @@ class Repositories {
     } else {
       return false;
     }
-  }
-
-  static Future<List<PickupCharge>> fetchPickListCharges() async {
-    List<PickupCharge>? data = [];
-
-    final response = await Api.bearerGet('general/pickup-charges');
-    print("#Resp: ${jsonEncode(response)}");
-    // Navigator.pop(context);
-    if (response["success"] && response['data'] != null) {
-      data = (response['data'] as List)
-          .map((i) => PickupCharge.fromJson(i))
-          .toList();
-    }
-    return data;
   }
 
   static Future<List<TransportCharge>> fetchTransportCharges(
@@ -826,6 +811,18 @@ class Repositories {
     }
   }
 
+  static Future<void> fetchPickupChargesInitial() async {
+    List<PickupCharge>? data = [];
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    final response = await Api.bearerGet('general/pickup-charges');
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      pref.setString("pickup-charges", json.encode(response['data']));
+    } else {
+      return fetchPickupChargesInitial();
+    }
+  }
+
   ///////SharedPREF BEGIN
 
   static Future<List<Reason>> fetchKIVReasons() async {
@@ -835,6 +832,15 @@ class Repositories {
         .map((e) => Reason.fromJson(e))
         .toList();
     return kivReasons;
+  }
+
+  static Future<List<PickupCharge>> fetchPickupCharges() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String pickupchargesStr = prefs.getString("pickup-charges") ?? "";
+    List<PickupCharge> pickupCharges = (json.decode(pickupchargesStr) as List)
+        .map((e) => PickupCharge.fromJson(e))
+        .toList();
+    return pickupCharges;
   }
 
   static Future<List<Reason>> fetchCancellationReasons() async {
@@ -857,6 +863,15 @@ class Repositories {
         .toList();
     return rejectionReasons;
   }
+
+  // static Future<List<Reason>> fetchJobStatuses() async {
+  //   SharedPreferences prefs = await SharedPreferences.getInstance();
+  //   String jobStatusesStr = prefs.getString("job-statuses") ?? "";
+  //   List<String> jobStatuses = (json.decode(rejectionReasonsStr) as List)
+  //       .map((e) => Reason.fromJson(e))
+  //       .toList();
+  //   return rejectionReasons;
+  // }
 
   ///////SHARED PREF END
 

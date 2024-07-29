@@ -69,6 +69,7 @@ class _MyHomePageState extends State<MyHomePage> with AfterLayoutMixin {
 
     if (isAuth) {
       await Repositories.fetchRejectReasonsInitial();
+      await Repositories.fetchPickupChargesInitial();
       await Repositories.fetchKIVReasonsInitial();
       await Repositories.fetchCancellationReasonsInitial();
     }

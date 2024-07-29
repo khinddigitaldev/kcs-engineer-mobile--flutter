@@ -137,12 +137,17 @@ class _SignatureState extends State<SignatureUI> {
           const SizedBox(height: 40),
           ConstrainedBox(
               constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * .15,
+                  maxHeight: MediaQuery.of(context).size.height * .2,
                   minHeight: MediaQuery.of(context).size.height * .1),
               child: Container(
                 child: ListView(
                   children: [
                     widget.rcpCost?.sparePartCost != "MYR 0.00"
+                        ? _buildChargeItem("Picklist charges (Estimated)",
+                            widget.rcpCost?.pickListCost ?? "MYR 0.00", false)
+                        : new Container(),
+                    widget.rcpCost?.sparePartCost != "MYR 0.00" &&
+                            (selectedJob?.aggregatedSpareparts?.length ?? 0) > 0
                         ? _buildChargeItem("Sparepart charges",
                             widget.rcpCost?.sparePartCost ?? "MYR 0.00", false)
                         : new Container(),
@@ -162,23 +167,37 @@ class _SignatureState extends State<SignatureUI> {
                         ? _buildChargeItem("Pickup charges",
                             widget.rcpCost?.pickupCost ?? "MYR 0.00", false)
                         : new Container(),
+                    widget.rcpCost?.totalSSTRCP != "MYR 0.00"
+                        ? _buildChargeItem("Total SST",
+                            widget.rcpCost?.totalSSTRCP ?? "MYR 0.00", false)
+                        : new Container(),
                     SizedBox(
                       height: 5,
                     ),
                     _buildChargeItem(
-                        "Total", widget.rcpCost?.total ?? "MYR 0.00", true),
-                    (widget.rcpCost?.isDiscountValid ?? false)
+                        (widget.rcpCost?.isDiscountValid ?? false) &&
+                                widget.rcpCost?.discountPercentage != "0%"
+                            ? "Total"
+                            : "Grand Total",
+                        'MYR ${((widget.rcpCost?.totalAmount ?? 0) + (widget.rcpCost?.totalAmountSST ?? 0)).toStringAsFixed(2)}',
+                        true),
+                    (widget.rcpCost?.isDiscountValid ?? false) &&
+                            widget.rcpCost?.discountPercentage != "0%"
                         ? _buildChargeItem(
-                            "${widget.rcpCost?.discountPercentage} Discount applied",
+                            '${widget.rcpCost?.discountPercentage} Discount applied',
                             widget.rcpCost?.discount ?? "MYR 0.00",
                             true)
                         : new Container(),
-                    (widget.rcpCost?.isDiscountValid ?? false)
+                    (widget.rcpCost?.isDiscountValid ?? false) &&
+                            widget.rcpCost?.discountPercentage != "0%"
                         ? Divider()
                         : new Container(),
-                    (widget.rcpCost?.isDiscountValid ?? false)
-                        ? _buildChargeItem("Grand Total",
-                            widget.rcpCost?.totalRCP ?? "MYR 0.00", true)
+                    (widget.rcpCost?.isDiscountValid ?? false) &&
+                            widget.rcpCost?.discountPercentage != "0%"
+                        ? _buildChargeItem(
+                            "Grand Total",
+                            'MYR ${((widget.rcpCost?.totalAmountRCP ?? 0) + (widget.rcpCost?.totalAmountSSTRCP ?? 0)).toStringAsFixed(2)}',
+                            true)
                         : new Container(),
                   ],
                 ),
@@ -384,11 +403,10 @@ class _SignatureState extends State<SignatureUI> {
                                 ),
                                 children: <TextSpan>[
                                   TextSpan(
-                                    text: (widget.rcpCost?.isDiscountValid ??
-                                            false)
-                                        ? widget.rcpCost?.totalRCP
-                                        : widget.rcpCost?.total,
-                                  ),
+                                      text: (widget.rcpCost?.isDiscountValid ??
+                                              false)
+                                          ? 'MYR ${((widget.rcpCost?.totalAmountRCP ?? 0) + (widget.rcpCost?.totalAmountSST ?? 0)).toStringAsFixed(2)}'
+                                          : 'MYR ${((widget.rcpCost?.totalAmount ?? 0) + (widget.rcpCost?.totalAmountSST ?? 0)).toStringAsFixed(2)}'),
                                 ]),
                           ),
                           SizedBox(
@@ -410,177 +428,7 @@ class _SignatureState extends State<SignatureUI> {
                       ),
                     ),
                   ),
-
-                  // Expanded(
-                  //   child: Align(
-                  //     alignment: Alignment.center,
-                  //     child: Container(
-                  //         color: Colors.white,
-                  //         child: Column(
-                  //           children: [
-                  // RichText(
-                  //   text: TextSpan(
-                  //
-                  //
-                  //       style: const TextStyle(
-                  //         fontSize: 18.0,
-                  //         color: Colors.black,
-                  //       ),
-                  //       children: <TextSpan>[
-                  //         TextSpan(
-                  //           text: 'Do you want an invoice?',
-                  //         ),
-                  //       ]),
-                  // ),
-                  // SizedBox(
-                  //   height: 20,
-                  // ),
-                  // Row(
-                  //   children: [
-                  //     Expanded(
-                  //       child: Container(
-                  //         height: 40,
-                  //         width: 60,
-                  //         child: ElevatedButton(
-                  //             child: Padding(
-                  //                 padding: const EdgeInsets.all(5.0),
-                  //                 child: Text(
-                  //                   'Yes',
-                  //                   style: TextStyle(
-                  //                       fontSize: 20,
-                  //                       color: isWantInvoice
-                  //                           ? Colors.white
-                  //                           : Colors.black),
-                  //                 )),
-                  //             style: ButtonStyle(
-                  //                 foregroundColor: isWantInvoice
-                  //                     ? MaterialStateProperty.all<Color>(
-                  //                         Colors.black87
-                  //                             .withOpacity(0.7))
-                  //                     : MaterialStateProperty.all<Color>(
-                  //                         Colors.white
-                  //                             .withOpacity(0.7)),
-                  //                 backgroundColor: isWantInvoice
-                  //                     ? MaterialStateProperty.all<Color>(
-                  //                         Colors.black87
-                  //                             .withOpacity(0.7))
-                  //                     : MaterialStateProperty.all<Color>(
-                  //                         Colors.white.withOpacity(0.7)),
-                  //                 shape: MaterialStateProperty.all<RoundedRectangleBorder>(RoundedRectangleBorder(borderRadius: BorderRadius.zero, side: BorderSide(color: Colors.black87.withOpacity(0.7))))),
-                  //             onPressed: () {
-                  //               setState(() {
-                  //                 isWantInvoice = true;
-                  //               });
-                  //             }),
-                  //       ),
-                  //     ),
-                  //     SizedBox(
-                  //       width: 20,
-                  //     ),
-                  //     Expanded(
-                  //       child: Container(
-                  //           height: 40,
-                  //           width: 60,
-                  //           child: ElevatedButton(
-                  //               child: Padding(
-                  //                   padding: const EdgeInsets.all(5.0),
-                  //                   child: Text(
-                  //                     'No',
-                  //                     style: TextStyle(
-                  //                         fontSize: 20,
-                  //                         color: isWantInvoice
-                  //                             ? Colors.black
-                  //                             : Colors.white),
-                  //                   )),
-                  //               style: ButtonStyle(
-                  //                   foregroundColor: isWantInvoice
-                  //                       ? MaterialStateProperty.all<Color>(
-                  //                           Colors.white
-                  //                               .withOpacity(0.7))
-                  //                       : MaterialStateProperty.all<Color>(
-                  //                           Colors.black87
-                  //                               .withOpacity(0.7)),
-                  //                   backgroundColor: isWantInvoice
-                  //                       ? MaterialStateProperty.all<Color>(
-                  //                           Colors.white
-                  //                               .withOpacity(0.7))
-                  //                       : MaterialStateProperty.all<Color>(
-                  //                           Colors.black87.withOpacity(0.7)),
-                  //                   shape: MaterialStateProperty.all<RoundedRectangleBorder>(RoundedRectangleBorder(borderRadius: BorderRadius.zero, side: BorderSide(color: Colors.black87.withOpacity(0.7))))),
-                  //               onPressed: () {
-                  //                 setState(() {
-                  //                   isWantInvoice = false;
-                  //                   errorEmail = false;
-                  //                 });
-                  //               })),
-                  //     )
-                  //   ],
-                  // )
-                  //           ],
-                  //         )),
-                  //   ),
-                  // ),
-                  // Expanded(
-                  //   child: Align(
-                  //     alignment: Alignment.centerRight,
-                  //     child: Container(
-                  //       width: 200,
-                  //       //height: 80,
-                  //       color: Colors.white,
-                  //       child: isWantInvoice
-                  //           ? Container(
-                  //               alignment: Alignment.centerLeft,
-                  //               decoration: new BoxDecoration(
-                  //                   color: Colors.white.withOpacity(0.0)),
-                  //               child: Padding(
-                  //                 padding: EdgeInsets.fromLTRB(0, 40, 0, 0),
-                  //                 child: SizedBox(
-                  //                     height: 80,
-                  //                     child: TextFormField(
-                  //                         onChanged: (text) {
-                  //                           if (errorEmail) {
-                  //                             setState(() {
-                  //                               errorEmail = false;
-                  //                             });
-                  //                           }
-                  //                         },
-                  //                         focusNode: focusEmail,
-                  //                         keyboardType: TextInputType.text,
-                  //                         validator: (value) {
-                  //                           if (value!.isEmpty ||
-                  //                               !EmailValidator.validate(value)) {
-                  //                             setState(() {
-                  //                               errorEmail = true;
-                  //                             });
-                  //                             return 'Please enter a valid email';
-                  //                           }
-                  //                           return null;
-                  //                         },
-                  //                         controller: emailCT,
-                  //                         onFieldSubmitted: (val) {
-                  //                           FocusScope.of(context)
-                  //                               .requestFocus(new FocusNode());
-                  //                         },
-                  //                         style: TextStyles.textDefaultBold,
-                  //                         decoration: const InputDecoration(
-                  //                           hintText: 'Email',
-                  //                           //errorStyle: ,
-                  //                           //errorText: 'This is an error text',
-                  //                           contentPadding: EdgeInsets.symmetric(
-                  //                               vertical: 10.0, horizontal: 10.0),
-                  //                           border: OutlineInputBorder(),
-                  //                         ))),
-                  //               ))
-                  //           : new Container(),
-                  //     ),
-                  //   ),
-                  // ),
                 ]),
-            // ((selectedJob!.isChargeable ?? false) && selectedJob!.sumTotal != 0)
-            //     ? SizedBox(height: 40)
-            //     : new Container(),
-            // ((selectedJob!.isChargeable ?? false) && selectedJob!.sumTotal != 0)
-            //  ?
             SizedBox(
               height: MediaQuery.of(context).size.height * 0.05,
             ),
@@ -607,15 +455,6 @@ class _SignatureState extends State<SignatureUI> {
                     ],
                   )
                 : new Container(),
-            //  : new Container(),
-            // ((selectedJob!.isChargeable ?? false) && selectedJob!.sumTotal != 0)
-            //     ? SizedBox(height: 10)
-            //     : new Container(),
-            // ((selectedJob!.isChargeable ?? false) && selectedJob!.sumTotal != 0)
-            //     ? SizedBox(height: 20)
-            //     : new Container(),
-            // ((selectedJob!.isChargeable ?? false) && selectedJob!.sumTotal != 0)
-            //?
             SizedBox(height: 30),
             (((widget.rcpCost?.isDiscountValid ?? false)
                         ? widget.rcpCost?.totalRCP
@@ -702,554 +541,10 @@ class _SignatureState extends State<SignatureUI> {
                                   )
                                 ],
                               ))),
-                      // Container(
-                      //     color: pendingPayment ? Colors.black87 : Colors.white,
-                      //     width: MediaQuery.of(context).size.width * 0.27,
-                      //     height: 100.0,
-                      //     child: OutlinedButton(
-                      //         onPressed: () {
-                      //           setState(() {
-                      //             payByCash = false;
-                      //             payNow = false;
-                      //             pendingPayment = true;
-                      //             billing = false;
-                      //             payByCheque = false;
-                      //             mixedPayment = false;
-                      //           });
-                      //         },
-                      //         child: Row(
-                      //           mainAxisAlignment: MainAxisAlignment.center,
-                      //           children: [
-                      //             Text(
-                      //               "Pending Payment",
-                      //               style: TextStyle(
-                      //                   fontSize: 17.0,
-                      //                   color: pendingPayment
-                      //                       ? Colors.white
-                      //                       : Colors.black87),
-                      //             ),
-                      //             SizedBox(
-                      //               width: 10,
-                      //             ),
-                      //             Icon(
-                      //               // <-- Icon
-                      //               PaymentMethodIcons
-                      //                   .PaymentMethod.pending_payment,
-                      //               color: pendingPayment
-                      //                   ? Colors.white
-                      //                   : Colors.black87,
-                      //               size: 30.0,
-                      //             )
-                      //           ],
-                      //         ))),
                     ],
                   )
-                : new Container()
-            //   : new Container(),
-            // SizedBox(height: 20),
-            // ((selectedJob!.isChargeable ?? false) && selectedJob!.sumTotal != 0)
-            //     ? Row(
-            //         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            //         children: [
-            //           Container(
-            //               color: billing ? Colors.black87 : Colors.white,
-            //               width: MediaQuery.of(context).size.width * 0.27,
-            //               height: 100.0,
-            //               child: OutlinedButton(
-            //                   onPressed: () {
-            //                     setState(() {
-            //                       payByCash = false;
-            //                       payNow = false;
-            //                       pendingPayment = false;
-            //                       billing = true;
-            //                       payByCheque = false;
-            //                       mixedPayment = false;
-            //                     });
-            //                   },
-            //                   child: Row(
-            //                     mainAxisAlignment: MainAxisAlignment.center,
-            //                     children: [
-            //                       Text(
-            //                         "Billing",
-            //                         style: TextStyle(
-            //                             fontSize: 19.0,
-            //                             color: billing
-            //                                 ? Colors.white
-            //                                 : Colors.black87),
-            //                       ),
-            //                       SizedBox(
-            //                         width: 10,
-            //                       ),
-            //                       Icon(
-            //                         // <-- Icon
-            //                         PaymentMethodIcons.PaymentMethod.billing,
-            //                         color:
-            //                             billing ? Colors.white : Colors.black87,
-            //                         size: 35.0,
-            //                       )
-            //                     ],
-            //                   ))),
-            //           Container(
-            //               color: payByCheque ? Colors.black87 : Colors.white,
-            //               width: MediaQuery.of(context).size.width * 0.27,
-            //               height: 100.0,
-            //               child: OutlinedButton(
-            //                   onPressed: () {
-            //                     setState(() {
-            //                       payByCash = false;
-            //                       payNow = false;
-            //                       pendingPayment = false;
-            //                       billing = false;
-            //                       payByCheque = true;
-            //                       mixedPayment = false;
-            //                     });
-            //                   },
-            //                   child: Row(
-            //                     mainAxisAlignment: MainAxisAlignment.center,
-            //                     children: [
-            //                       Text(
-            //                         "Pay By Cheque",
-            //                         style: TextStyle(
-            //                             fontSize: 19.0,
-            //                             color: payByCheque
-            //                                 ? Colors.white
-            //                                 : Colors.black87),
-            //                       ),
-            //                       SizedBox(
-            //                         width: 10,
-            //                       ),
-            //                       Icon(
-            //                         // <-- Icon
-            //                         PaymentMethodIcons.PaymentMethod.cheque,
-            //                         color: payByCheque
-            //                             ? Colors.white
-            //                             : Colors.black87,
-            //                         size: 25.0,
-            //                       )
-            //                     ],
-            //                   ))),
-            //           Container(
-            //               color: mixedPayment ? Colors.black87 : Colors.white,
-            //               width: MediaQuery.of(context).size.width * 0.27,
-            //               height: 100.0,
-            //               child: OutlinedButton(
-            //                   onPressed: () {
-            //                     setState(() {
-            //                       payByCash = false;
-            //                       payNow = false;
-            //                       pendingPayment = false;
-            //                       billing = false;
-            //                       payByCheque = false;
-            //                       mixedPayment = true;
-            //                     });
-            //                   },
-            //                   child: Row(
-            //                     mainAxisAlignment: MainAxisAlignment.center,
-            //                     children: [
-            //                       Text(
-            //                         "Mixed Payment",
-            //                         style: TextStyle(
-            //                             fontSize: 19.0,
-            //                             color: mixedPayment
-            //                                 ? Colors.white
-            //                                 : Colors.black87),
-            //                       ),
-            //                       SizedBox(
-            //                         width: 10,
-            //                       ),
-            //                       Icon(
-            //                         PaymentMethodIcons.PaymentMethod.mixed,
-            //                         color: mixedPayment
-            //                             ? Colors.white
-            //                             : Colors.black87,
-            //                         size: 35.0,
-            //                       )
-            //                     ],
-            //                   ))),
-            //         ],
-            //       )
-            //     : new Container(),
-            // ((selectedJob!.isChargeable ?? false) && selectedJob!.sumTotal != 0)
-            //     ? SizedBox(
-            //         height: 30,
-            //       )
-            //     : new Container(),
-            // mixedPayment
-            //     ? Column(
-            //         mainAxisAlignment: MainAxisAlignment.center,
-            //         crossAxisAlignment: CrossAxisAlignment.center,
-            //         children: [
-            //           RichText(
-            //             text: TextSpan(
-            //
-            //
-            //               style: const TextStyle(
-            //                   fontSize: 20.0, color: Colors.black87),
-            //               children: <TextSpan>[
-            //                 TextSpan(
-            //                     text: 'Mixed Payment',
-            //                     style: const TextStyle()),
-            //               ],
-            //             ),
-            //           ),
-            //           SizedBox(
-            //             height: 10,
-            //           ),
-            //           SizedBox(
-            //             width: 300,
-            //             child: RichText(
-            //               textAlign: TextAlign.center,
-            //               text: TextSpan(
-            //
-            //
-            //                 style: const TextStyle(
-            //                   fontSize: 17.0,
-            //                   color: Colors.black54,
-            //                 ),
-            //                 children: <TextSpan>[
-            //                   TextSpan(
-            //                     text:
-            //                         'Choose payment option from the dropdown and fill out the appropriate information',
-            //                     style: const TextStyle(),
-            //                   ),
-            //                 ],
-            //               ),
-            //             ),
-            //           ),
-            //           SizedBox(
-            //             height: 30,
-            //           ),
-            //           Column(
-            //             mainAxisAlignment: MainAxisAlignment.center,
-            //             crossAxisAlignment: CrossAxisAlignment.center,
-            //             children: [
-            //               RichText(
-            //                 textAlign: TextAlign.center,
-            //                 text: TextSpan(
-            //
-            //
-            //                   style: TextStyle(
-            //                     fontSize: 25.0,
-            //                     color: Colors.blue,
-            //                   ),
-            //                   children: <TextSpan>[
-            //                     TextSpan(
-            //                       text: '\$' +
-            //                           selectedJob!.sumTotal!.toStringAsFixed(2),
-            //                     ),
-            //                   ],
-            //                 ),
-            //               ),
-            //               RichText(
-            //                 textAlign: TextAlign.center,
-            //                 text: TextSpan(
-            //
-            //
-            //                   style: TextStyle(
-            //                     fontSize: 18.0,
-            //                     color: Colors.lightBlue,
-            //                   ),
-            //                   children: <TextSpan>[
-            //                     TextSpan(
-            //                       text: 'Payment Amount',
-            //                     ),
-            //                   ],
-            //                 ),
-            //               ),
-            //             ],
-            //           ),
-            //           SizedBox(
-            //             height: 50,
-            //           ),
-            //           Row(
-            //             children: [
-            //               Expanded(
-            //                   child: Column(
-            //                 children: [
-            //                   SizedBox(
-            //                     //height: 50,
-            //                     width: 300,
-            //                     child: DropdownButtonFormField<String>(
-            //                       key: dropdownOneState,
-            //                       validator: (value) {
-            //                         if (value == null || value!.isEmpty) {
-            //                           return "Please choose a payment method";
-            //                         }
-            //                         return null;
-            //                       },
-            //                       items: paymentMethodLabels
-            //                           .where((element) => element != "Cash")
-            //                           .map((String value) {
-            //                         return DropdownMenuItem<String>(
-            //                           enabled: paymentMethodLabels
-            //                                           .indexOf(value) !=
-            //                                       dropDownTwoSelectedIndex &&
-            //                                   value != "Cash"
-            //                               ? true
-            //                               : false,
-            //                           value: value,
-            //                           child: Text(
-            //                             value,
-            //                             style: TextStyle(
-            //                                 color: paymentMethodLabels
-            //                                                 .indexOf(value) !=
-            //                                             dropDownTwoSelectedIndex &&
-            //                                         value != "Cash"
-            //                                     ? Colors.black
-            //                                     : Colors.black54),
-            //                           ),
-            //                         );
-            //                       }).toList(),
-            //                       onChanged: (element) async {
-            //                         setState(() {
-            //                           dropDownOneSelectedIndex =
-            //                               paymentMethodLabels
-            //                                   .indexOf(element ?? "");
-            //                           dropDownOneSelectedText = element;
-            //                         });
-
-            //                         if (dropDownTwoSelectedText != "Cash" &&
-            //                             element != "Cash") {
-            //                           setState(() {
-            //                             dropdownTwoState.currentState
-            //                                 ?.didChange('Cash');
-            //                           });
-            //                         }
-            //                       },
-            //                       decoration: InputDecoration(
-            //                           contentPadding: EdgeInsets.symmetric(
-            //                               vertical: 7, horizontal: 3),
-            //                           border: OutlineInputBorder(
-            //                             borderRadius: const BorderRadius.all(
-            //                               const Radius.circular(5.0),
-            //                             ),
-            //                           ),
-            //                           filled: true,
-            //                           hintStyle:
-            //                               TextStyle(color: Colors.grey[800]),
-            //                           hintText: "Select Payment Method",
-            //                           fillColor: Colors.white),
-            //                       //value: dropDownValue,
-            //                     ),
-            //                   ),
-            //                   SizedBox(
-            //                     height: 20,
-            //                   ),
-            //                   Padding(
-            //                     padding: EdgeInsets.fromLTRB(0, 0, 150, 0),
-            //                     child: RichText(
-            //                       textAlign: TextAlign.left,
-            //                       text: TextSpan(
-            //
-            //
-            //                         style: TextStyle(
-            //                           fontSize: 17.0,
-            //                           color: Colors.black,
-            //                         ),
-            //                         children: <TextSpan>[
-            //                           TextSpan(
-            //                             text: 'Payment Amount',
-            //                           ),
-            //                         ],
-            //                       ),
-            //                     ),
-            //                   ),
-            //                   SizedBox(
-            //                     height: 10,
-            //                   ),
-            //                   TextFormField(
-            //                       focusNode: focusPMOne,
-            //                       keyboardType: TextInputType.number,
-            //                       validator: (value) {
-            //                         if (value!.isEmpty) {
-            //                           return 'Please enter an amount';
-            //                         }
-            //                         return null;
-            //                       },
-            //                       inputFormatters: <TextInputFormatter>[
-            //                         FilteringTextInputFormatter.allow(
-            //                             RegExp("[0-9a-zA-Z\.]")),
-            //                       ],
-            //                       controller: PMOneCT,
-            //                       onFieldSubmitted: (val) {
-            //                         FocusScope.of(context)
-            //                             .requestFocus(focusPMOne);
-            //                       },
-            //                       onChanged: (text) {
-            //                         if ((text != "" ? double.parse(text) : 0) >
-            //                             (double.parse(selectedJob!.sumTotal
-            //                                     ?.toStringAsFixed(2) ??
-            //                                 "0"))) {
-            //                           PMOneCT.text = selectedJob?.sumTotal
-            //                                   ?.toStringAsFixed(2) ??
-            //                               "";
-            //                         } else if ((text != ""
-            //                                 ? double.parse(text)
-            //                                 : 0) <
-            //                             0) {
-            //                           PMOneCT.text = "0";
-            //                         }
-
-            //                         PMTwoCT.text = ((double.parse(selectedJob!
-            //                                     .sumTotal!
-            //                                     .toStringAsFixed(2)) -
-            //                                 (PMOneCT.text.toString() != ""
-            //                                     ? double.parse(PMOneCT.text)
-            //                                     : 0)))
-            //                             .toStringAsFixed(2);
-            //                       },
-            //                       style: TextStyles.textDefaultBold,
-            //                       decoration: const InputDecoration(
-            //                         hintText: 'amount',
-            //                         contentPadding: EdgeInsets.symmetric(
-            //                             vertical: 10.0, horizontal: 10),
-            //                         border: OutlineInputBorder(),
-            //                       )),
-            //                 ],
-            //               )),
-            //               SizedBox(
-            //                 width: 100,
-            //               ),
-            //               Expanded(
-            //                   child: Column(
-            //                 children: [
-            //                   SizedBox(
-            //                     //height: 50,
-            //                     width: 300,
-            //                     child: TextFormField(
-            //                       key: dropdownTwoState,
-            //                       enabled: false,
-            //                       controller: PMLabelCT,
-            //                       onChanged: (element) async {
-            //                         // setState(() {
-            //                         //   dropDownTwoSelectedIndex =
-            //                         //       paymentMethodLabels
-            //                         //           .indexOf(element ?? "");
-            //                         //   dropDownTwoSelectedText = element;
-            //                         // });
-            //                         // if (
-            //                         //     dropDownOneSelectedText != "Cash" && element != "Cash") {
-            //                         //   setState(() {
-            //                         //     dropdownOneState.currentState
-            //                         //         ?.didChange('Cash');
-            //                         //   });
-            //                         // }
-            //                       },
-            //                       decoration: InputDecoration(
-            //                           contentPadding: EdgeInsets.symmetric(
-            //                               vertical: 7, horizontal: 3),
-            //                           border: OutlineInputBorder(
-            //                             borderRadius: const BorderRadius.all(
-            //                               const Radius.circular(5.0),
-            //                             ),
-            //                           ),
-            //                           filled: true,
-            //                           // hintStyle:
-            //                           //     TextStyle(color: Colors.grey[800]),
-            //                           //hintText: "Select Payment Method",
-            //                           fillColor: Colors.white),
-            //                       //value: dropDownValue,
-            //                     ),
-            //                   ),
-            //                   SizedBox(
-            //                     height: 20,
-            //                   ),
-            //                   Padding(
-            //                     padding: EdgeInsets.fromLTRB(0, 0, 150, 0),
-            //                     child: RichText(
-            //                       textAlign: TextAlign.left,
-            //                       text: TextSpan(
-            //
-            //
-            //                         style: TextStyle(
-            //                           fontSize: 17.0,
-            //                           color: Colors.black,
-            //                         ),
-            //                         children: <TextSpan>[
-            //                           TextSpan(
-            //                             text: 'Payment Amount',
-            //                           ),
-            //                         ],
-            //                       ),
-            //                     ),
-            //                   ),
-            //                   SizedBox(
-            //                     height: 10,
-            //                   ),
-            //                   TextFormField(
-            //                       focusNode: focusPMTwo,
-            //                       keyboardType: TextInputType.number,
-            //                       validator: (value) {
-            //                         if (value!.isEmpty) {
-            //                           return 'Please enter an amount';
-            //                         }
-            //                         return null;
-            //                       },
-            //                       inputFormatters: <TextInputFormatter>[
-            //                         FilteringTextInputFormatter.allow(
-            //                             RegExp("[0-9a-zA-Z]")),
-            //                       ],
-            //                       enabled: true,
-            //                       controller: PMTwoCT,
-            //                       onFieldSubmitted: (val) {
-            //                         FocusScope.of(context)
-            //                             .requestFocus(focusPMTwo);
-            //                       },
-            //                       onChanged: (text) {
-            //                         // if (text.contains(".") &&
-            //                         //     text.split(".")[1] == "") {
-            //                         //   text = text.split(".")[0];
-            //                         // }
-            //                         // if ((text != "" ? double.parse(text) : 0) >
-            //                         //     (double.parse(selectedJob!.sumTotal
-            //                         //                 ?.toStringAsFixed(2) ??
-            //                         //             "0") ??
-            //                         //         0)) {
-            //                         //   PMTwoCT.text = (selectedJob!.sumTotal
-            //                         //           ?.toStringAsFixed(2) ??
-            //                         //       "0");
-            //                         // } else if ((text != ""
-            //                         //         ? double.parse(text)
-            //                         //         : 0) <
-            //                         //     0) {
-            //                         //   PMTwoCT.text = "0";
-            //                         // }
-            //                         // if (PMTwoCT.text.contains(".") &&
-            //                         //     PMTwoCT.text.split(".")[1].length ==
-            //                         //         0) {
-            //                         //   PMTwoCT.text = PMTwoCT.text.split(".")[0];
-            //                         // }
-
-            //                         // PMOneCT.text = ((double.parse(selectedJob
-            //                         //                 ?.sumTotal
-            //                         //                 ?.toStringAsFixed(2) ??
-            //                         //             "0") -
-            //                         //         (PMTwoCT.text.toString() != ""
-            //                         //             ? double.parse(
-            //                         //                 double.parse(PMTwoCT.text)
-            //                         //                     .toStringAsFixed(2))
-            //                         //             : 0)))
-            //                         //     .toStringAsFixed(2);
-            //                       },
-            //                       style: TextStyles.textDefaultBold,
-            //                       decoration: const InputDecoration(
-            //                         hintText: 'amount',
-            //                         contentPadding: EdgeInsets.symmetric(
-            //                             vertical: 10.0, horizontal: 10),
-            //                         border: OutlineInputBorder(),
-            //                       )),
-            //                 ],
-            //               )),
-            //             ],
-            //           ),
-            //         ],
-            //       )
-            //     : new Container(),
-            // ((selectedJob!.isChargeable ?? false) && selectedJob!.sumTotal != 0)
-            //     ?
-            ,
+                : new Container(),
             SizedBox(height: 70),
-            // : SizedBox(height: 50),
             SizedBox(
               width:
                   MediaQuery.of(context).size.width * 0.9, // <-- match_parent
@@ -1352,26 +647,6 @@ class _SignatureState extends State<SignatureUI> {
                               );
                             }
                           }
-                          // await showMultipleImagesPromptDialog(
-                          //     context,
-                          //     selectedJob?.serviceRequestid ?? "",
-                          //     signature,
-                          //     isWantInvoice,
-                          //     emailCT.text.toString(),
-                          //     payByCash
-                          //         ? paymentMethods
-                          //             .where((element) =>
-                          //                 element.method?.toLowerCase() == "cash")
-                          //             .toList()[0]
-                          //             .id
-                          //             .toString()
-                          //         : paymentMethods
-                          //             .where((element) =>
-                          //                 element.method?.toLowerCase() ==
-                          //                 "scanned")
-                          //             .toList()[0]
-                          //             .id
-                          //             .toString());
                         }
                       } else {
                         Helpers.showAlert(context,
@@ -1383,11 +658,6 @@ class _SignatureState extends State<SignatureUI> {
                         });
                       }
                     }
-                    // }
-                    //  else {
-                    //   Navigator.pushNamed(context, 'feedback',
-                    //       arguments: [selectedJob, paymentDTO]);
-                    // }
                   }),
             ),
           ],

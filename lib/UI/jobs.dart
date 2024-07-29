@@ -94,6 +94,9 @@ class _JobListState extends State<JobList>
   String startDate = "";
   String toDate = "";
 
+  bool isLoadedCollectedCash = false;
+  bool isLoadingCollectedCash = false;
+
   @override
   void initState() {
     controller = ScrollController()..addListener(_scrollListener);
@@ -104,7 +107,6 @@ class _JobListState extends State<JobList>
   FutureOr<void> afterFirstLayout(BuildContext context) async {
     await _loadVersion();
     await _fetchJobs(true);
-    await fetchPaymentCollection();
     await _fetchJobStatuses();
     await fetchRejecReasons();
     _bsbController.addListener(() {
@@ -141,10 +143,17 @@ class _JobListState extends State<JobList>
   }
 
   fetchPaymentCollection() async {
+    setState(() {
+      isLoadedCollectedCash = false;
+      isLoadingCollectedCash = true;
+    });
     var collection = await Repositories.fetchPaymentCollection();
 
     setState(() {
+      isLoadedCollectedCash = true;
+      isLoadingCollectedCash = false;
       paymentCollection = collection;
+      isCollectionVisible = !isCollectionVisible;
     });
   }
 
@@ -592,55 +601,120 @@ class _JobListState extends State<JobList>
                             ),
                             children: <TextSpan>[
                               TextSpan(
-                                text: "collected cash :",
+                                text: "Collected Cash :",
                               ),
                             ]),
                       ),
-                      Row(
-                        children: [
-                          !isCollectionVisible
-                              ? RichText(
+                      isLoadedCollectedCash
+                          ? Row(
+                              children: [
+                                !isCollectionVisible
+                                    ? RichText(
+                                        text: TextSpan(
+                                            style: const TextStyle(
+                                              fontSize: 25.0,
+                                              color: Colors.black,
+                                            ),
+                                            children: <TextSpan>[
+                                              TextSpan(
+                                                text:
+                                                    paymentCollection?.currency,
+                                              ),
+                                            ]),
+                                      )
+                                    : new Container(),
+                                RichText(
                                   text: TextSpan(
-                                      style: const TextStyle(
-                                        fontSize: 25.0,
-                                        color: Colors.black,
-                                      ),
-                                      children: <TextSpan>[
-                                        TextSpan(
-                                          text: paymentCollection?.currency,
-                                        ),
-                                      ]),
+                                    text: '',
+                                    style: DefaultTextStyle.of(context).style,
+                                    children: <TextSpan>[
+                                      isCollectionVisible
+                                          ? TextSpan(
+                                              text: (paymentCollection
+                                                  ?.formatted),
+                                              style: TextStyle(
+                                                fontSize: 25,
+                                                color: Colors
+                                                    .black, // Set the color you want for the visible text
+                                              ),
+                                            )
+                                          : ObscuringTextSpan(
+                                              text: paymentCollection?.amount,
+                                              obscureText:
+                                                  true, // Set to true to obscure the text
+                                              style: TextStyle(
+                                                fontSize: 25,
+                                                color: Colors
+                                                    .black, // Set the color for the obscured text
+                                              ),
+                                            ),
+                                    ],
+                                  ),
                                 )
-                              : new Container(),
-                          RichText(
-                            text: TextSpan(
-                              text: '',
-                              style: DefaultTextStyle.of(context).style,
-                              children: <TextSpan>[
-                                isCollectionVisible
-                                    ? TextSpan(
-                                        text: (paymentCollection?.formatted),
-                                        style: TextStyle(
-                                          fontSize: 25,
-                                          color: Colors
-                                              .black, // Set the color you want for the visible text
+                              ],
+                            )
+                          : isLoadingCollectedCash
+                              ? Row(
+                                  children: [
+                                    Container(
+                                      alignment: Alignment.center,
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(5.0),
+                                        child: LoadingAnimationWidget
+                                            .staggeredDotsWave(
+                                          color: Color(0xFF000000),
+                                          size: MediaQuery.of(context)
+                                                  .size
+                                                  .height *
+                                              0.03,
+                                        ),
+                                      ),
+                                    )
+                                  ],
+                                )
+                              : GestureDetector(
+                                  onTap: () async {
+                                    if (paymentCollection == null) {
+                                      await fetchPaymentCollection();
+                                    }
+                                  },
+                                  child: Row(
+                                    children: [
+                                      !isCollectionVisible
+                                          ? RichText(
+                                              text: TextSpan(
+                                                  style: const TextStyle(
+                                                    fontSize: 25.0,
+                                                    color: Colors.black,
+                                                  ),
+                                                  children: <TextSpan>[
+                                                    TextSpan(
+                                                      text: "MYR",
+                                                    ),
+                                                  ]),
+                                            )
+                                          : new Container(),
+                                      RichText(
+                                        text: TextSpan(
+                                          text: '',
+                                          style: DefaultTextStyle.of(context)
+                                              .style,
+                                          children: <TextSpan>[
+                                            ObscuringTextSpan(
+                                              text: "0000",
+                                              obscureText:
+                                                  true, // Set to true to obscure the text
+                                              style: TextStyle(
+                                                fontSize: 25,
+                                                color: Colors
+                                                    .black, // Set the color for the obscured text
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       )
-                                    : ObscuringTextSpan(
-                                        text: paymentCollection?.amount,
-                                        obscureText:
-                                            true, // Set to true to obscure the text
-                                        style: TextStyle(
-                                          fontSize: 25,
-                                          color: Colors
-                                              .black, // Set the color for the obscured text
-                                        ),
-                                      ),
-                              ],
-                            ),
-                          )
-                        ],
-                      )
+                                    ],
+                                  ))
                     ])),
               ])),
           SizedBox(height: 10),
@@ -1152,6 +1226,10 @@ class _JobListState extends State<JobList>
       prevSelectedPaymentStatuses = [];
       prevSelectedServiceStatuses = [];
       prevSelectedServiceTypes = [];
+      isLoadedCollectedCash = false;
+      isLoadingCollectedCash = false;
+      paymentCollection = null;
+      isCollectionVisible = false;
     });
     DateTime now = DateTime.now();
     DateTime thirtyDaysAgo = now.subtract(Duration(days: 30));
