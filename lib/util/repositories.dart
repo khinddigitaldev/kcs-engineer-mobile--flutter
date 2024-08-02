@@ -184,6 +184,20 @@ class Repositories {
     return data;
   }
 
+  static Future<JobData?> fetchCompletedJobs(filters, int currentPage) async {
+    JobData? data;
+
+    final response = await Api.bearerPost(
+        'job/service-jobs-completed?page=$currentPage',
+        params: filters);
+    print("#Resp: ${jsonEncode(response)}");
+    // Navigator.pop(context);
+    if (response["success"] && response['data'] != null) {
+      data = await JobData.selectedJobFromJson(response);
+    }
+    return data;
+  }
+
   static Future<List<Job>?> fetchJobHistory(
       String jobId, String insertedAt) async {
     List<Job>? data = [];

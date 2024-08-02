@@ -2019,7 +2019,7 @@ class _JobDetailsState extends State<JobDetails>
                               ),
                               children: <TextSpan>[
                                 TextSpan(
-                                  text: '+${selectedJob?.customerTelephone}',
+                                  text: '+${selectedJob?.secondaryContactNo}',
                                 ),
                               ]),
                         ),

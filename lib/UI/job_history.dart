@@ -84,13 +84,19 @@ class _JobHistoryListState extends State<JobHistoryList>
   bool isDataLoaded = false;
   String startDate = "";
   String toDate = "";
+
+  String tempStartDate = "";
+  String tempToDate = "";
+  ScrollController? controller;
   int currentPage = 1;
+
+  String? tempSelectedStartDateStr;
+  String? tempSelectedEndDateStr;
 
   String? currentSearchText;
 
   final storage = new FlutterSecureStorage();
   String? token;
-  ScrollController? controller;
 
   @override
   void initState() {
@@ -110,6 +116,32 @@ class _JobHistoryListState extends State<JobHistoryList>
 
     await Future.wait([_fetchJobStatuses(), _fetchKIVJobs(true)])
         .then((value) => print('done'));
+
+    _bsbController.addListener(() {
+      if (_bsbController.isCollapsed) {
+        setState(() {
+          tempSelectedEndDateStr = "";
+          tempSelectedStartDateStr = "";
+          tempStartDate = "";
+          tempToDate = "";
+        });
+      }
+
+      if (isFilterPressed) {
+        setState(() {
+          selectedServiceTypes = [];
+          selectedPaymentStatuses = [];
+          selectedServiceStatuses = [];
+          selectedServiceTypes.addAll(prevSelectedServiceTypes);
+          selectedPaymentStatuses.addAll(prevSelectedPaymentStatuses);
+          selectedServiceStatuses.addAll(prevSelectedServiceStatuses);
+        });
+
+        setState(() {
+          isFilterPressed = false;
+        });
+      }
+    });
 
     _bsbController.addListener(() {
       if (isFilterPressed) {
@@ -514,10 +546,7 @@ class _JobHistoryListState extends State<JobHistoryList>
                                     arguments:
                                         inProgressJobs[index].serviceRequestid)
                                 .then((value) async {
-                              setState(() {
-                                currentPage = 1;
-                              });
-                              await _fetchKIVJobs(true);
+                              await resetArrays();
                             });
                           } else {
                             bool isAdd = selectedJobsToReject
@@ -624,6 +653,13 @@ class _JobHistoryListState extends State<JobHistoryList>
       prevSelectedServiceStatuses = [];
       prevSelectedServiceTypes = [];
     });
+    DateTime now = DateTime.now();
+    DateTime thirtyDaysAgo = now.subtract(Duration(days: 30));
+    setState(() {
+      toDate = now.toString().replaceAll(' ', 'T');
+      startDate = thirtyDaysAgo.toString().replaceAll(' ', 'T');
+      currentPage = 1;
+    });
 
     await _fetchKIVJobs(true);
   }
@@ -675,7 +711,7 @@ class _JobHistoryListState extends State<JobHistoryList>
               return Material(
                   color: Colors.transparent,
                   child: Container(
-                    height: MediaQuery.of(context).size.height * 0.3,
+                    height: MediaQuery.of(context).size.height * 0.4,
                     width: MediaQuery.of(context).size.width * 1,
                     padding: EdgeInsets.only(left: 80, right: 20, top: 10),
                     child: Column(
@@ -831,6 +867,130 @@ class _JobHistoryListState extends State<JobHistoryList>
                                           .toList())));
                         }),
                         SizedBox(
+                          height: MediaQuery.of(context).size.height * .05,
+                        ),
+                        Container(
+                          alignment: Alignment.centerLeft,
+                          child: RichText(
+                            text: TextSpan(
+                              style: const TextStyle(
+                                fontSize: 20.0,
+                                color: Colors.black,
+                              ),
+                              children: <TextSpan>[
+                                TextSpan(
+                                    text: 'Date Filter',
+                                    style: const TextStyle()),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          height: 20,
+                        ),
+                        Row(children: [
+                          Container(
+                            alignment: Alignment.centerLeft,
+                            child: SizedBox(
+                              width: MediaQuery.of(context).size.width *
+                                  0.2, // <-- match_parent
+                              height: MediaQuery.of(context).size.width *
+                                  0.05, // <-- match-parent
+                              child: ElevatedButton(
+                                  child: Padding(
+                                      padding: const EdgeInsets.all(0.0),
+                                      child: Row(children: [
+                                        Icon(
+                                          Icons.calendar_month,
+                                          color: Colors.black,
+                                          size: 18,
+                                        ),
+                                        SizedBox(
+                                          width: 5,
+                                        ),
+                                        Text(
+                                          'Select Date Range',
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.black),
+                                        ),
+                                      ])),
+                                  style: ButtonStyle(
+                                      foregroundColor: MaterialStateProperty.all<Color>(
+                                          Color.fromARGB(255, 205, 205, 205)),
+                                      backgroundColor: MaterialStateProperty.all<Color>(
+                                          Color.fromARGB(255, 205, 205, 205)),
+                                      shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                                          RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(4.0),
+                                              side: BorderSide(
+                                                  color: Color.fromARGB(
+                                                      255, 205, 205, 205))))),
+                                  onPressed: () async {
+                                    Helpers.showDatePicker(context, () {
+                                      setState(() {
+                                        tempSelectedStartDateStr = "";
+                                        tempSelectedEndDateStr = "";
+                                      });
+                                    }, (DateTime? strtDate, DateTime? endDate) {
+                                      setState(() {
+                                        tempSelectedStartDateStr =
+                                            strtDate.toString();
+                                        tempSelectedEndDateStr =
+                                            endDate.toString();
+                                      });
+                                    }, () async {
+                                      setState(() {
+                                        tempStartDate =
+                                            tempSelectedStartDateStr ?? "";
+                                        tempToDate =
+                                            tempSelectedEndDateStr ?? "";
+                                      });
+                                      // _fetchKIVJobs(true);
+                                    });
+                                  }),
+                            ),
+                          ),
+                          SizedBox(
+                            width: 15,
+                          ),
+                          startDate != "" || toDate != ""
+                              ? Row(children: [
+                                  RichText(
+                                    text: TextSpan(
+                                      style: const TextStyle(
+                                        fontSize: 12.0,
+                                        color: Colors.black,
+                                      ),
+                                      children: <TextSpan>[
+                                        TextSpan(
+                                            text:
+                                                'currently selected date range :- ',
+                                            style: const TextStyle()),
+                                      ],
+                                    ),
+                                  ),
+                                  RichText(
+                                    text: TextSpan(
+                                      style: const TextStyle(
+                                          fontSize: 12.0,
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.bold),
+                                      children: <TextSpan>[
+                                        TextSpan(
+                                            text: tempStartDate != "" ||
+                                                    tempToDate != ""
+                                                ? '${tempStartDate.toString().replaceAll(" ", "T").split("T")[0]}  to  ${tempToDate.toString().replaceAll(" ", "T").split("T")[0]}'
+                                                : '${startDate.toString().replaceAll(" ", "T").split("T")[0]}  to  ${toDate.toString().replaceAll(" ", "T").split("T")[0]}',
+                                            style: const TextStyle()),
+                                      ],
+                                    ),
+                                  ),
+                                ])
+                              : new Container()
+                        ]),
+                        SizedBox(
                             height: MediaQuery.of(context).size.height * 0.05),
                         Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -863,6 +1023,19 @@ class _JobHistoryListState extends State<JobHistoryList>
                                               side: BorderSide(
                                                   color: Color(0xFF323F4B))))),
                                   onPressed: () async {
+                                    if (tempStartDate != "" ||
+                                        tempToDate != "") {
+                                      setState(() {
+                                        startDate = tempStartDate;
+                                        toDate = tempToDate;
+                                      });
+                                    }
+                                    setState(() {
+                                      tempSelectedEndDateStr = "";
+                                      tempSelectedStartDateStr = "";
+                                      tempStartDate = "";
+                                      tempToDate = "";
+                                    });
                                     await submitFilters();
                                     _bsbController.collapse();
                                   }),

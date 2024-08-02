@@ -4,12 +4,14 @@ import 'package:after_layout/after_layout.dart';
 import 'package:easy_sidemenu/easy_sidemenu.dart';
 import 'package:flutter/material.dart';
 import 'package:kcs_engineer/UI/bag.dart';
+import 'package:kcs_engineer/UI/completed_jobs.dart';
 import 'package:kcs_engineer/UI/job_history.dart';
 import 'package:kcs_engineer/UI/kiv_jobs.dart';
 import 'package:kcs_engineer/UI/pick_list.dart';
 import 'package:kcs_engineer/UI/jobs.dart';
 import 'package:kcs_engineer/UI/user_profile.dart';
 import 'package:kcs_engineer/bag_icons.dart';
+import 'package:kcs_engineer/complete_jobs_icon.dart';
 import 'package:kcs_engineer/history_icons_icons.dart';
 import 'package:kcs_engineer/in_complete_jobs_icons.dart';
 import 'package:kcs_engineer/kcs_icons_icons.dart';
@@ -147,6 +149,12 @@ class _MyHomePageState extends State<MyHomePage> with AfterLayoutMixin {
                 Container(
                   color: Colors.white,
                   child: Center(
+                    child: CompletedJobsList(),
+                  ),
+                ),
+                Container(
+                  color: Colors.white,
+                  child: Center(
                     child: UserProfile(),
                   ),
                 ),
@@ -247,10 +255,19 @@ class _MyHomePageState extends State<MyHomePage> with AfterLayoutMixin {
             sidemenuController.changePage(index);
             page.jumpToPage(index);
           },
-          icon: const Icon(SideMenuIcons.profile),
+          icon: const Icon(CompleteJobs.completed),
         ),
         SideMenuItem(
           priority: 6,
+          onTap: (index, controller) {
+            sidemenuController.changePage(index);
+            page.jumpToPage(index);
+          },
+          icon: const Icon(SideMenuIcons.profile),
+        ),
+
+        SideMenuItem(
+          priority: 7,
           onTap: (index, controller) async {
             Helpers.showAlert(context);
             var res = await _logout();

@@ -24,15 +24,15 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:readmore/readmore.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class KIVJobList extends StatefulWidget with WidgetsBindingObserver {
+class CompletedJobsList extends StatefulWidget with WidgetsBindingObserver {
   int? data;
-  KIVJobList({this.data});
+  CompletedJobsList({this.data});
 
   @override
-  _KIVJobListState createState() => _KIVJobListState();
+  _CompletedJobsListState createState() => _CompletedJobsListState();
 }
 
-class _KIVJobListState extends State<KIVJobList>
+class _CompletedJobsListState extends State<CompletedJobsList>
     with WidgetsBindingObserver, AfterLayoutMixin {
   var _refreshKey = GlobalKey<RefreshIndicatorState>();
   GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
@@ -90,9 +90,6 @@ class _KIVJobListState extends State<KIVJobList>
   ScrollController? controller;
   int currentPage = 1;
 
-  // DateTime? tempSelectedStartDate;
-  // DateTime? tempSelectedEndDate;
-
   String? tempSelectedStartDateStr;
   String? tempSelectedEndDateStr;
 
@@ -110,12 +107,14 @@ class _KIVJobListState extends State<KIVJobList>
   @override
   FutureOr<void> afterFirstLayout(BuildContext context) async {
     await _loadVersion();
+    // await _fetchJobStatuses();
     // await fetchPaymentCollection();
     // await _fetchJobStatuses();
     // await fetchRejecReasons();
     await setDates();
+    // await _fetchKIVJobs();
 
-    await Future.wait([_fetchJobStatuses(), _fetchKIVJobs(true)])
+    await Future.wait([_fetchJobStatuses(), _fetchCompletedJobs(true)])
         .then((value) => print('done'));
 
     _bsbController.addListener(() {
@@ -183,11 +182,6 @@ class _KIVJobListState extends State<KIVJobList>
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {}
-  }
-
   void _scrollListener() async {
     if (controller?.position.atEdge ?? false) {
       bool isTop = controller?.position.pixels == 0;
@@ -195,9 +189,14 @@ class _KIVJobListState extends State<KIVJobList>
       if (!isTop && currentPage <= (jobData?.meta?.lastPage ?? 0)) {
         currentPage = currentPage + 1;
 
-        await _fetchKIVJobs(false);
+        await _fetchCompletedJobs(false);
       }
     }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {}
   }
 
   _loadVersion() async {
@@ -237,7 +236,7 @@ class _KIVJobListState extends State<KIVJobList>
     Navigator.pop(context);
   }
 
-  Future<void> _fetchKIVJobs(bool isErasePrevious) async {
+  Future<void> _fetchCompletedJobs(bool isErasePrevious) async {
     JobData? existingJobData;
 
     if (!isErasePrevious) {
@@ -248,6 +247,7 @@ class _KIVJobListState extends State<KIVJobList>
     if (Helpers.loggedInUser != null) {
       user = Helpers.loggedInUser;
     }
+
     var fetchedJobData = null;
 
     var filters = {
@@ -256,27 +256,34 @@ class _KIVJobListState extends State<KIVJobList>
       //     ? {"q": currentSearchText}
       //     : {}),
       "filters": {
-        ...(selectedServiceTypes.length > 0
-            ? {
-                "service_type": (fetchedJobFilterOptions?.serviceTypes
-                        ?.where((element) =>
-                            selectedServiceTypes.contains(element.serviceType))
-                        .toList())
-                    ?.map((e) => e.id)
-                    .toList()
-              }
-            : {}),
-        ...((selectedPaymentStatuses.length == 0 ||
-                selectedPaymentStatuses.length == 2)
-            ? {}
-            : {"payment_status": selectedPaymentStatuses[0] == "Paid"}),
-        "service_request_status": [21],
+        // ...(selectedServiceTypes.length > 0
+        //     ? {
+        //         "service_type": (fetchedJobFilterOptions?.serviceTypes
+        //                 ?.where((element) =>
+        //                     selectedServiceTypes.contains(element.serviceType))
+        //                 .toList())
+        //             ?.map((e) => e.id)
+        //             .toList()
+        //       }
+        //     : {}),
+        // ...((selectedPaymentStatuses.length == 0 ||
+        //         selectedPaymentStatuses.length == 2)
+        //     ? {}
+        //     : {"payment_status": selectedPaymentStatuses[0] == "Paid"}),
+        // "service_request_status": [2, 24]
+
+        // (fetchedJobFilterOptions?.serviceJobStatuses
+        //     ?.where((element) =>
+        //         selectedServiceStatuses.contains(element.serviceJobStatus))
+        //     .toList()
+        //     .map((e) => e?.id)
+        //     .toList())
       },
       "start_date": '${startDate.split('.')[0]}Z',
       "end_date": '${toDate.split('.')[0]}Z',
       ...(currentSearchText != null && currentSearchText != ""
           ? {"q": currentSearchText}
-          : {})
+          : {}),
     };
 
     // var filterMap = filters["filters"] as Map<dynamic, dynamic>;
@@ -285,7 +292,8 @@ class _KIVJobListState extends State<KIVJobList>
     // }
 
     Helpers.showAlert(context);
-    fetchedJobData = await Repositories.fetchKIVJobs(filters, currentPage);
+    fetchedJobData =
+        await Repositories.fetchCompletedJobs(filters, currentPage);
     Navigator.pop(context);
 
     setState(() {
@@ -360,7 +368,7 @@ class _KIVJobListState extends State<KIVJobList>
         () => searchOnInProgressStoppedTyping = new Timer(duration, () async {
               if (currentSearchTextInProgress != value || value == "") {
                 currentSearchText = value;
-                await _fetchKIVJobs(true);
+                await _fetchCompletedJobs(true);
               }
             }));
   }
@@ -399,7 +407,7 @@ class _KIVJobListState extends State<KIVJobList>
                       ),
                       children: <TextSpan>[
                         TextSpan(
-                            text: 'KIV Jobs',
+                            text: 'Completed Jobs',
                             style:
                                 const TextStyle(fontWeight: FontWeight.bold)),
                       ],
@@ -654,7 +662,7 @@ class _KIVJobListState extends State<KIVJobList>
       currentPage = 1;
     });
 
-    await _fetchKIVJobs(true);
+    await _fetchCompletedJobs(true);
   }
 
   submitFilters() async {
@@ -667,7 +675,7 @@ class _KIVJobListState extends State<KIVJobList>
       prevSelectedServiceStatuses.addAll(selectedServiceStatuses);
       prevSelectedServiceTypes.addAll(selectedServiceTypes);
     });
-    await _fetchKIVJobs(true);
+    await _fetchCompletedJobs(true);
   }
 
   @override
@@ -675,7 +683,7 @@ class _KIVJobListState extends State<KIVJobList>
     return RefreshIndicator(
         key: _refreshKey,
         onRefresh: () async {
-          await _fetchKIVJobs(true);
+          await _fetchCompletedJobs(true);
         },
         child: Scaffold(
           backgroundColor: Colors.white,
@@ -750,118 +758,118 @@ class _KIVJobListState extends State<KIVJobList>
                         SizedBox(
                           height: MediaQuery.of(context).size.height * .08,
                         ),
-                        Container(
-                          alignment: Alignment.centerLeft,
-                          child: RichText(
-                            text: TextSpan(
-                              style: const TextStyle(
-                                fontSize: 20.0,
-                                color: Colors.black,
-                              ),
-                              children: <TextSpan>[
-                                TextSpan(
-                                    text: 'Service Type',
-                                    style: const TextStyle()),
-                              ],
-                            ),
-                          ),
-                        ),
-                        SizedBox(
-                          height: 20,
-                        ),
-                        LayoutBuilder(builder:
-                            (BuildContext context, BoxConstraints constraints) {
-                          return AnimatedAlign(
-                              alignment: Alignment.centerLeft,
-                              duration: Duration(milliseconds: 300),
-                              child: Container(
-                                  width: constraints.maxWidth,
-                                  child: Wrap(
-                                      direction: Axis.horizontal,
-                                      alignment: WrapAlignment.start,
-                                      spacing: 10,
-                                      runSpacing: 10,
-                                      crossAxisAlignment:
-                                          WrapCrossAlignment.start,
-                                      children: serviceTypes
-                                          .map(
-                                            (e) => GestureDetector(
-                                                onTap: () {
-                                                  if (selectedServiceTypes
-                                                      .contains(e)) {
-                                                    setState(() {
-                                                      selectedServiceTypes
-                                                          .remove(e);
-                                                    });
-                                                  } else {
-                                                    setState(() {
-                                                      selectedServiceTypes
-                                                          .add(e);
-                                                    });
-                                                  }
-                                                },
-                                                child: Container(
-                                                    decoration: BoxDecoration(
-                                                        color:
-                                                            selectedServiceTypes
-                                                                    .contains(e)
-                                                                ? Color(
-                                                                    0xFF323F4B)
-                                                                : Colors.white,
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(20),
-                                                        border: Border.all(
-                                                          color:
-                                                              Color(0xFF323F4B),
-                                                        )),
-                                                    child: Padding(
-                                                        padding:
-                                                            EdgeInsets.fromLTRB(
-                                                                30, 10, 30, 10),
-                                                        child: RichText(
-                                                            text: TextSpan(
-                                                                style:
-                                                                    TextStyle(
-                                                                  color: selectedServiceTypes
-                                                                          .contains(
-                                                                              e)
-                                                                      ? Colors
-                                                                          .white
-                                                                      : Colors
-                                                                          .black,
-                                                                  fontSize: 12,
-                                                                ),
-                                                                children: [
-                                                              TextSpan(
-                                                                  text: '${e}'),
-                                                              WidgetSpan(
-                                                                child: SizedBox(
-                                                                  width: selectedServiceTypes
-                                                                          .contains(
-                                                                              e)
-                                                                      ? 10
-                                                                      : 0,
-                                                                ),
-                                                              ),
-                                                              WidgetSpan(
-                                                                  child: Icon(
-                                                                Icons.check,
-                                                                size: selectedServiceTypes
-                                                                        .contains(
-                                                                            e)
-                                                                    ? 15
-                                                                    : 0,
-                                                                color: Colors
-                                                                    .white,
-                                                              ))
-                                                            ]))))),
-                                          )
-                                          .toList())));
-                        }),
-                        SizedBox(
-                          height: MediaQuery.of(context).size.height * .05,
-                        ),
+                        // Container(
+                        //   alignment: Alignment.centerLeft,
+                        //   child: RichText(
+                        //     text: TextSpan(
+                        //       style: const TextStyle(
+                        //         fontSize: 20.0,
+                        //         color: Colors.black,
+                        //       ),
+                        //       children: <TextSpan>[
+                        //         TextSpan(
+                        //             text: 'Service Type',
+                        //             style: const TextStyle()),
+                        //       ],
+                        //     ),
+                        //   ),
+                        // ),
+                        // SizedBox(
+                        //   height: 20,
+                        // ),
+                        // LayoutBuilder(builder:
+                        //     (BuildContext context, BoxConstraints constraints) {
+                        //   return AnimatedAlign(
+                        //       alignment: Alignment.centerLeft,
+                        //       duration: Duration(milliseconds: 300),
+                        //       child: Container(
+                        //           width: constraints.maxWidth,
+                        //           child: Wrap(
+                        //               direction: Axis.horizontal,
+                        //               alignment: WrapAlignment.start,
+                        //               spacing: 10,
+                        //               runSpacing: 10,
+                        //               crossAxisAlignment:
+                        //                   WrapCrossAlignment.start,
+                        //               children: serviceTypes
+                        //                   .map(
+                        //                     (e) => GestureDetector(
+                        //                         onTap: () {
+                        //                           if (selectedServiceTypes
+                        //                               .contains(e)) {
+                        //                             setState(() {
+                        //                               selectedServiceTypes
+                        //                                   .remove(e);
+                        //                             });
+                        //                           } else {
+                        //                             setState(() {
+                        //                               selectedServiceTypes
+                        //                                   .add(e);
+                        //                             });
+                        //                           }
+                        //                         },
+                        //                         child: Container(
+                        //                             decoration: BoxDecoration(
+                        //                                 color:
+                        //                                     selectedServiceTypes
+                        //                                             .contains(e)
+                        //                                         ? Color(
+                        //                                             0xFF323F4B)
+                        //                                         : Colors.white,
+                        //                                 borderRadius:
+                        //                                     BorderRadius
+                        //                                         .circular(20),
+                        //                                 border: Border.all(
+                        //                                   color:
+                        //                                       Color(0xFF323F4B),
+                        //                                 )),
+                        //                             child: Padding(
+                        //                                 padding:
+                        //                                     EdgeInsets.fromLTRB(
+                        //                                         30, 10, 30, 10),
+                        //                                 child: RichText(
+                        //                                     text: TextSpan(
+                        //                                         style:
+                        //                                             TextStyle(
+                        //                                           color: selectedServiceTypes
+                        //                                                   .contains(
+                        //                                                       e)
+                        //                                               ? Colors
+                        //                                                   .white
+                        //                                               : Colors
+                        //                                                   .black,
+                        //                                           fontSize: 12,
+                        //                                         ),
+                        //                                         children: [
+                        //                                       TextSpan(
+                        //                                           text: '${e}'),
+                        //                                       WidgetSpan(
+                        //                                         child: SizedBox(
+                        //                                           width: selectedServiceTypes
+                        //                                                   .contains(
+                        //                                                       e)
+                        //                                               ? 10
+                        //                                               : 0,
+                        //                                         ),
+                        //                                       ),
+                        //                                       WidgetSpan(
+                        //                                           child: Icon(
+                        //                                         Icons.check,
+                        //                                         size: selectedServiceTypes
+                        //                                                 .contains(
+                        //                                                     e)
+                        //                                             ? 15
+                        //                                             : 0,
+                        //                                         color: Colors
+                        //                                             .white,
+                        //                                       ))
+                        //                                     ]))))),
+                        //                   )
+                        //                   .toList())));
+                        // }),
+                        // SizedBox(
+                        //   height: MediaQuery.of(context).size.height * .05,
+                        // ),
                         Container(
                           alignment: Alignment.centerLeft,
                           child: RichText(
@@ -940,6 +948,7 @@ class _KIVJobListState extends State<KIVJobList>
                                         tempToDate =
                                             tempSelectedEndDateStr ?? "";
                                       });
+                                      // _fetchKIVJobs(true);
                                     });
                                   }),
                             ),

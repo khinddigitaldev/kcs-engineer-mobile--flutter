@@ -16,8 +16,8 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 
-version: 1.0.9+10
-# version: 1.0.19+20
+# version: 1.0.9+10
+version: 1.0.19+20
 
 environment:
   sdk: ">=2.17.1 <3.0.0"
@@ -160,6 +160,9 @@ flutter:
     - family: InCompleteJobs
       fonts:
         - asset: assets/fonts/InCompleteJobs.ttf
+    - family: CompletedJobs
+      fonts:
+        - asset: assets/fonts/CompletedJobs.ttf
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
