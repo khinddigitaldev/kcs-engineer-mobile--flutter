@@ -1,40 +1,41 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:ui';
 
 import 'package:after_layout/after_layout.dart';
 import 'package:bottom_sheet_bar/bottom_sheet_bar.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:intl/intl.dart';
+import 'package:kcs_engineer/UI/jobs.dart';
 import 'package:kcs_engineer/components/job_item.dart';
-
+import 'package:kcs_engineer/model/acknowledgement/payment_history.dart';
 import 'package:kcs_engineer/model/job/filters/job_filter_options.dart';
-import 'package:kcs_engineer/model/job/job_order_seq.dart';
-import 'package:kcs_engineer/model/payment/paymentCollection.dart';
 import 'package:kcs_engineer/model/job/general/reason.dart';
+import 'package:kcs_engineer/model/job/job.dart';
+import 'package:kcs_engineer/model/payment/paymentCollection.dart';
+import 'package:kcs_engineer/model/payment/payment_history_item.dart';
 import 'package:kcs_engineer/model/user/user.dart';
+import 'package:kcs_engineer/themes/app_colors.dart';
 import 'package:kcs_engineer/themes/text_styles.dart';
 import 'package:kcs_engineer/util/api.dart';
 import 'package:kcs_engineer/util/components/calendarView.dart';
-import 'package:kcs_engineer/model/job/job.dart';
 import 'package:kcs_engineer/util/helpers.dart';
 import 'package:kcs_engineer/util/repositories.dart';
-import 'package:package_info_plus/package_info_plus.dart';
-import 'package:readmore/readmore.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 
-class JobList extends StatefulWidget with WidgetsBindingObserver {
-  int? data;
-  JobList({this.data});
+class AcknowledgedJobList extends StatefulWidget {
+  String? selectedDate;
+
+  AcknowledgedJobList({this.selectedDate});
 
   @override
-  _JobListState createState() => _JobListState();
+  _AcknowledgedJobListState createState() => _AcknowledgedJobListState();
 }
 
-class _JobListState extends State<JobList>
-    with WidgetsBindingObserver, AfterLayoutMixin {
+class _AcknowledgedJobListState extends State<AcknowledgedJobList>
+    with AfterLayoutMixin {
   var _refreshKey = GlobalKey<RefreshIndicatorState>();
   GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
@@ -106,7 +107,7 @@ class _JobListState extends State<JobList>
   @override
   FutureOr<void> afterFirstLayout(BuildContext context) async {
     await _loadVersion();
-    await _fetchJobs(true);
+    await _fetchAcknowledgedJobs(true);
     await _fetchJobStatuses();
     await fetchRejecReasons();
     _bsbController.addListener(() {
@@ -182,7 +183,7 @@ class _JobListState extends State<JobList>
       if (!isTop && currentPage <= (jobData?.meta?.lastPage ?? 0)) {
         currentPage = currentPage + 1;
 
-        await _fetchJobs(false);
+        await _fetchAcknowledgedJobs(false);
       }
     }
   }
@@ -201,7 +202,7 @@ class _JobListState extends State<JobList>
     });
   }
 
-  _fetchJobs(bool isErasePrevious) async {
+  _fetchAcknowledgedJobs(bool isErasePrevious) async {
     JobData? existingJobData;
 
     if (!isErasePrevious) {
@@ -264,7 +265,8 @@ class _JobListState extends State<JobList>
     }
 
     Helpers.showAlert(context);
-    fetchedJobData = await Repositories.fetchJobs(filters, currentPage);
+    fetchedJobData = await Repositories.fetchPaymentHistoryJobList(
+        widget.selectedDate ?? "", null, null, null, currentSearchText);
     Navigator.pop(context);
 
     setState(() {
@@ -354,169 +356,6 @@ class _JobListState extends State<JobList>
     });
   }
 
-  Widget _buildTester() {
-    final fullWidth = MediaQuery.of(context).size.width;
-    final rowWidth = fullWidth * 0.5; //90%
-    final containerWidth =
-        rowWidth / 3; //Could also use this to set the containers individually
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: <Widget>[
-        Container(
-            width: MediaQuery.of(context).size.width * 0.2,
-            height: MediaQuery.of(context).size.height * 0.15,
-            decoration:
-                BoxDecoration(border: Border.all(color: Color(0xFFD4D4D4))),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  // <-- Icon
-                  Icons.highlight_remove,
-                  color: Colors.red,
-                  size: 40.0,
-                ),
-                SizedBox(
-                  height: 20,
-                ),
-                RichText(
-                  text: TextSpan(
-                    style: const TextStyle(
-                      fontSize: 38.0,
-                      color: Colors.black,
-                    ),
-                    children: <TextSpan>[
-                      TextSpan(
-                          text: '${jobData?.meta?.uncompleted ?? 0}',
-                          style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
-                SizedBox(
-                  height: 10,
-                ),
-                RichText(
-                  text: TextSpan(
-                    style: const TextStyle(
-                      fontSize: 14.0,
-                      color: Colors.black54,
-                    ),
-                    children: <TextSpan>[
-                      TextSpan(
-                          text: 'Uncompleted Jobs',
-                          style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
-              ],
-            )),
-        Container(
-          width: MediaQuery.of(context).size.width * 0.2,
-          height: MediaQuery.of(context).size.height * 0.15,
-          decoration:
-              BoxDecoration(border: Border.all(color: Color(0xFFD4D4D4))),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                // <-- Icon
-                Icons.work,
-                color: Colors.lightBlue,
-                size: 40.0,
-              ),
-              SizedBox(
-                height: 20,
-              ),
-              RichText(
-                text: TextSpan(
-                  style: const TextStyle(
-                    fontSize: 38.0,
-                    color: Colors.black,
-                  ),
-                  children: <TextSpan>[
-                    TextSpan(
-                        text:
-                            '${(jobData?.meta?.completed ?? 0) + (jobData?.meta?.uncompleted ?? 0)}',
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-              SizedBox(
-                height: 20,
-              ),
-              RichText(
-                text: TextSpan(
-                  style: const TextStyle(
-                    fontSize: 14.0,
-                    color: Colors.black54,
-                  ),
-                  children: <TextSpan>[
-                    TextSpan(
-                        text: 'Total Jobs',
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        Container(
-          width: MediaQuery.of(context).size.width * 0.2,
-          height: MediaQuery.of(context).size.height * 0.15,
-          decoration:
-              BoxDecoration(border: Border.all(color: Color(0xFFD4D4D4))),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                // <-- Icon
-                Icons.done_all_outlined,
-                color: Colors.green,
-                size: 40.0,
-              ),
-              SizedBox(
-                height: 20,
-              ),
-              RichText(
-                text: TextSpan(
-                  style: const TextStyle(
-                    fontSize: 38.0,
-                    color: Colors.black,
-                  ),
-                  children: <TextSpan>[
-                    TextSpan(
-                        text: '${jobData?.meta?.completed ?? 0}',
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-              SizedBox(
-                height: 20,
-              ),
-              RichText(
-                text: TextSpan(
-                  style: const TextStyle(
-                    fontSize: 14.0,
-                    color: Colors.black54,
-                  ),
-                  children: <TextSpan>[
-                    TextSpan(
-                        text: 'Completed Jobs',
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: 40,
-        )
-      ],
-    );
-  }
-
   _onChangeHandlerForInprogress(value) {
     const duration = Duration(
         milliseconds:
@@ -529,7 +368,7 @@ class _JobListState extends State<JobList>
         () => searchOnInProgressStoppedTyping = new Timer(duration, () async {
               if (currentSearchTextInProgress != value || value == "") {
                 currentSearchText = value;
-                await _fetchJobs(true);
+                await _fetchAcknowledgedJobs(true);
               }
             }));
   }
@@ -563,684 +402,263 @@ class _JobListState extends State<JobList>
           color: Colors.white, borderRadius: BorderRadius.circular(10)),
       child: Form(
         key: _formKey,
-        child: Column(children: [
-          SizedBox(height: 10),
-          Padding(
-              padding: EdgeInsets.fromLTRB(10.0, 0, 0, 0),
-              child: Row(children: [
-                Container(
-                  alignment: Alignment.centerLeft,
-                  child: RichText(
-                    text: TextSpan(
-                      style: const TextStyle(
-                        fontSize: 32.0,
-                        color: Colors.black,
-                      ),
-                      children: <TextSpan>[
-                        TextSpan(
-                            text: 'Jobs',
-                            style:
-                                const TextStyle(fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                ),
-                Spacer(),
-                Row(children: [
-                  // GestureDetector(
-                  //   onTap: () {
-                  //     Navigator.pushNamed(context, "payment_history");
-                  //   },
-                  //   child: Container(
-                  //       alignment: Alignment.bottomCenter,
-                  //       padding: EdgeInsets.all(5),
-                  //       decoration: BoxDecoration(
-                  //         color: Color(0xFF323F4B),
-                  //         shape: BoxShape.circle,
-                  //       ),
-                  //       child: Icon(Icons.history, color: Colors.white)),
-                  // ),
-                  // ElevatedButton(
-                  //     child: const Padding(
-                  //         padding: EdgeInsets.all(0.0),
-                  //         child: Icon(Icons.history, color: Colors.white)),
-                  //     style: ButtonStyle(
-                  //         foregroundColor: MaterialStateProperty.all<Color>(
-                  //             Color(0xFF242A38)),
-                  //         backgroundColor: MaterialStateProperty.all<Color>(
-                  //             Color(0xFF242A38)),
-                  //         shape:
-                  //             MaterialStateProperty.all<RoundedRectangleBorder>(
-                  //                 RoundedRectangleBorder(
-                  //                     borderRadius: BorderRadius.circular(4.0),
-                  //                     side: const BorderSide(
-                  //                         color: Color(0xFF242A38))))),
-                  //     onPressed: () {
-
-                  //     }),
-                  SizedBox(
-                    width: 10,
-                  ),
-                  GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          isCollectionVisible = !isCollectionVisible;
-                        });
-                      },
-                      child: Column(children: [
-                        RichText(
-                          text: TextSpan(
-                              style: const TextStyle(
-                                fontSize: 15.0,
-                                color: Colors.black,
-                              ),
-                              children: <TextSpan>[
-                                TextSpan(
-                                  text: "Collected Cash :",
-                                ),
-                              ]),
-                        ),
-                        isLoadedCollectedCash
-                            ? Row(
-                                children: [
-                                  !isCollectionVisible
-                                      ? RichText(
-                                          text: TextSpan(
-                                              style: const TextStyle(
-                                                fontSize: 25.0,
-                                                color: Colors.black,
-                                              ),
-                                              children: <TextSpan>[
-                                                TextSpan(
-                                                  text: paymentCollection
-                                                      ?.currency,
-                                                ),
-                                              ]),
-                                        )
-                                      : new Container(),
-                                  RichText(
-                                    text: TextSpan(
-                                      text: '',
-                                      style: DefaultTextStyle.of(context).style,
-                                      children: <TextSpan>[
-                                        isCollectionVisible
-                                            ? TextSpan(
-                                                text: (paymentCollection
-                                                    ?.formatted),
-                                                style: TextStyle(
-                                                  fontSize: 25,
-                                                  color: Colors
-                                                      .black, // Set the color you want for the visible text
-                                                ),
-                                              )
-                                            : ObscuringTextSpan(
-                                                text: paymentCollection?.amount,
-                                                obscureText:
-                                                    true, // Set to true to obscure the text
-                                                style: TextStyle(
-                                                  fontSize: 25,
-                                                  color: Colors
-                                                      .black, // Set the color for the obscured text
-                                                ),
-                                              ),
-                                      ],
-                                    ),
-                                  )
-                                ],
-                              )
-                            : isLoadingCollectedCash
-                                ? Row(
-                                    children: [
-                                      Container(
-                                        alignment: Alignment.center,
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(5.0),
-                                          child: LoadingAnimationWidget
-                                              .staggeredDotsWave(
-                                            color: Color(0xFF000000),
-                                            size: MediaQuery.of(context)
-                                                    .size
-                                                    .height *
-                                                0.03,
-                                          ),
-                                        ),
-                                      )
-                                    ],
-                                  )
-                                : GestureDetector(
-                                    onTap: () async {
-                                      if (paymentCollection == null) {
-                                        await fetchPaymentCollection();
-                                      }
-                                    },
-                                    child: Row(
-                                      children: [
-                                        !isCollectionVisible
-                                            ? RichText(
-                                                text: TextSpan(
-                                                    style: const TextStyle(
-                                                      fontSize: 25.0,
-                                                      color: Colors.black,
-                                                    ),
-                                                    children: <TextSpan>[
-                                                      TextSpan(
-                                                        text: "MYR",
-                                                      ),
-                                                    ]),
-                                              )
-                                            : new Container(),
-                                        RichText(
-                                          text: TextSpan(
-                                            text: '',
-                                            style: DefaultTextStyle.of(context)
-                                                .style,
-                                            children: <TextSpan>[
-                                              ObscuringTextSpan(
-                                                text: "0000",
-                                                obscureText:
-                                                    true, // Set to true to obscure the text
-                                                style: TextStyle(
-                                                  fontSize: 25,
-                                                  color: Colors
-                                                      .black, // Set the color for the obscured text
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        )
-                                      ],
-                                    ))
-                      ]))
-                ]),
-              ])),
-          SizedBox(height: 10),
-          Padding(
-            padding: EdgeInsets.fromLTRB(10.0, 0, 0, 0),
-            child: Container(
-              alignment: Alignment.centerLeft,
-              child: Divider(color: Colors.grey),
-            ),
-          ),
-          SizedBox(height: 20),
-          Container(
-            height: MediaQuery.of(context).size.height * .08,
-            width: MediaQuery.of(context).size.width * 1,
-            child: CalendarView(
-              selectedIndex: currentSelectedIndex,
-              dateSelected: (index) async {
-                if (index == 0) {
-                  setState(() {
-                    consecutiveDays = -1;
-                  });
-                } else {
-                  setState(() {
-                    consecutiveDays = index - 1;
-                  });
-                }
-                setState(() {
-                  currentSelectedIndex = index;
-                });
-
-                await _fetchJobs(true);
-              },
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.fromLTRB(10.0, 0, 0, 0),
-            child: Container(
-              alignment: Alignment.centerLeft,
-              child: RichText(
-                text: TextSpan(
-                    style: const TextStyle(
-                      fontSize: 25.0,
-                      color: Colors.black,
-                    ),
-                    children: <TextSpan>[
-                      TextSpan(
-                        text: 'JOBS TODAY',
-                      ),
-                    ]),
-              ),
-            ),
-          ),
-          SizedBox(
-            height: 20,
-          ),
-          _buildTester(),
-          (inProgressJobs != null && inProgressJobs.length > 0)
-              ? SizedBox(
-                  height: 40,
-                )
-              : new Container(),
-          (inProgressJobs != null && inProgressJobs.length > 0)
-              ? Padding(
+        child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: 10),
+              Padding(
                   padding: EdgeInsets.fromLTRB(10.0, 0, 0, 0),
-                  child: Container(
-                    alignment: Alignment.centerLeft,
-                    child: RichText(
-                      text: TextSpan(
+                  child: Row(children: [
+                    Container(
+                      alignment: Alignment.centerLeft,
+                      child: RichText(
+                        text: TextSpan(
                           style: const TextStyle(
-                            fontSize: 25.0,
+                            fontSize: 32.0,
                             color: Colors.black,
                           ),
                           children: <TextSpan>[
                             TextSpan(
-                              text: 'LIST OF JOBS',
-                            ),
-                          ]),
-                    ),
-                  ),
-                )
-              : new Container(),
-          SizedBox(
-            height: 20,
-          ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Padding(
-                  padding: EdgeInsets.fromLTRB(0, 0, 0.0, 0),
-                  child: Container(
-                    width: 250,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          height: 40,
-                          child: TextFormField(
-                              focusNode: focusinProgressSearch,
-                              keyboardType: TextInputType.text,
-                              controller: searchCT,
-                              onChanged: _onChangeHandlerForInprogress,
-                              onFieldSubmitted: (val) {
-                                FocusScope.of(context)
-                                    .requestFocus(new FocusNode());
-                              },
-                              style: TextStyles.textDefaultBold,
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText: 'Search',
-                                contentPadding: EdgeInsets.fromLTRB(0, 5, 0, 0),
-                                prefixIcon: Icon(Icons.search),
-                              )),
+                                text: 'Jobs',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold)),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  )),
-              Spacer(),
-              !isBulkRejectEnabled
+                    Spacer(),
+                  ])),
+              SizedBox(height: 10),
+              Padding(
+                padding: EdgeInsets.fromLTRB(10.0, 0, 0, 0),
+                child: Container(
+                  alignment: Alignment.centerLeft,
+                  child: Divider(color: Colors.grey),
+                ),
+              ),
+              SizedBox(height: 20),
+              RichText(
+                text: const TextSpan(
+                    style: TextStyle(
+                      fontSize: 18.0,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF333333),
+                    ),
+                    children: <TextSpan>[
+                      TextSpan(
+                        text: 'Payment Info',
+                      ),
+                    ]),
+              ),
+              SizedBox(height: MediaQuery.of(context).size.height * 0.03),
+              _renderMetaData(),
+              SizedBox(height: MediaQuery.of(context).size.height * 0.03),
+              Padding(
+                padding: EdgeInsets.fromLTRB(10.0, 0, 0, 0),
+                child: Container(
+                  alignment: Alignment.centerLeft,
+                  child: RichText(
+                    text: TextSpan(
+                        style: const TextStyle(
+                          fontSize: 25.0,
+                          color: Colors.black,
+                        ),
+                        children: <TextSpan>[
+                          TextSpan(
+                            text: 'LIST OF JOBS',
+                          ),
+                        ]),
+                  ),
+                ),
+              ),
+              (inProgressJobs != null && inProgressJobs.length > 0)
                   ? SizedBox(
-                      width: MediaQuery.of(context).size.width * 0.18,
-                      height: MediaQuery.of(context).size.width * 0.05,
-                      child: ElevatedButton(
-                          child: Padding(
-                              padding: const EdgeInsets.all(0.0),
-                              child: Text(
-                                'Reject Jobs',
+                      height: 40,
+                    )
+                  : new Container(),
+              SizedBox(
+                height: 20,
+              ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Padding(
+                      padding: EdgeInsets.fromLTRB(0, 0, 0.0, 0),
+                      child: Container(
+                        width: MediaQuery.of(context).size.width * 0.4,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              height: 40,
+                              child: TextFormField(
+                                  focusNode: focusinProgressSearch,
+                                  keyboardType: TextInputType.text,
+                                  controller: searchCT,
+                                  onChanged: _onChangeHandlerForInprogress,
+                                  onFieldSubmitted: (val) {
+                                    FocusScope.of(context)
+                                        .requestFocus(new FocusNode());
+                                  },
+                                  style: TextStyles.textDefaultBold,
+                                  decoration: const InputDecoration(
+                                    border: OutlineInputBorder(),
+                                    hintText: 'Search',
+                                    contentPadding:
+                                        EdgeInsets.fromLTRB(0, 5, 0, 0),
+                                    prefixIcon: Icon(Icons.search),
+                                  )),
+                            ),
+                          ],
+                        ),
+                      )),
+                  Spacer(),
+                  Container(
+                    width: MediaQuery.of(context).size.width * 0.15,
+                    height: MediaQuery.of(context).size.width * 0.05,
+                    padding: EdgeInsets.only(left: 20),
+                    child: ElevatedButton(
+                        child: Padding(
+                            padding: const EdgeInsets.all(0.0),
+                            child: Row(children: [
+                              Icon(
+                                Icons.filter_list_outlined,
+                                color: Colors.black54,
+                              ),
+                              SizedBox(
+                                width: 5,
+                              ),
+                              Text(
+                                'Filter',
                                 style: TextStyle(
                                     fontSize: 15, color: Colors.black54),
-                              )),
-                          style: ButtonStyle(
-                              foregroundColor: MaterialStateProperty.all<Color>(
-                                  Colors.white),
-                              backgroundColor: MaterialStateProperty.all<Color>(
-                                  Colors.white),
-                              shape: MaterialStateProperty.all<
-                                      RoundedRectangleBorder>(
-                                  RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(4.0),
-                                      side:
-                                          BorderSide(color: Colors.black54)))),
-                          onPressed: () {
-                            setState(() {
-                              isBulkRejectEnabled = true;
-                              selectedJobsToReject = [];
-                              _sortJobsForReject();
-                            });
-                          }),
-                    )
-                  : Row(children: [
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width * 0.14,
-                        height: MediaQuery.of(context).size.width * 0.05,
-                        child: ElevatedButton(
-                            child: Padding(
-                                padding: const EdgeInsets.all(0.0),
-                                child: Row(children: [
-                                  Icon(
-                                    Icons.check,
-                                    color: Colors.white,
-                                  ),
-                                  Text(
-                                    'Reject',
-                                    style: TextStyle(
-                                        fontSize: 15, color: Colors.white),
-                                  )
-                                ])),
-                            style: ButtonStyle(
-                                foregroundColor:
-                                    MaterialStateProperty.all<Color>(
-                                        Colors.red),
-                                backgroundColor:
-                                    MaterialStateProperty.all<Color>(
-                                        Colors.red),
-                                shape: MaterialStateProperty.all<
-                                        RoundedRectangleBorder>(
-                                    RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(4.0),
-                                        side: const BorderSide(
-                                            color: Colors.red)))),
-                            onPressed: () {
-                              Helpers.showAlert(context,
-                                  title:
-                                      "Are you sure you want to reject this job ?",
-                                  child: Column(children: [
-                                    SizedBox(
-                                      height:
-                                          MediaQuery.of(context).size.height *
-                                              .03,
-                                    ),
-                                    Container(
-                                        child: DropdownButtonFormField<String>(
-                                      isExpanded: true,
-                                      items: rejectReasons?.map((Reason value) {
-                                        return DropdownMenuItem<String>(
-                                          value: value.reason,
-                                          child: Text(value.reason ?? ""),
-                                        );
-                                      }).toList(),
-                                      onChanged: (element) async {
-                                        if (isErrorRejectReason) {
-                                          setState(() {
-                                            isErrorRejectReason = false;
-                                          });
-                                        }
-
-                                        var index = rejectReasons
-                                            ?.map((e) => e.reason)
-                                            .toList()
-                                            .indexOf(element.toString());
-
-                                        setState(() {
-                                          selectedRejectReason =
-                                              rejectReasons?[index ?? 0].id;
-                                        });
-                                      },
-                                      decoration: InputDecoration(
-                                          contentPadding: EdgeInsets.symmetric(
-                                              vertical: 7, horizontal: 3),
-                                          border: OutlineInputBorder(
-                                            borderRadius:
-                                                const BorderRadius.all(
-                                              const Radius.circular(5.0),
-                                            ),
-                                          ),
-                                          filled: true,
-                                          hintStyle: TextStyle(
-                                              color: Colors.grey[800]),
-                                          hintText: "Please Select a Reason",
-                                          fillColor: Colors.white),
-                                      //value: dropDownValue,
-                                    )),
-                                    SizedBox(height: 5),
-                                  ]),
-                                  hasAction: true,
-                                  okTitle: "Yes",
-                                  noTitle: "No",
-                                  customImage: Image(
-                                      image:
-                                          AssetImage('assets/images/info.png'),
-                                      width: 50,
-                                      height: 50),
-                                  hasCancel: true, onPressed: () async {
-                                if (selectedRejectReason != null) {
-                                  List<String> list = selectedJobsToReject
-                                      .map((e) => e.serviceRequestid ?? "")
-                                      .toList();
-                                  var res = await Repositories.rejectJobBulk(
-                                      list, selectedRejectReason);
-
-                                  if (res) {
-                                    Navigator.pop(context);
-                                  } else {
-                                    Navigator.pop(context);
-                                  }
-                                } else {
-                                  Helpers.showAlert(context,
-                                      hasAction: true,
-                                      type: "error",
-                                      title: "A Reason should be selected",
-                                      onPressed: () async {
-                                    Navigator.pop(context);
-                                  });
-                                }
-
-                                // var result =
-                                //     await Repositories.cancelJob(
-                                //         selectedJob!
-                                //                 .serviceRequestid ??
-                                //             "0");
-                                //
-
-                                //result
-                                // true  ? Helpers.showAlert(context,
-                                //       hasAction: true,
-                                //       title:
-                                //           "Job has been successfully cancelled ",
-                                //       onPressed: () async {
-                                //       await refreshJobDetails();
-                                //
-                                //     })
-                                //   : Helpers.showAlert(context,
-                                //       hasAction: true,
-                                //       title:
-                                //           "Could not cancel the job",
-                                //       onPressed: () async {
-                                //       await refreshJobDetails();
-                                //
-                                //     });
-                              });
-                            }),
-                      ),
-                      SizedBox(
-                        width: 5,
-                      ),
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width * 0.14,
-                        height: MediaQuery.of(context).size.width * 0.05,
-                        child: ElevatedButton(
-                            child: Padding(
-                                padding: const EdgeInsets.all(0.0),
-                                child: Text(
-                                  'Cancel',
-                                  style: TextStyle(
-                                      fontSize: 15, color: Colors.black),
-                                )),
-                            style: ButtonStyle(
-                                foregroundColor:
-                                    MaterialStateProperty.all<Color>(
-                                        Colors.white),
-                                backgroundColor:
-                                    MaterialStateProperty.all<Color>(
-                                        Colors.white),
-                                shape: MaterialStateProperty.all<
-                                        RoundedRectangleBorder>(
-                                    RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(4.0),
-                                        side: BorderSide(
-                                            color: Colors.black54)))),
-                            onPressed: () async {
-                              setState(() {
-                                isBulkRejectEnabled = false;
-                                selectedJobsToReject = [];
-                              });
-                              await _fetchJobs(true);
-                            }),
-                      )
-                    ]),
-              Container(
-                width: MediaQuery.of(context).size.width * 0.15,
-                height: MediaQuery.of(context).size.width * 0.05,
-                padding: EdgeInsets.only(left: 20),
-                child: ElevatedButton(
-                    child: Padding(
-                        padding: const EdgeInsets.all(0.0),
-                        child: Row(children: [
-                          Icon(
-                            Icons.filter_list_outlined,
-                            color: Colors.black54,
-                          ),
-                          SizedBox(
-                            width: 5,
-                          ),
-                          Text(
-                            'Filter',
-                            style:
-                                TextStyle(fontSize: 15, color: Colors.black54),
-                          )
-                        ])),
-                    style: ButtonStyle(
-                        foregroundColor:
-                            MaterialStateProperty.all<Color>(Colors.white),
-                        backgroundColor:
-                            MaterialStateProperty.all<Color>(Colors.white),
-                        shape:
-                            MaterialStateProperty.all<RoundedRectangleBorder>(
+                              )
+                            ])),
+                        style: ButtonStyle(
+                            foregroundColor:
+                                MaterialStateProperty.all<Color>(Colors.white),
+                            backgroundColor:
+                                MaterialStateProperty.all<Color>(Colors.white),
+                            shape: MaterialStateProperty.all<
+                                    RoundedRectangleBorder>(
                                 RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(4.0),
                                     side: BorderSide(color: Colors.black54)))),
-                    onPressed: () {
-                      setState(() {
-                        isFilterPressed = true;
-                      });
-                      _bsbController.expand();
-                    }),
+                        onPressed: () {
+                          setState(() {
+                            isFilterPressed = true;
+                          });
+                          _bsbController.expand();
+                        }),
+                  ),
+                ],
               ),
-            ],
-          ),
-          (inProgressJobs != null && inProgressJobs.length > 0)
-              ? SizedBox(
-                  height: 20,
-                )
-              : new Container(),
-          (inProgressJobs != null && inProgressJobs.length > 0)
-              ? ConstrainedBox(
-                  constraints: BoxConstraints(
-                      maxHeight: MediaQuery.of(context).size.height * .5,
-                      minHeight: MediaQuery.of(context).size.height * .45),
-                  child: ReorderableListView.builder(
-                    onReorder: ((oldIndex, newIndex) async {
-                      var res = await Repositories.changeSequence(
-                          inProgressJobs[oldIndex].serviceRequestid ?? "",
-                          newIndex.toString());
-                      await _fetchJobs(false);
-                    }),
-                    scrollController: controller,
-                    shrinkWrap: true,
-                    // shrinkWrap: false,
-                    itemCount: inProgressJobs.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      return GestureDetector(
-                        child: JobItem(
-                            key: ValueKey(index),
-                            width: MediaQuery.of(context).size.width,
-                            job: inProgressJobs[index],
-                            inProgressJobs: inProgressJobs,
-                            isBulkRejectEnabled: isBulkRejectEnabled,
-                            selectedJobsToReject: selectedJobsToReject,
-                            isSelectedItemForReject: (isAdd, job) {
-                              if (isAdd) {
-                                setState(() {
-                                  selectedJobsToReject.add(job);
+              (inProgressJobs != null && inProgressJobs.length > 0)
+                  ? SizedBox(
+                      height: 20,
+                    )
+                  : new Container(),
+              (inProgressJobs != null && inProgressJobs.length > 0)
+                  ? ConstrainedBox(
+                      constraints: BoxConstraints(
+                          maxHeight: MediaQuery.of(context).size.height * .5,
+                          minHeight: MediaQuery.of(context).size.height * .45),
+                      child: ReorderableListView.builder(
+                        onReorder: ((oldIndex, newIndex) async {
+                          var res = await Repositories.changeSequence(
+                              inProgressJobs[oldIndex].serviceRequestid ?? "",
+                              newIndex.toString());
+                          await _fetchAcknowledgedJobs(false);
+                        }),
+                        scrollController: controller,
+                        shrinkWrap: true,
+                        itemCount: inProgressJobs.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          return GestureDetector(
+                            child: JobItem(
+                                key: ValueKey(index),
+                                width: MediaQuery.of(context).size.width,
+                                job: inProgressJobs[index],
+                                inProgressJobs: inProgressJobs,
+                                isBulkRejectEnabled: isBulkRejectEnabled,
+                                selectedJobsToReject: selectedJobsToReject,
+                                isSelectedItemForReject: (isAdd, job) {
+                                  if (isAdd) {
+                                    setState(() {
+                                      selectedJobsToReject.add(job);
+                                    });
+                                  } else {
+                                    setState(() {
+                                      selectedJobsToReject.remove(job);
+                                    });
+                                  }
+                                },
+                                index: index),
+                            onTap: () async {
+                              Helpers.selectedJobIndex = index;
+                              Helpers.showAlert(context);
+
+                              Job? job;
+                              Navigator.pop(context);
+                              // if (job != null) {
+                              Helpers.selectedJob = job;
+                              if (!isBulkRejectEnabled) {
+                                Navigator.pushNamed(context, 'jobDetails',
+                                        arguments: inProgressJobs[index]
+                                            .serviceRequestid)
+                                    .then((value) async {
+                                  await resetArrays();
                                 });
                               } else {
-                                setState(() {
-                                  selectedJobsToReject.remove(job);
-                                });
+                                bool isAdd = selectedJobsToReject
+                                        .where((element) =>
+                                            element.serviceRequestid ==
+                                            inProgressJobs[index]
+                                                .serviceRequestid)
+                                        ?.isEmpty ??
+                                    false;
+                                if (isAdd) {
+                                  setState(() {
+                                    selectedJobsToReject
+                                        .add(inProgressJobs[index]);
+                                  });
+                                } else {
+                                  setState(() {
+                                    selectedJobsToReject
+                                        .remove(inProgressJobs[index]);
+                                  });
+                                }
                               }
+
+                              // }
                             },
-                            index: index),
-                        onTap: () async {
-                          Helpers.selectedJobIndex = index;
-                          Helpers.showAlert(context);
-
-                          Job? job;
-                          Navigator.pop(context);
-                          // if (job != null) {
-                          Helpers.selectedJob = job;
-                          if (!isBulkRejectEnabled) {
-                            Navigator.pushNamed(context, 'jobDetails',
-                                    arguments:
-                                        inProgressJobs[index].serviceRequestid)
-                                .then((value) async {
-                              await resetArrays();
-                            });
-                          } else {
-                            bool isAdd = selectedJobsToReject
-                                    .where((element) =>
-                                        element.serviceRequestid ==
-                                        inProgressJobs[index].serviceRequestid)
-                                    ?.isEmpty ??
-                                false;
-                            if (isAdd) {
-                              setState(() {
-                                selectedJobsToReject.add(inProgressJobs[index]);
-                              });
-                            } else {
-                              setState(() {
-                                selectedJobsToReject
-                                    .remove(inProgressJobs[index]);
-                              });
-                            }
-                          }
-
-                          // }
+                            key: ValueKey(index),
+                          );
                         },
-                        key: ValueKey(index),
-                      );
-                    },
-                  ),
-                )
-              : isLoadingJobList
-                  ? Container(
-                      alignment: Alignment.center,
-                      child: Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: LoadingAnimationWidget.staggeredDotsWave(
-                          color: Color(0xFF000000),
-                          size: MediaQuery.of(context).size.height * 0.03,
-                        ),
                       ),
                     )
-                  : Container(),
-          SizedBox(
-            height: 30,
-          ),
-        ]),
+                  : isLoadingJobList
+                      ? Container(
+                          alignment: Alignment.center,
+                          child: Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: LoadingAnimationWidget.staggeredDotsWave(
+                              color: Color(0xFF000000),
+                              size: MediaQuery.of(context).size.height * 0.03,
+                            ),
+                          ),
+                        )
+                      : Container(),
+              SizedBox(
+                height: 30,
+              ),
+            ]),
       ),
     );
   }
-
-  // updateJobSequence() async {
-  //   List<JobOrderSequence> sequences = [];
-  //   JobOrderSequence seq;
-  //   for (var i = 0; i < Helpers.inProgressJobs.length; i++) {
-  //     seq = new JobOrderSequence();
-  //     seq.jobOrderId = Helpers.inProgressJobs[i].id;
-  //     seq.sequence = i + 1;
-  //     sequences.add(seq);
-  //   }
-
-  //   bool response = await Repositories.updateJobOrderSequence(sequences);
-
-  //   setState(() {
-  //     //Sequence erorr failed or not
-  //   });
-  // }
 
   _renderError() {
     return Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
@@ -1275,7 +693,7 @@ class _JobListState extends State<JobList>
       currentPage = 1;
     });
 
-    await _fetchJobs(true);
+    await _fetchAcknowledgedJobs(true);
   }
 
   submitFilters() async {
@@ -1288,7 +706,7 @@ class _JobListState extends State<JobList>
       prevSelectedServiceStatuses.addAll(selectedServiceStatuses);
       prevSelectedServiceTypes.addAll(selectedServiceTypes);
     });
-    await _fetchJobs(true);
+    await _fetchAcknowledgedJobs(true);
   }
 
   @override
@@ -1296,10 +714,20 @@ class _JobListState extends State<JobList>
     return RefreshIndicator(
         key: _refreshKey,
         onRefresh: () async {
-          await _fetchJobs(true);
+          await _fetchAcknowledgedJobs(true);
         },
         child: Scaffold(
           key: _scaffoldKey,
+          appBar: Helpers.customAppBar(context, _scaffoldKey,
+              title: "",
+              isBack: true,
+              isAppBarTranparent: true,
+              hasActions: false, handleBackPressed: () {
+            Navigator.pop(context);
+            // var res = validateIfEditedValuesAreSaved();
+            // if (res) {
+            // }
+          }),
           //resizeToAvoidBottomInset: false,
           body: BottomSheetBar(
             height: 0,
@@ -1789,15 +1217,158 @@ class _JobListState extends State<JobList>
           ),
         ));
   }
-}
 
-class ObscuringTextSpan extends TextSpan {
-  ObscuringTextSpan({
-    String? text,
-    TextStyle? style,
-    bool? obscureText,
-  }) : super(
-          text: '•' * 4, // Customize the character used for obscuring
-          style: style,
-        );
+  _renderMetaData() {
+    return Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.3,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      RichText(
+                        text: const TextSpan(
+                            style: TextStyle(
+                              fontSize: 13.0,
+                              color: Color(0xFFC4C4C4),
+                            ),
+                            children: <TextSpan>[
+                              const TextSpan(
+                                text: 'DATE',
+                              ),
+                            ]),
+                      ),
+                      RichText(
+                        text: TextSpan(
+                            style: TextStyle(
+                              fontSize: 15.0,
+                              color: Colors.black87,
+                            ),
+                            children: <TextSpan>[
+                              TextSpan(
+                                text: jobData?.meta?.insertedDate,
+                              ),
+                            ]),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.3,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      RichText(
+                        text: const TextSpan(
+                            style: TextStyle(
+                              fontSize: 12.0,
+                              color: Color(0xFFC4C4C4),
+                            ),
+                            children: <TextSpan>[
+                              const TextSpan(
+                                text: 'JOBS COMPLETED',
+                              ),
+                            ]),
+                      ),
+                      Container(
+                        alignment: Alignment.centerLeft,
+                        child: RichText(
+                          text: TextSpan(
+                              style: TextStyle(
+                                fontSize: 15.0,
+                                color: Colors.black87,
+                              ),
+                              children: <TextSpan>[
+                                TextSpan(
+                                  text: jobData?.meta?.jobsCompleted.toString(),
+                                ),
+                              ]),
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.3,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      RichText(
+                        text: const TextSpan(
+                            style: TextStyle(
+                              fontSize: 12.0,
+                              color: Color(0xFFC4C4C4),
+                            ),
+                            children: <TextSpan>[
+                              const TextSpan(
+                                text: 'CASH COLLECTED',
+                              ),
+                            ]),
+                      ),
+                      Container(
+                        alignment: Alignment.centerLeft,
+                        child: RichText(
+                          text: TextSpan(
+                              style: TextStyle(
+                                fontSize: 15.0,
+                                color: Colors.black87,
+                              ),
+                              children: <TextSpan>[
+                                TextSpan(
+                                  text: jobData?.meta?.cashCollected,
+                                ),
+                              ]),
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+              ]),
+          SizedBox(height: MediaQuery.of(context).size.height * 0.015),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              RichText(
+                text: const TextSpan(
+                    style: TextStyle(
+                      fontSize: 13.0,
+                      color: Color(0xFFC4C4C4),
+                    ),
+                    children: <TextSpan>[
+                      const TextSpan(
+                        text: 'CR REMARK',
+                      ),
+                    ]),
+              ),
+              SizedBox(
+                height: 5,
+              ),
+              Container(
+                child: RichText(
+                  text: TextSpan(
+                      style: const TextStyle(
+                        fontSize: 14.0,
+                        color: Colors.black87,
+                      ),
+                      children: <TextSpan>[
+                        TextSpan(
+                          text: jobData?.meta?.crRemark,
+                        ),
+                      ]),
+                ),
+              ),
+            ],
+          ),
+        ]);
+  }
 }

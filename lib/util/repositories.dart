@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/intl.dart';
+import 'package:kcs_engineer/model/acknowledgement/payment_history.dart';
 import 'package:kcs_engineer/model/user/bag.dart';
 import 'package:kcs_engineer/model/job/checklistAttachment.dart';
 import 'package:kcs_engineer/model/job/comment.dart';
@@ -1055,6 +1056,47 @@ class Repositories {
     }
   }
 
+  static Future<List<PaymentHistoryMeta>?> fetchPaymentHistory(
+      String startDate, String endDate, String cursor) async {
+    var url =
+        'payment/engineer/collection/list?start_date=$startDate&end_date=$endDate&cursor_date=$cursor';
+    final response = await Api.bearerGet(
+        'payment/engineer/collection/list?start_date=$startDate&end_date=$endDate&cursor_date=$cursor');
+    if (response["success"] != null && response["success"]) {
+      return await (response['data'] as List)
+          .map((e) => PaymentHistoryMeta.fromJson(e))
+          .toList();
+    } else {
+      return null;
+    }
+  }
+
+  static Future<JobData?> fetchPaymentHistoryJobList(
+      String collectionDate,
+      String? serviceTypeId,
+      String? paymentStatusId,
+      String? serviceRequestStatus,
+      String? q) async {
+    var url =
+        'payment/engineer/collection/job/list?collection_date=$collectionDate' +
+            (serviceTypeId != null
+                ? "&filters[service_type][0]=$serviceTypeId"
+                : "") +
+            (paymentStatusId != null
+                ? "&filters[payment_status_id][0]=$paymentStatusId"
+                : "") +
+            (serviceRequestStatus != null
+                ? "&filters[service_request_status][0]=$serviceRequestStatus"
+                : "") +
+            (q != null ? "&q=$q" : "");
+    final response = await Api.bearerGet(url);
+    if (response["success"] != null && response["success"]) {
+      return await JobData.selectedJobFromJson(response);
+    } else {
+      return null;
+    }
+  }
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   static Future<bool> updateJobOrderSequence(
@@ -1154,21 +1196,6 @@ class Repositories {
       return true;
     } else {
       return false;
-    }
-  }
-
-  static Future<PaymentHistoryItem?> fetchPaymentHistory(
-      String startDate, String endDate) async {
-    var url = 'payment/history' +
-        (startDate != "" ? '?$startDate' : "") +
-        (endDate != "" ? '?$endDate' : "");
-    final response = await Api.bearerGet(url);
-    print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null && response["success"]) {
-      var paymentHistories = PaymentHistoryItem.fromJson(response);
-      return paymentHistories;
-    } else {
-      return null;
     }
   }
 

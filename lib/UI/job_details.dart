@@ -1903,21 +1903,24 @@ class _JobDetailsState extends State<JobDetails>
                               color: Colors.black54,
                               size: 25.0,
                             ),
-                            Container(
-                              alignment: Alignment.bottomCenter,
-                              padding: EdgeInsets.all(5),
-                              decoration: BoxDecoration(
-                                color: Color(0xFF323F4B),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Text(
-                                '1', // Replace with your actual number
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                ),
-                              ),
-                            ),
+                            (selectedJob?.userMobileNo != null &&
+                                    selectedJob?.userMobileNo != "")
+                                ? Container(
+                                    alignment: Alignment.bottomCenter,
+                                    padding: EdgeInsets.all(5),
+                                    decoration: BoxDecoration(
+                                      color: Color(0xFF323F4B),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Text(
+                                      '1', // Replace with your actual number
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  )
+                                : new Container(),
                           ])
                     ],
                   ),
@@ -1971,62 +1974,65 @@ class _JobDetailsState extends State<JobDetails>
                     ),
                   ],
                 )),
-            Container(
-              child: selectedJob?.secondaryContactNo != ""
-                  ? Row(
-                      children: [
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Icon(
-                                    Icons.phone,
-                                    color: Colors.black54,
-                                    size: 25.0,
-                                  ),
-                                  Container(
-                                    child: Container(
-                                      alignment: Alignment.bottomCenter,
-                                      padding: EdgeInsets.all(5),
-                                      decoration: BoxDecoration(
-                                        color: Color(0xFF323F4B),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Text(
-                                        '2', // Replace with your actual number
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 10,
+            (selectedJob?.userMobileNo != null &&
+                    selectedJob?.userMobileNo != "")
+                ? Container(
+                    child: Row(
+                            children: [
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Icon(
+                                          Icons.phone,
+                                          color: Colors.black54,
+                                          size: 25.0,
                                         ),
-                                      ),
-                                    ),
-                                  )
-                                ])
-                          ],
-                        ),
-                        const SizedBox(
-                          width: 10,
-                        ),
-                        RichText(
-                          text: TextSpan(
-                              style: TextStyle(
-                                fontSize: 15.0,
-                                color: Colors.black54,
+                                        Container(
+                                          child: Container(
+                                            alignment: Alignment.bottomCenter,
+                                            padding: EdgeInsets.all(5),
+                                            decoration: BoxDecoration(
+                                              color: Color(0xFF323F4B),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Text(
+                                              '2', // Replace with your actual number
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 10,
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                      ])
+                                ],
                               ),
-                              children: <TextSpan>[
-                                TextSpan(
-                                  text: '+${selectedJob?.secondaryContactNo}',
-                                ),
-                              ]),
-                        ),
-                      ],
-                    )
-                  : new Container(),
-            ),
+                              const SizedBox(
+                                width: 10,
+                              ),
+                              RichText(
+                                text: TextSpan(
+                                    style: TextStyle(
+                                      fontSize: 15.0,
+                                      color: Colors.black54,
+                                    ),
+                                    children: <TextSpan>[
+                                      TextSpan(
+                                        text:
+                                            '+${selectedJob?.userMobileNo}',
+                                      ),
+                                    ]),
+                              ),
+                            ],
+                          )
+                  )
+                : new Container(),
           ]),
           SizedBox(
             height: MediaQuery.of(context).size.height * 0.02,
@@ -2121,6 +2127,163 @@ class _JobDetailsState extends State<JobDetails>
                   )
                 ],
               )),
+        ]);
+  }
+
+  _renderSecondaryContactInfo() {
+    return Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: MediaQuery.of(context).size.height * 0.005,
+          ),
+          Row(children: [
+            Container(
+              width: MediaQuery.of(context).size.width * 0.4,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.person,
+                    color: Colors.black54,
+                    size: 25.0,
+                  ),
+                  SizedBox(
+                    width: 10,
+                  ),
+                  RichText(
+                    text: TextSpan(
+                        style: TextStyle(
+                          fontSize: 15.0,
+                          color: Colors.black54,
+                        ),
+                        children: <TextSpan>[
+                          TextSpan(
+                            text: selectedJob?.secondaryContactFullName,
+                          ),
+                        ]),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              child: Row(
+                children: [
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Icon(
+                              Icons.phone,
+                              color: Colors.black54,
+                              size: 25.0,
+                            ),
+                            // Container(
+                            //   alignment: Alignment.bottomCenter,
+                            //   padding: EdgeInsets.all(5),
+                            //   decoration: BoxDecoration(
+                            //     color: Color(0xFF323F4B),
+                            //     shape: BoxShape.circle,
+                            //   ),
+                            //   child: Text(
+                            //     '1', // Replace with your actual number
+                            //     style: TextStyle(
+                            //       color: Colors.white,
+                            //       fontSize: 10,
+                            //     ),
+                            //   ),
+                            // ),
+                          ])
+                    ],
+                  ),
+                  const SizedBox(
+                    width: 10,
+                  ),
+                  RichText(
+                    text: TextSpan(
+                        style: TextStyle(
+                          fontSize: 15.0,
+                          color: Colors.black54,
+                        ),
+                        children: <TextSpan>[
+                          TextSpan(
+                            text: '+60${selectedJob?.secondaryContactNo}',
+                          ),
+                        ]),
+                  ),
+                ],
+              ),
+            ),
+          ]),
+          SizedBox(
+            height: MediaQuery.of(context).size.height * 0.02,
+          ),
+          Row(children: [
+            Container(
+              child: selectedJob?.secondaryContactNo != ""
+                  ? Row(
+                      children: [
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Icon(
+                                    Icons.people_alt_outlined,
+                                    color: Colors.black54,
+                                    size: 25.0,
+                                  ),
+                                  // Container(
+                                  //   child: Container(
+                                  //     alignment: Alignment.bottomCenter,
+                                  //     padding: EdgeInsets.all(5),
+                                  //     decoration: BoxDecoration(
+                                  //       color: Color(0xFF323F4B),
+                                  //       shape: BoxShape.circle,
+                                  //     ),
+                                  //     child: Text(
+                                  //       '2', // Replace with your actual number
+                                  //       style: TextStyle(
+                                  //         color: Colors.white,
+                                  //         fontSize: 10,
+                                  //       ),
+                                  //     ),
+                                  //   ),
+                                  // )
+                                ])
+                          ],
+                        ),
+                        const SizedBox(
+                          width: 10,
+                        ),
+                        RichText(
+                          text: TextSpan(
+                              style: TextStyle(
+                                fontSize: 15.0,
+                                color: Colors.black54,
+                              ),
+                              children: <TextSpan>[
+                                TextSpan(
+                                  text:
+                                      '${selectedJob?.secondaryContactRelationship}',
+                                ),
+                              ]),
+                        ),
+                      ],
+                    )
+                  : new Container(),
+            ),
+          ]),
+          SizedBox(
+            height: MediaQuery.of(context).size.height * 0.01,
+          ),
         ]);
   }
 
@@ -2967,6 +3130,37 @@ class _JobDetailsState extends State<JobDetails>
                                     const SizedBox(height: 10),
                                     Divider(),
                                     const SizedBox(height: 10),
+                                    selectedJob?.secondaryContactNo != ""
+                                        ? RichText(
+                                            text: const TextSpan(
+                                                style: TextStyle(
+                                                  fontSize: 18.0,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFF333333),
+                                                ),
+                                                children: <TextSpan>[
+                                                  TextSpan(
+                                                    text:
+                                                        'Secondary Contact Info',
+                                                  ),
+                                                ]),
+                                          )
+                                        : new Container(),
+                                    selectedJob?.secondaryContactNo != ""
+                                        ? const SizedBox(height: 10)
+                                        : new Container(),
+                                    selectedJob?.secondaryContactNo != ""
+                                        ? _renderSecondaryContactInfo()
+                                        : new Container(),
+                                    selectedJob?.secondaryContactNo != ""
+                                        ? const SizedBox(height: 10)
+                                        : new Container(),
+                                    selectedJob?.secondaryContactNo != ""
+                                        ? Divider()
+                                        : new Container(),
+                                    selectedJob?.secondaryContactNo != ""
+                                        ? const SizedBox(height: 10)
+                                        : new Container(),
                                     RichText(
                                       text: const TextSpan(
                                           style: TextStyle(

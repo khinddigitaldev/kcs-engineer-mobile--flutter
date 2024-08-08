@@ -104,6 +104,10 @@ class Job {
   String? jobInsertedDate;
 
   String? secondaryContactNo;
+  String? secondaryContactFullName;
+  String? secondaryContactRelationship;
+
+  String? userMobileNo;
 
   Job(
       {this.serviceRequestid,
@@ -174,7 +178,10 @@ class Job {
       this.picklistCollected,
       this.isMainEngineer,
       this.secondaryContactNo,
-      this.jobInsertedDate});
+      this.secondaryContactFullName,
+      this.secondaryContactRelationship,
+      this.jobInsertedDate,
+      this.userMobileNo});
 
   Job.fromJson(Map<String, dynamic> json) {
     this.serviceRequestid = json["service_request_id"];
@@ -192,6 +199,10 @@ class Job {
     this.customerEmail = json["customer"]?["email"];
     this.secondaryContactNo =
         json["customer"]?["additional_info"]?["contact_number"] ?? "";
+    this.secondaryContactFullName =
+        json["customer"]?["additional_info"]?["full_name"] ?? "";
+    this.secondaryContactRelationship =
+        json["customer"]?["additional_info"]?["relationship"] ?? "";
 
     // this.customerAddressName = json["customer"]?["address_name"];
     this.serviceAddressStreet = json["service_address"]?["street"];
@@ -389,6 +400,8 @@ class Job {
         (json["inserted_at"] ?? "T").toString().split("T")[0];
 
     var list = [];
+
+    this.userMobileNo = json["user"]?["mobile"];
   }
 
   Map<String, dynamic> toJson() {
@@ -409,6 +422,11 @@ class JobMetaData {
   int? completed;
   int? uncompleted;
 
+  String? insertedDate;
+  int? jobsCompleted;
+  String? cashCollected;
+  String? crRemark;
+
   JobMetaData(
       {this.currentPage,
       this.from,
@@ -417,7 +435,11 @@ class JobMetaData {
       this.to,
       this.total,
       this.completed,
-      this.uncompleted});
+      this.uncompleted,
+      this.insertedDate,
+      this.jobsCompleted,
+      this.cashCollected,
+      this.crRemark});
 
   JobMetaData.fromJson(Map<String, dynamic> json) {
     this.currentPage = json["current_page"];
@@ -428,6 +450,11 @@ class JobMetaData {
     this.total = json["total"];
     this.completed = json["completed"];
     this.uncompleted = json["uncompleted"];
+
+    this.insertedDate = json["inserted_date"];
+    this.jobsCompleted = json["jobs_completed_count"];
+    this.cashCollected = json["cash_collected"]?["formatted"];
+    this.crRemark = json["cr_remark"];
   }
 
   Map<String, dynamic> toJson() {

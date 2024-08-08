@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:kcs_engineer/UI/acknowledged_joblist.dart';
 import 'package:kcs_engineer/UI/feedback.dart';
 import 'package:kcs_engineer/UI/feedback_confirmation.dart';
 import 'package:kcs_engineer/UI/payment.dart';
@@ -54,6 +55,10 @@ class AppRouter {
                 rcpCost: (arguments as List<dynamic>)[1] as RCPCost));
       case 'payment_history':
         return MaterialPageRoute(builder: (_) => PaymentHistory());
+      case 'acknowledged_jobs_list':
+        return MaterialPageRoute(
+            builder: (_) => AcknowledgedJobList(
+                selectedDate: (arguments as List<dynamic>)[0] as String));
       case 'feedback':
         return MaterialPageRoute(
             builder: (_) => FeedbackUI(
