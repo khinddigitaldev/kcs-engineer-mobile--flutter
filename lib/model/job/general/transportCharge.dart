@@ -5,6 +5,9 @@ class TransportCharge {
   String? amount;
   String? currency;
   String? priceFormatted;
+  int? sstPercentage;
+  double? sstTotal;
+  double? lineTotal;
 
   TransportCharge(
       {this.id,
@@ -12,7 +15,10 @@ class TransportCharge {
       this.amount,
       this.currency,
       this.priceFormatted,
-      this.description});
+      this.description,
+      this.sstPercentage,
+      this.sstTotal,
+      this.lineTotal});
 
   TransportCharge.fromJson(Map<String, dynamic> json) {
     this.id = json["transport_charges_group_id"];
@@ -23,5 +29,11 @@ class TransportCharge {
     this.amount = json["transport_charges"]?["amount"];
     this.currency = json["transport_charges"]?["currency"];
     this.priceFormatted = json["transport_charges"]?["formatted"];
+    this.sstPercentage = ((json["sst_percentage"] as num) * 100).toInt();
+    this.sstTotal = (((this.sstPercentage ?? 0.0) / 100) *
+        (double.parse(this.amount ?? "1") / 100));
+    this.lineTotal = double.parse(
+        ((double.parse(this.amount ?? "1") / 100) + (this.sstTotal ?? 0.0))
+            .toStringAsFixed(2));
   }
 }

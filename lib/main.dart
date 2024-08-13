@@ -6,13 +6,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_config/flutter_config.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 // import 'package:flutter_downloader/flutter_downloader.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:kcs_engineer/app_config.dart';
-import 'package:kcs_engineer/model/user.dart';
+import 'package:kcs_engineer/model/user/user.dart';
 import 'package:kcs_engineer/router.dart';
 import 'package:kcs_engineer/util/api.dart';
 import 'package:kcs_engineer/util/key.dart';
 import 'package:http/http.dart' as http;
+import 'package:get_it/get_it.dart';
+import 'package:kcs_engineer/util/navigationService.dart';
 
 // Future<void> _firebaseMessagingBackgroundHandler(
 //     RemoteMessage remoteMessage) async {
@@ -48,11 +49,16 @@ void main() async {
   AppConfig appConfig = AppConfig(appName: "MMPL", flavor: "prod");
   Widget app = await initializeApp(appConfig);
   await dotenv.load(fileName: ".env");
+
+  GetIt locator = GetIt.instance;
+  locator.registerLazySingleton<NavigationService>(() => NavigationService());
+
   // var res = await Firebase.initializeApp();
   // await _registerOnFirebase();
   // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   // AwesomeNotifications().initialize('resource://drawable/ic_notification', [
-  //   NotificationChannel(
+  //   NotificationChannel(import 'package:get_it/get_it.dart';
+
   //       channelKey: 'key',
   //       channelName: 'inbox notification',
   //       channelDescription: 'main notification channel',
@@ -128,10 +134,9 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       // Remove the debug banner
       debugShowCheckedModeBanner: false,
+      navigatorKey: NavigationService.navigatorKey,
       title: 'Khind',
       localizationsDelegates: [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
         DefaultCupertinoLocalizations.delegate,
       ],
       supportedLocales: [

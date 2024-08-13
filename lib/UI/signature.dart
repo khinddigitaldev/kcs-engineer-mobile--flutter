@@ -5,12 +5,14 @@ import 'package:email_validator/email_validator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kcs_engineer/model/job.dart';
-import 'package:kcs_engineer/model/payment_method.dart';
-import 'package:kcs_engineer/model/payment_request.dart';
-import 'package:kcs_engineer/model/rcpCost.dart';
+import 'package:flutter_switch/flutter_switch.dart';
+import 'package:kcs_engineer/model/job/job.dart';
+import 'package:kcs_engineer/model/payment/payment_method.dart';
+import 'package:kcs_engineer/model/payment/payment_request.dart';
+import 'package:kcs_engineer/model/payment/rcpCost.dart';
 import 'package:kcs_engineer/payment_method_icons.dart' as PaymentMethodIcons;
 import 'package:kcs_engineer/themes/text_styles.dart';
+import 'package:kcs_engineer/util/components/payment_image_uploader.dart';
 import 'package:kcs_engineer/util/helpers.dart';
 import 'package:kcs_engineer/util/repositories.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -111,6 +113,98 @@ class _SignatureState extends State<SignatureUI> {
 
   void _handleSignIn() async {}
 
+  Widget _renderCost(bool isStepper) {
+    return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(children: [
+          Row(
+            children: [
+              RichText(
+                text: const TextSpan(
+                  style: TextStyle(
+                    fontSize: 18.0,
+                    color: Colors.black,
+                  ),
+                  children: <TextSpan>[
+                    const TextSpan(
+                      text: 'Total Charges',
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 40),
+          ConstrainedBox(
+              constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * .2,
+                  minHeight: MediaQuery.of(context).size.height * .1),
+              child: Container(
+                child: ListView(
+                  children: [
+                    widget.rcpCost?.sparePartCost != "MYR 0.00"
+                        ? _buildChargeItem("Picklist charges (Estimated)",
+                            widget.rcpCost?.pickListCost ?? "MYR 0.00", false)
+                        : new Container(),
+                    widget.rcpCost?.sparePartCost != "MYR 0.00" &&
+                            (selectedJob?.aggregatedSpareparts?.length ?? 0) > 0
+                        ? _buildChargeItem("Sparepart charges",
+                            widget.rcpCost?.sparePartCost ?? "MYR 0.00", false)
+                        : new Container(),
+                    widget.rcpCost?.solutionCost != "MYR 0.00"
+                        ? _buildChargeItem("Solution charges",
+                            widget.rcpCost?.solutionCost ?? "MYR 0.00", false)
+                        : new Container(),
+                    widget.rcpCost?.miscCost != "MYR 0.00"
+                        ? _buildChargeItem("Miscellaneous charges",
+                            widget.rcpCost?.miscCost ?? "MYR 0.00", false)
+                        : new Container(),
+                    widget.rcpCost?.transportCost != "MYR 0.00"
+                        ? _buildChargeItem("Transport charges",
+                            widget.rcpCost?.transportCost ?? "MYR 0.00", false)
+                        : new Container(),
+                    widget.rcpCost?.pickupCost != "MYR 0.00"
+                        ? _buildChargeItem("Pickup charges",
+                            widget.rcpCost?.pickupCost ?? "MYR 0.00", false)
+                        : new Container(),
+                    widget.rcpCost?.totalSSTRCP != "MYR 0.00"
+                        ? _buildChargeItem("Total SST",
+                            widget.rcpCost?.totalSSTRCP ?? "MYR 0.00", false)
+                        : new Container(),
+                    SizedBox(
+                      height: 5,
+                    ),
+                    _buildChargeItem(
+                        (widget.rcpCost?.isDiscountValid ?? false) &&
+                                widget.rcpCost?.discountPercentage != "0%"
+                            ? "Total"
+                            : "Grand Total",
+                        'MYR ${((widget.rcpCost?.totalAmount ?? 0) + (widget.rcpCost?.totalAmountSST ?? 0)).toStringAsFixed(2)}',
+                        true),
+                    (widget.rcpCost?.isDiscountValid ?? false) &&
+                            widget.rcpCost?.discountPercentage != "0%"
+                        ? _buildChargeItem(
+                            '${widget.rcpCost?.discountPercentage} Discount applied',
+                            widget.rcpCost?.discount ?? "MYR 0.00",
+                            true)
+                        : new Container(),
+                    (widget.rcpCost?.isDiscountValid ?? false) &&
+                            widget.rcpCost?.discountPercentage != "0%"
+                        ? Divider()
+                        : new Container(),
+                    (widget.rcpCost?.isDiscountValid ?? false) &&
+                            widget.rcpCost?.discountPercentage != "0%"
+                        ? _buildChargeItem(
+                            "Grand Total",
+                            'MYR ${((widget.rcpCost?.totalAmountRCP ?? 0) + (widget.rcpCost?.totalAmountSSTRCP ?? 0)).toStringAsFixed(2)}',
+                            true)
+                        : new Container(),
+                  ],
+                ),
+              ))
+        ]));
+  }
+
   Widget _renderForm() {
     return Container(
       padding: EdgeInsets.all(20),
@@ -133,6 +227,14 @@ class _SignatureState extends State<SignatureUI> {
                   width: MediaQuery.of(context).size.width * 0.4),
             ),
             SizedBox(height: 20),
+            Divider(),
+            (((widget.rcpCost?.isDiscountValid ?? false)
+                        ? widget.rcpCost?.totalRCP
+                        : widget.rcpCost?.total) !=
+                    "MYR 0.00")
+                ? _renderCost(false)
+                : new Container(),
+            Divider(),
             Container(
               alignment: Alignment.centerLeft,
               padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
@@ -144,8 +246,6 @@ class _SignatureState extends State<SignatureUI> {
                 children: [
                   RichText(
                     text: TextSpan(
-                      // Note: Styles for TextSpans must be explicitly defined.
-                      // Child text spans will inherit styles from parent
                       style: const TextStyle(
                         fontSize: 17.0,
                         color: Colors.black,
@@ -162,8 +262,6 @@ class _SignatureState extends State<SignatureUI> {
                   SizedBox(height: 15),
                   RichText(
                     text: TextSpan(
-                      // Note: Styles for TextSpans must be explicitly defined.
-                      // Child text spans will inherit styles from parent
                       style: const TextStyle(
                         fontSize: 14.0,
                         color: Colors.black,
@@ -251,8 +349,6 @@ class _SignatureState extends State<SignatureUI> {
                   signatureErr
                       ? RichText(
                           text: TextSpan(
-                            // Note: Styles for TextSpans must be explicitly defined.
-                            // Child text spans will inherit styles from parent
                             style: const TextStyle(
                               fontSize: 14.0,
                               color: Colors.red,
@@ -270,8 +366,6 @@ class _SignatureState extends State<SignatureUI> {
                     children: [
                       RichText(
                         text: TextSpan(
-                          // Note: Styles for TextSpans must be explicitly defined.
-                          // Child text spans will inherit styles from parent
                           style: const TextStyle(
                             fontSize: 14.0,
                             color: Colors.black,
@@ -303,19 +397,16 @@ class _SignatureState extends State<SignatureUI> {
                         children: [
                           RichText(
                             text: TextSpan(
-                                // Note: Styles for TextSpans must be explicitly defined.
-                                // Child text spans will inherit styles from parent
                                 style: TextStyle(
                                   fontSize: 25.0,
                                   color: Colors.blue,
                                 ),
                                 children: <TextSpan>[
                                   TextSpan(
-                                    text: (widget.rcpCost?.isDiscountValid ??
-                                            false)
-                                        ? widget.rcpCost?.totalRCP
-                                        : widget.rcpCost?.total,
-                                  ),
+                                      text: (widget.rcpCost?.isDiscountValid ??
+                                              false)
+                                          ? 'MYR ${((widget.rcpCost?.totalAmountRCP ?? 0) + (widget.rcpCost?.totalAmountSST ?? 0)).toStringAsFixed(2)}'
+                                          : 'MYR ${((widget.rcpCost?.totalAmount ?? 0) + (widget.rcpCost?.totalAmountSST ?? 0)).toStringAsFixed(2)}'),
                                 ]),
                           ),
                           SizedBox(
@@ -323,8 +414,6 @@ class _SignatureState extends State<SignatureUI> {
                           ),
                           RichText(
                             text: TextSpan(
-                                // Note: Styles for TextSpans must be explicitly defined.
-                                // Child text spans will inherit styles from parent
                                 style: const TextStyle(
                                   fontSize: 18.0,
                                   color: Colors.blue,
@@ -349,8 +438,8 @@ class _SignatureState extends State<SignatureUI> {
                   //           children: [
                   // RichText(
                   //   text: TextSpan(
-                  //       // Note: Styles for TextSpans must be explicitly defined.
-                  //       // Child text spans will inherit styles from parent
+                  //
+                  //
                   //       style: const TextStyle(
                   //         fontSize: 18.0,
                   //         color: Colors.black,
@@ -513,26 +602,29 @@ class _SignatureState extends State<SignatureUI> {
             SizedBox(
               height: MediaQuery.of(context).size.height * 0.05,
             ),
-            Row(
-              children: [
-                RichText(
-                  text: TextSpan(
-                    // Note: Styles for TextSpans must be explicitly defined.
-                    // Child text spans will inherit styles from parent
-                    style: const TextStyle(
-                      fontSize: 17.0,
-                      color: Colors.black,
-                    ),
-                    children: <TextSpan>[
-                      TextSpan(
-                        text: 'How do you want to pay ?',
+            (((widget.rcpCost?.isDiscountValid ?? false)
+                        ? widget.rcpCost?.totalRCP
+                        : widget.rcpCost?.total) !=
+                    "MYR 0.00")
+                ? Row(
+                    children: [
+                      RichText(
+                        text: TextSpan(
+                          style: const TextStyle(
+                            fontSize: 17.0,
+                            color: Colors.black,
+                          ),
+                          children: <TextSpan>[
+                            TextSpan(
+                              text: 'How do you want to pay ?',
+                            ),
+                          ],
+                        ),
                       ),
+                      SizedBox(width: 20),
                     ],
-                  ),
-                ),
-                SizedBox(width: 20),
-              ],
-            ),
+                  )
+                : new Container(),
             //  : new Container(),
             // ((selectedJob!.isChargeable ?? false) && selectedJob!.sumTotal != 0)
             //     ? SizedBox(height: 10)
@@ -543,124 +635,134 @@ class _SignatureState extends State<SignatureUI> {
             // ((selectedJob!.isChargeable ?? false) && selectedJob!.sumTotal != 0)
             //?
             SizedBox(height: 30),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                    color: payByCash ? Colors.black87 : Colors.white,
-                    width: MediaQuery.of(context).size.width * 0.27,
-                    height: 100.0,
-                    child: OutlinedButton(
-                        onPressed: () {
-                          setState(() {
-                            payByCash = true;
-                            payNow = false;
-                            pendingPayment = false;
-                            billing = false;
-                            payByCheque = false;
-                            mixedPayment = false;
-                          });
-                        },
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "Pay By Cash",
-                              style: TextStyle(
-                                  fontSize: 19.0,
-                                  color: payByCash
-                                      ? Colors.white
-                                      : Colors.black87),
-                            ),
-                            Icon(
-                              // <-- Icon
-                              Icons.money,
-                              color: payByCash ? Colors.white : Colors.black87,
-                              size: 40.0,
-                            )
-                          ],
-                        ))),
-                SizedBox(
-                  width: 20,
-                ),
-                Container(
-                    color: payNow ? Colors.black87 : Colors.white,
-                    width: MediaQuery.of(context).size.width * 0.27,
-                    height: 100.0,
-                    child: OutlinedButton(
-                        onPressed: () {
-                          setState(() {
-                            payByCash = false;
-                            payNow = true;
-                            pendingPayment = false;
-                            billing = false;
-                            payByCheque = false;
-                            mixedPayment = false;
-                          });
-                        },
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "DuitNow",
-                              style: TextStyle(
-                                fontSize: 19.0,
-                                color: payNow ? Colors.white : Colors.black87,
-                              ),
-                            ),
-                            SizedBox(
-                              width: 10,
-                            ),
-                            Icon(
-                              // <-- Icon
-                              PaymentMethodIcons.PaymentMethod.paynow,
-                              color: payNow ? Colors.white : Colors.black87,
-                              size: 35.0,
-                            )
-                          ],
-                        ))),
-                // Container(
-                //     color: pendingPayment ? Colors.black87 : Colors.white,
-                //     width: MediaQuery.of(context).size.width * 0.27,
-                //     height: 100.0,
-                //     child: OutlinedButton(
-                //         onPressed: () {
-                //           setState(() {
-                //             payByCash = false;
-                //             payNow = false;
-                //             pendingPayment = true;
-                //             billing = false;
-                //             payByCheque = false;
-                //             mixedPayment = false;
-                //           });
-                //         },
-                //         child: Row(
-                //           mainAxisAlignment: MainAxisAlignment.center,
-                //           children: [
-                //             Text(
-                //               "Pending Payment",
-                //               style: TextStyle(
-                //                   fontSize: 17.0,
-                //                   color: pendingPayment
-                //                       ? Colors.white
-                //                       : Colors.black87),
-                //             ),
-                //             SizedBox(
-                //               width: 10,
-                //             ),
-                //             Icon(
-                //               // <-- Icon
-                //               PaymentMethodIcons
-                //                   .PaymentMethod.pending_payment,
-                //               color: pendingPayment
-                //                   ? Colors.white
-                //                   : Colors.black87,
-                //               size: 30.0,
-                //             )
-                //           ],
-                //         ))),
-              ],
-            )
+            (((widget.rcpCost?.isDiscountValid ?? false)
+                        ? widget.rcpCost?.totalRCP
+                        : widget.rcpCost?.total) !=
+                    "MYR 0.00")
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                          color: payByCash ? Colors.black87 : Colors.white,
+                          width: MediaQuery.of(context).size.width * 0.27,
+                          height: 100.0,
+                          child: OutlinedButton(
+                              onPressed: () {
+                                setState(() {
+                                  payByCash = true;
+                                  payNow = false;
+                                  pendingPayment = false;
+                                  billing = false;
+                                  payByCheque = false;
+                                  mixedPayment = false;
+                                });
+                              },
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    "Pay By Cash",
+                                    style: TextStyle(
+                                        fontSize: 19.0,
+                                        color: payByCash
+                                            ? Colors.white
+                                            : Colors.black87),
+                                  ),
+                                  Icon(
+                                    // <-- Icon
+                                    Icons.money,
+                                    color: payByCash
+                                        ? Colors.white
+                                        : Colors.black87,
+                                    size: 40.0,
+                                  )
+                                ],
+                              ))),
+                      SizedBox(
+                        width: 20,
+                      ),
+                      Container(
+                          color: payNow ? Colors.black87 : Colors.white,
+                          width: MediaQuery.of(context).size.width * 0.27,
+                          height: 100.0,
+                          child: OutlinedButton(
+                              onPressed: () {
+                                setState(() {
+                                  payByCash = false;
+                                  payNow = true;
+                                  pendingPayment = false;
+                                  billing = false;
+                                  payByCheque = false;
+                                  mixedPayment = false;
+                                });
+                              },
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    "DuitNow",
+                                    style: TextStyle(
+                                      fontSize: 19.0,
+                                      color: payNow
+                                          ? Colors.white
+                                          : Colors.black87,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 10,
+                                  ),
+                                  Icon(
+                                    // <-- Icon
+                                    PaymentMethodIcons.PaymentMethod.paynow,
+                                    color:
+                                        payNow ? Colors.white : Colors.black87,
+                                    size: 35.0,
+                                  )
+                                ],
+                              ))),
+                      // Container(
+                      //     color: pendingPayment ? Colors.black87 : Colors.white,
+                      //     width: MediaQuery.of(context).size.width * 0.27,
+                      //     height: 100.0,
+                      //     child: OutlinedButton(
+                      //         onPressed: () {
+                      //           setState(() {
+                      //             payByCash = false;
+                      //             payNow = false;
+                      //             pendingPayment = true;
+                      //             billing = false;
+                      //             payByCheque = false;
+                      //             mixedPayment = false;
+                      //           });
+                      //         },
+                      //         child: Row(
+                      //           mainAxisAlignment: MainAxisAlignment.center,
+                      //           children: [
+                      //             Text(
+                      //               "Pending Payment",
+                      //               style: TextStyle(
+                      //                   fontSize: 17.0,
+                      //                   color: pendingPayment
+                      //                       ? Colors.white
+                      //                       : Colors.black87),
+                      //             ),
+                      //             SizedBox(
+                      //               width: 10,
+                      //             ),
+                      //             Icon(
+                      //               // <-- Icon
+                      //               PaymentMethodIcons
+                      //                   .PaymentMethod.pending_payment,
+                      //               color: pendingPayment
+                      //                   ? Colors.white
+                      //                   : Colors.black87,
+                      //               size: 30.0,
+                      //             )
+                      //           ],
+                      //         ))),
+                    ],
+                  )
+                : new Container()
             //   : new Container(),
             // SizedBox(height: 20),
             // ((selectedJob!.isChargeable ?? false) && selectedJob!.sumTotal != 0)
@@ -797,8 +899,8 @@ class _SignatureState extends State<SignatureUI> {
             //         children: [
             //           RichText(
             //             text: TextSpan(
-            //               // Note: Styles for TextSpans must be explicitly defined.
-            //               // Child text spans will inherit styles from parent
+            //
+            //
             //               style: const TextStyle(
             //                   fontSize: 20.0, color: Colors.black87),
             //               children: <TextSpan>[
@@ -816,8 +918,8 @@ class _SignatureState extends State<SignatureUI> {
             //             child: RichText(
             //               textAlign: TextAlign.center,
             //               text: TextSpan(
-            //                 // Note: Styles for TextSpans must be explicitly defined.
-            //                 // Child text spans will inherit styles from parent
+            //
+            //
             //                 style: const TextStyle(
             //                   fontSize: 17.0,
             //                   color: Colors.black54,
@@ -842,8 +944,8 @@ class _SignatureState extends State<SignatureUI> {
             //               RichText(
             //                 textAlign: TextAlign.center,
             //                 text: TextSpan(
-            //                   // Note: Styles for TextSpans must be explicitly defined.
-            //                   // Child text spans will inherit styles from parent
+            //
+            //
             //                   style: TextStyle(
             //                     fontSize: 25.0,
             //                     color: Colors.blue,
@@ -859,8 +961,8 @@ class _SignatureState extends State<SignatureUI> {
             //               RichText(
             //                 textAlign: TextAlign.center,
             //                 text: TextSpan(
-            //                   // Note: Styles for TextSpans must be explicitly defined.
-            //                   // Child text spans will inherit styles from parent
+            //
+            //
             //                   style: TextStyle(
             //                     fontSize: 18.0,
             //                     color: Colors.lightBlue,
@@ -956,8 +1058,8 @@ class _SignatureState extends State<SignatureUI> {
             //                     child: RichText(
             //                       textAlign: TextAlign.left,
             //                       text: TextSpan(
-            //                         // Note: Styles for TextSpans must be explicitly defined.
-            //                         // Child text spans will inherit styles from parent
+            //
+            //
             //                         style: TextStyle(
             //                           fontSize: 17.0,
             //                           color: Colors.black,
@@ -1075,8 +1177,8 @@ class _SignatureState extends State<SignatureUI> {
             //                     child: RichText(
             //                       textAlign: TextAlign.left,
             //                       text: TextSpan(
-            //                         // Note: Styles for TextSpans must be explicitly defined.
-            //                         // Child text spans will inherit styles from parent
+            //
+            //
             //                         style: TextStyle(
             //                           fontSize: 17.0,
             //                           color: Colors.black,
@@ -1194,71 +1296,109 @@ class _SignatureState extends State<SignatureUI> {
                         await paymentDTO.signatureController?.toPngBytes();
                     File signature = await _convertImageToFile(bodyBytes!);
                     if (res) {
-                      if (payNow) {
-                        Navigator.pushNamed(context, 'payment', arguments: [
-                          selectedJob,
-                          paymentDTO,
-                          widget.rcpCost,
-                          signature,
-                          isWantInvoice,
-                          payByCash,
-                          emailCT.text.toString(),
-                          paymentMethods
-                        ]);
-                      } else {
-                        var val = await Repositories.confirmAcknowledgement(
-                            selectedJob?.serviceRequestid ?? "",
+                      if (paymentMethods != null && paymentMethods.isNotEmpty) {
+                        if (payNow) {
+                          Navigator.pushNamed(context, 'payment', arguments: [
+                            selectedJob,
+                            paymentDTO,
+                            widget.rcpCost,
                             signature,
                             isWantInvoice,
+                            payByCash,
                             emailCT.text.toString(),
-                            payByCash
-                                ? paymentMethods
-                                    .where((element) =>
-                                        element.method?.toLowerCase() == "cash")
-                                    .toList()[0]
-                                    .id
-                                    .toString()
-                                : paymentMethods
-                                    .where((element) =>
-                                        element.method?.toLowerCase() ==
-                                        "scanned")
-                                    .toList()[0]
-                                    .id
-                                    .toString());
+                            paymentMethods
+                          ]);
+                        } else {
+                          var val = await Repositories.confirmAcknowledgement(
+                              selectedJob?.serviceRequestid ?? "",
+                              signature,
+                              null,
+                              isWantInvoice,
+                              emailCT.text.toString(),
+                              (((widget.rcpCost?.isDiscountValid ?? false)
+                                          ? widget.rcpCost?.totalRCP
+                                          : widget.rcpCost?.total) !=
+                                      "MYR 0.00")
+                                  ? payByCash
+                                      ? paymentMethods
+                                          .where((element) =>
+                                              element.method?.toLowerCase() ==
+                                              "cash")
+                                          .toList()[0]
+                                          .id
+                                          .toString()
+                                      : paymentMethods
+                                          .where((element) =>
+                                              element.method?.toLowerCase() ==
+                                              "scanned")
+                                          .toList()[0]
+                                          .id
+                                          .toString()
+                                  : "3");
 
-                        if (val) {
-                          if (!signatureErr && !errorEmail) {
-                            //if (res) {
+                          if (val) {
+                            if (!signatureErr && !errorEmail) {
+                              //if (res) {
 
-                            Navigator.pushNamed(
-                                context, 'feedback_confirmation',
-                                arguments: selectedJob);
-                          } else {
-                            Widget okButton = TextButton(
-                              child: Text("OK"),
-                              onPressed: () {
-                                Navigator.pop(context);
-                              },
-                            );
+                              Navigator.pushNamed(
+                                  context, 'feedback_confirmation',
+                                  arguments: selectedJob);
+                            } else {
+                              Widget okButton = TextButton(
+                                child: Text("OK"),
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                },
+                              );
 
-                            // set up the AlertDialog
-                            AlertDialog alert = AlertDialog(
-                              title: Text("Error"),
-                              content: Text("Payment Could not be completed."),
-                              actions: [
-                                okButton,
-                              ],
-                            );
+                              // set up the AlertDialog
+                              AlertDialog alert = AlertDialog(
+                                title: Text("Error"),
+                                content:
+                                    Text("Payment Could not be completed."),
+                                actions: [
+                                  okButton,
+                                ],
+                              );
 
-                            // show the dialog
-                            showDialog(
-                              context: context,
-                              builder: (BuildContext context) {
-                                return alert;
-                              },
-                            );
+                              // show the dialog
+                              showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return alert;
+                                },
+                              );
+                            }
                           }
+                          // await showMultipleImagesPromptDialog(
+                          //     context,
+                          //     selectedJob?.serviceRequestid ?? "",
+                          //     signature,
+                          //     isWantInvoice,
+                          //     emailCT.text.toString(),
+                          //     payByCash
+                          //         ? paymentMethods
+                          //             .where((element) =>
+                          //                 element.method?.toLowerCase() == "cash")
+                          //             .toList()[0]
+                          //             .id
+                          //             .toString()
+                          //         : paymentMethods
+                          //             .where((element) =>
+                          //                 element.method?.toLowerCase() ==
+                          //                 "scanned")
+                          //             .toList()[0]
+                          //             .id
+                          //             .toString());
                         }
+                      } else {
+                        Helpers.showAlert(context,
+                            hasAction: true,
+                            type: "error",
+                            title: "Could not find any payment methods.",
+                            onPressed: () async {
+                          Navigator.pop(context);
+                        });
                       }
                     }
                     // }
@@ -1272,6 +1412,35 @@ class _SignatureState extends State<SignatureUI> {
         ),
       ),
     );
+  }
+
+  showMultipleImagesPromptDialog(BuildContext context, String jobId, File image,
+      bool isMailInvoice, String mailEmail, String paymentMethodId) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return SignatureMultiImageUploadDialog(
+          jobId: jobId,
+          image: image,
+          isMailInvoice: isMailInvoice,
+          mailEmail: mailEmail,
+          paymentMethodId: paymentMethodId,
+        );
+      },
+    ).then((value) async {
+      if (value != null && value) {
+        Navigator.pushNamed(context, 'feedback_confirmation',
+            arguments: selectedJob);
+      } else {
+        Helpers.showAlert(context,
+            hasAction: true,
+            title: "Payment Could not be completed.",
+            type: "error", onPressed: () async {
+          Navigator.pop(context);
+        });
+      }
+    });
   }
 
   Future<File> _convertImageToFile(Uint8List bytes) async {
@@ -1376,4 +1545,22 @@ class _SignatureState extends State<SignatureUI> {
               ]))),
     );
   }
+}
+
+Widget _buildChargeItem(String chargeType, String cost, bool isTotal) {
+  return Padding(
+      padding: EdgeInsets.only(bottom: 5),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(chargeType,
+              style: TextStyle(
+                  fontSize: 16.0,
+                  color: isTotal ? Colors.black : Colors.black54)),
+          Text(cost,
+              style: TextStyle(
+                  fontSize: 16.0,
+                  color: isTotal ? Colors.black : Colors.black54)),
+        ],
+      ));
 }

@@ -5,7 +5,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
-import 'package:kcs_engineer/model/sparepart_history_item.dart';
+import 'package:kcs_engineer/model/spareparts/sparepart_history_item.dart';
 import 'package:kcs_engineer/themes/text_styles.dart';
 import 'package:kcs_engineer/util/api.dart';
 import 'package:kcs_engineer/util/helpers.dart';
@@ -112,16 +112,9 @@ class _SparepartHistoryState extends State<SparepartHistory> {
     setState(() {
       sparePartHistoryItemList = currentHistory;
     });
-    //Navigator.pop(context);
   }
 
-  // _loadToken() async {
-  //   final accessToken = await storage.read(key: TOKEN);
 
-  //   setState(() {
-  //     token = accessToken;
-  //   });
-  // }
 
   void selectionChanged(DateRangePickerSelectionChangedArgs args) async {
     setState(() {
@@ -179,8 +172,8 @@ class _SparepartHistoryState extends State<SparepartHistory> {
             alignment: Alignment.centerLeft,
             child: RichText(
               text: TextSpan(
-                // Note: Styles for TextSpans must be explicitly defined.
-                // Child text spans will inherit styles from parent
+                
+                
                 style: const TextStyle(
                   fontSize: 29.0,
                   color: Colors.black,
@@ -209,8 +202,8 @@ class _SparepartHistoryState extends State<SparepartHistory> {
                     children: [
                       RichText(
                         text: TextSpan(
-                            // Note: Styles for TextSpans must be explicitly defined.
-                            // Child text spans will inherit styles from parent
+                            
+                            
                             style: const TextStyle(
                               fontSize: 25.0,
                               color: Colors.black,

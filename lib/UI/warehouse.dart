@@ -3,10 +3,10 @@ import 'dart:convert';
 
 import 'package:after_layout/after_layout.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kcs_engineer/model/general_code.dart';
-import 'package:kcs_engineer/model/job.dart';
-import 'package:kcs_engineer/model/sparepart.dart';
+import 'package:kcs_engineer/model/job/job.dart';
+import 'package:kcs_engineer/model/spareparts/sparepart.dart';
 import 'package:kcs_engineer/themes/text_styles.dart';
 import 'package:kcs_engineer/util/api.dart';
 import 'package:kcs_engineer/util/helpers.dart';
@@ -45,21 +45,22 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
   String? price;
   String? remarks;
   List<SparePart> sparePartList = [];
-  List<GeneralCode> generalCodeList = [];
 
   bool isSpareParts = true;
   bool isGeneralCode = false;
 
   List<SparePart> addedSparePartQuantities = [];
-  List<GeneralCode> addedGeneralCodeQuantities = [];
 
   Timer? searchOnStoppedTyping;
   String currentSearchText = "";
   ScrollController? controller;
-  int sparePartsCurrentPage = 1;
+
   int generalCodeCurrentPage = 1;
   int sparePartsMaxPages = 10;
+  int sparePartsCurrentPage = 1;
   int generalCodeMaxPages = 10;
+
+  bool isSearchByCodeEnabled = false;
 
   @override
   void initState() {
@@ -74,7 +75,6 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
     jobId = widget.jobId;
 
     addedSparePartQuantities = [];
-    addedGeneralCodeQuantities = [];
 
     Future.delayed(Duration.zero, () {});
     //_checkPermisions();
@@ -84,7 +84,7 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
   FutureOr<void> afterFirstLayout(BuildContext context) async {
     await fetchJobDetails();
     _loadVersion();
-    await _fetchSpareParts(true, true);
+    await _fetchSpareParts(true, isSearchByCodeEnabled, null);
     // _fetchGeneralCodes(true);
   }
 
@@ -122,7 +122,8 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
 
       if (!isTop) {
         sparePartsCurrentPage = sparePartsCurrentPage + 1;
-        var SpareParts = await _fetchSpareParts(false, true);
+        var SpareParts =
+            await _fetchSpareParts(false, isSearchByCodeEnabled, null);
       }
     }
   }
@@ -139,7 +140,7 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
           if (currentSearchText != value) {
             currentSearchText = value;
             sparePartsCurrentPage = 1;
-            await _fetchSpareParts(true, true);
+            await _fetchSpareParts(true, isSearchByCodeEnabled, null);
           }
         }));
   }
@@ -152,28 +153,8 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
       child: Form(
         key: _formKey,
         child: Column(children: [
-          SizedBox(height: 10),
-          Container(
-            alignment: Alignment.centerLeft,
-            child: RichText(
-              text: TextSpan(
-                // Note: Styles for TextSpans must be explicitly defined.
-                // Child text spans will inherit styles from parent
-                style: const TextStyle(
-                  fontSize: 29.0,
-                  color: Colors.black,
-                ),
-                children: <TextSpan>[
-                  TextSpan(
-                      text: 'Warehouse',
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ),
-          ),
-          SizedBox(height: 10),
           Divider(color: Colors.grey),
-          SizedBox(height: 20),
+          SizedBox(height: 10),
           Row(
             children: [
               // ElevatedButton(
@@ -252,8 +233,6 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                     children: [
                       RichText(
                         text: TextSpan(
-                            // Note: Styles for TextSpans must be explicitly defined.
-                            // Child text spans will inherit styles from parent
                             style: const TextStyle(
                               fontSize: 25.0,
                               color: Colors.black,
@@ -284,37 +263,97 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          SizedBox(
-                            width: MediaQuery.of(context).size.width *
-                                0.15, // <-- match_parent
-                            height: MediaQuery.of(context).size.width *
-                                0.05, // <-- match-parent
-                            child: ElevatedButton(
-                                child: Padding(
-                                    padding: const EdgeInsets.all(0.0),
-                                    child: Text(
-                                      'Cancel',
-                                      style: TextStyle(
-                                          fontSize: 15, color: Colors.black54),
-                                    )),
-                                style: ButtonStyle(
-                                    foregroundColor:
-                                        MaterialStateProperty.all<Color>(
-                                            Colors.white),
-                                    backgroundColor:
-                                        MaterialStateProperty.all<Color>(
-                                            Colors.white),
-                                    shape: MaterialStateProperty.all<
-                                            RoundedRectangleBorder>(
-                                        RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(4.0),
-                                            side: BorderSide(
-                                                color: Colors.black54)))),
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                }),
-                          ),
+                          !isSearchByCodeEnabled
+                              ? SizedBox(
+                                  height: MediaQuery.of(context).size.width *
+                                      0.05, // <-- match-parent
+                                  child: ElevatedButton(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(0.0),
+                                        child: Row(children: [
+                                          Icon(
+                                            Icons.search,
+                                            color: Colors.black54,
+                                          ),
+                                          Text(
+                                            'Search by code',
+                                            style: TextStyle(
+                                                fontSize: 15,
+                                                color: Colors.black54),
+                                          ),
+                                        ]),
+                                      ),
+                                      style: ButtonStyle(
+                                          foregroundColor:
+                                              MaterialStateProperty.all<Color>(
+                                                  Colors.white),
+                                          backgroundColor:
+                                              MaterialStateProperty.all<Color>(
+                                                  Colors.white),
+                                          shape: MaterialStateProperty.all<
+                                                  RoundedRectangleBorder>(
+                                              RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          4.0),
+                                                  side: BorderSide(
+                                                      color: Colors.black54)))),
+                                      onPressed: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return SearchByCodePopup(
+                                                itemSearched:
+                                                    (String searchText) async {
+                                              setState(() {
+                                                isSearchByCodeEnabled = true;
+                                                warehouseSearchCT.text = "";
+                                              });
+                                              await _fetchSpareParts(
+                                                  true,
+                                                  isSearchByCodeEnabled,
+                                                  searchText);
+                                              Navigator.pop(context);
+                                            });
+                                          },
+                                        );
+                                      }),
+                                )
+                              : SizedBox(
+                                  height: MediaQuery.of(context).size.width *
+                                      0.05, // <-- match-parent
+                                  child: ElevatedButton(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(0.0),
+                                        child: Text(
+                                          'Reset',
+                                          style: TextStyle(
+                                              fontSize: 15,
+                                              color: Colors.white),
+                                        ),
+                                      ),
+                                      style: ButtonStyle(
+                                          foregroundColor:
+                                              MaterialStateProperty.all<Color>(
+                                                  Colors.red),
+                                          backgroundColor:
+                                              MaterialStateProperty.all<Color>(
+                                                  Colors.red),
+                                          shape: MaterialStateProperty.all<
+                                                  RoundedRectangleBorder>(
+                                              RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          4.0),
+                                                  side: BorderSide(
+                                                      color: Colors.red)))),
+                                      onPressed: () {
+                                        setState(() {
+                                          isSearchByCodeEnabled = false;
+                                        });
+                                        _fetchSpareParts(true, false, null);
+                                      }),
+                                ),
                           SizedBox(
                             width: 10,
                           ),
@@ -442,10 +481,10 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                   )),
                   DataColumn(
                       label: Container(
-                    width: MediaQuery.of(context).size.width * .14,
+                    width: MediaQuery.of(context).size.width * .16,
                     child: Padding(
-                        padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
-                        child: Text('Part Name',
+                        padding: EdgeInsets.fromLTRB(10, 0, 0, 0),
+                        child: Text('Part Description',
                             style: TextStyle(color: Colors.white))),
                   )),
                   DataColumn(
@@ -469,16 +508,15 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                 rows: []),
           ),
           sparePartList.length > 0
-              ? ConstrainedBox(
-                  constraints: BoxConstraints(maxHeight: 900, minHeight: 200),
-                  child: Container(
-                      child: Scrollbar(
-                          child: ListView(
-                              shrinkWrap: true,
-                              controller: controller,
-                              children: [
-                        isSpareParts
-                            ? DataTable(
+              ? Container(
+                  height: MediaQuery.of(context).size.height * 0.5,
+                  child: Scrollbar(
+                      controller: controller,
+                      child: ListView(
+                          shrinkWrap: true,
+                          controller: controller,
+                          children: [
+                            DataTable(
                                 dataRowHeight: 70.0,
                                 headingRowHeight: 0.0,
                                 columns: [
@@ -539,15 +577,17 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                                                             CrossAxisAlignment
                                                                 .center,
                                                         children: [
-                                                          element.quantity != 0
+                                                          element.quantity !=
+                                                                      0 &&
+                                                                  ((element.quantity ??
+                                                                          0) >
+                                                                      0)
                                                               ? RichText(
                                                                   textAlign:
                                                                       TextAlign
                                                                           .center,
                                                                   text:
                                                                       TextSpan(
-                                                                    // Note: Styles for TextSpans must be explicitly defined.
-                                                                    // Child text spans will inherit styles from parent
                                                                     style:
                                                                         const TextStyle(
                                                                       fontSize:
@@ -572,8 +612,6 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                                                                           .center,
                                                                   text:
                                                                       TextSpan(
-                                                                    // Note: Styles for TextSpans must be explicitly defined.
-                                                                    // Child text spans will inherit styles from parent
                                                                     style:
                                                                         const TextStyle(
                                                                       fontSize:
@@ -600,9 +638,11 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                                                         alignment: Alignment
                                                             .centerLeft,
                                                         //color: Colors.white,
-                                                        child: element
-                                                                    .quantity !=
-                                                                0
+                                                        child: element.quantity !=
+                                                                    0 &&
+                                                                ((element.quantity ??
+                                                                        0) >
+                                                                    0)
                                                             ? Row(
                                                                 mainAxisAlignment:
                                                                     MainAxisAlignment
@@ -646,8 +686,6 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                                                                   RichText(
                                                                     text:
                                                                         TextSpan(
-                                                                      // Note: Styles for TextSpans must be explicitly defined.
-                                                                      // Child text spans will inherit styles from parent
                                                                       style:
                                                                           const TextStyle(
                                                                         fontSize:
@@ -707,8 +745,6 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                                                                     RichText(
                                                                       text:
                                                                           TextSpan(
-                                                                        // Note: Styles for TextSpans must be explicitly defined.
-                                                                        // Child text spans will inherit styles from parent
                                                                         style:
                                                                             const TextStyle(
                                                                           fontSize:
@@ -730,114 +766,7 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                                               )),
                                         )
                                         .toList())
-                            : DataTable(
-                                dataRowHeight: 70.0,
-                                headingRowHeight: 0.0,
-                                columns: [
-                                  DataColumn(
-                                      label: Container(
-                                    width:
-                                        MediaQuery.of(context).size.width * .2,
-                                    child: Padding(
-                                        padding:
-                                            EdgeInsets.fromLTRB(20, 0, 0, 0),
-                                        child: new Container()),
-                                  )),
-                                  DataColumn(
-                                      label: Container(
-                                    width:
-                                        MediaQuery.of(context).size.width * .33,
-                                    child: Padding(
-                                      padding: EdgeInsets.fromLTRB(10, 0, 0, 0),
-                                      child: new Container(),
-                                    ),
-                                  )),
-                                  DataColumn(
-                                      label: Container(
-                                    width:
-                                        MediaQuery.of(context).size.width * .26,
-                                    child: new Container(),
-                                  )),
-                                ],
-                                rows:
-                                    generalCodeList // Loops through dataColumnText, each iteration assigning the value to element
-                                        .map(
-                                          ((element) => DataRow(
-                                                cells: <DataCell>[
-                                                  DataCell(Text(element.itemCode
-                                                      .toString())), //Extracting from Map element the value
-                                                  DataCell(Text(
-                                                      element.description ??
-                                                          "-")),
-                                                  DataCell(
-                                                    Container(
-                                                      alignment:
-                                                          Alignment.centerLeft,
-                                                      //color: Colors.white,
-                                                      child: Row(
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .start,
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .center,
-                                                        children: [
-                                                          IconButton(
-                                                              icon: new Icon(
-                                                                color: Colors
-                                                                    .black,
-                                                                element.stock ==
-                                                                        0
-                                                                    ? Icons.add
-                                                                    : Icons
-                                                                        .remove,
-                                                                size: 14.0,
-                                                              ),
-                                                              onPressed:
-                                                                  () async {
-                                                                if (element
-                                                                        .stock ==
-                                                                    0) {
-                                                                  //add
-                                                                  if (!addedGeneralCodeQuantities
-                                                                      .contains(
-                                                                          element)) {
-                                                                    addedGeneralCodeQuantities
-                                                                        .add(
-                                                                            element);
-                                                                    setState(
-                                                                        () {
-                                                                      element.stock =
-                                                                          (element.stock ?? 0) +
-                                                                              1;
-                                                                    });
-                                                                  }
-                                                                } else {
-                                                                  if (addedGeneralCodeQuantities
-                                                                      .contains(
-                                                                          element)) {
-                                                                    addedGeneralCodeQuantities
-                                                                        .remove(
-                                                                            element);
-                                                                    setState(
-                                                                        () {
-                                                                      element.stock =
-                                                                          (element.stock ?? 0) -
-                                                                              1;
-                                                                    });
-                                                                  }
-                                                                }
-                                                              }),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  )
-                                                ],
-                                              )),
-                                        )
-                                        .toList(),
-                              ),
-                      ]))))
+                          ])))
               : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -859,8 +788,6 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                       ),
                       RichText(
                         text: TextSpan(
-                          // Note: Styles for TextSpans must be explicitly defined.
-                          // Child text spans will inherit styles from parent
                           style: const TextStyle(
                             fontSize: 32.0,
                             color: Colors.black,
@@ -880,8 +807,6 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                         child: RichText(
                           textAlign: TextAlign.center,
                           text: TextSpan(
-                            // Note: Styles for TextSpans must be explicitly defined.
-                            // Child text spans will inherit styles from parent
                             style: const TextStyle(
                               fontSize: 16.0,
                               color: Colors.black54,
@@ -918,25 +843,26 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
 
     addedSparePartQuantities.forEach((element) {
       element.from = "warehouse";
-      element.quantity = element.selectedQuantity;
+      element.quantity = (element.selectedQuantity ?? 0);
+      var existingQuantity = selectedJob?.picklistCollected
+                  ?.indexWhere((e) => element.id == e.id) !=
+              -1
+          ? (selectedJob?.picklistCollected
+                  ?.firstWhere((e) => element.id == e.id)
+                  .quantity ??
+              0)
+          : 0;
+      element.quantity = (element.quantity ?? 0) + existingQuantity;
     });
+
+    // var asalall = selectedJob.currentJobSparepartsfromPickList;
 
     return await Repositories.addItemsToPickList(
         (selectedJob!.serviceRequestid ?? "0"), addedSparePartQuantities);
   }
 
-  Future<bool> _AddGeneralCodeToJob() async {
-    // generalCodeList.forEach((element) {
-    //   if (element.stock == 1) {
-    //     addedGeneralCodeQuantities.add(element);
-    //   }
-    // });
-
-    return await Repositories.addGeneralCodeToJob(
-        (selectedJob!.serviceRequestid ?? "0"), addedGeneralCodeQuantities);
-  }
-
-  _fetchSpareParts(bool eraseEarlyRecords, bool searchByCode) async {
+  _fetchSpareParts(
+      bool eraseEarlyRecords, bool searchByCode, String? code) async {
     List<SparePart> currentHistory = [];
 
     if (!eraseEarlyRecords) {
@@ -947,39 +873,27 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
 
     var url = 'general/spareparts?per_page=20' +
         '&page=$sparePartsCurrentPage' +
-        (warehouseSearchCT.text != ""
-            ? '&q=' + warehouseSearchCT.text.toString()
-            : "") +
+        (!searchByCode
+            ? (warehouseSearchCT.text != ""
+                ? '&q=' + warehouseSearchCT.text.toString()
+                : "")
+            : (code != "" ? '&q=' + code.toString() : "")) +
         (searchByCode ? '&search_only_by_code=1' : '&search_only_by_code=0') +
         (!searchByCode ? '&product_id=${selectedJob?.productId}' : '') +
-        '&service_request_id=${jobId}' +
-        (searchByCode
-            ? '&q=${codeSearchCT.text.toString()}'
-            : (warehouseSearchCT.text != ""
+        '&service_request_id=${jobId}';
+    final response = await Api.bearerGet('general/spareparts?per_page=15' +
+        '&page=$sparePartsCurrentPage' +
+        (!searchByCode
+            ? (warehouseSearchCT.text != ""
                 ? '&q=' + warehouseSearchCT.text.toString()
-                : ""));
-    final response = await Api.bearerGet('general/spareparts?per_page=20' +
-            '&page=$sparePartsCurrentPage' +
-            (warehouseSearchCT.text != ""
-                ? '&q=' + warehouseSearchCT.text.toString()
-                : "") +
-            (searchByCode
-                ? '&search_only_by_code=1'
-                : '&search_only_by_code=0') +
-            (!searchByCode ? '&product_id=${selectedJob?.productId}' : '') +
-            '&service_request_id=${jobId}'
-        // +
-        // (searchByCode
-        //     ? '&q=${codeSearchCT.text.toString()}'
-        //     : (warehouseSearchCT.text != ""
-        //         ? '&q=' + warehouseSearchCT.text.toString()
-        //         : "")
-        // )
-
-        );
-    Navigator.pop(context);
+                : "")
+            : (code != "" ? '&q=' + code.toString() : "")) +
+        (searchByCode ? '&search_only_by_code=1' : '&search_only_by_code=0') +
+        (!searchByCode ? '&product_id=${selectedJob?.productId}' : '') +
+        '&service_request_id=${jobId}');
 
     print("#Resp: ${jsonEncode(response)}");
+    Navigator.pop(context);
 
     if (response["success"] != null) {
       List<SparePart> spareParts =
@@ -991,8 +905,8 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
 
       currentHistory.addAll(spareParts);
 
-      currentHistory
-          .sort((a, b) => b.quantity?.compareTo(a.quantity ?? 0) ?? 0);
+      // currentHistory
+      //     .sort((a, b) => b.quantity?.compareTo(a.quantity ?? 0) ?? 0);
     }
     setState(() {
       sparePartsMaxPages =
@@ -1020,7 +934,11 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
         child: Scaffold(
           key: _scaffoldKey,
           backgroundColor: Colors.white,
-          //resizeToAvoidBottomInset: false,
+          appBar: Helpers.customAppBar(context, _scaffoldKey,
+              title: "Warehouse",
+              isBack: true,
+              isAppBarTranparent: true,
+              hasActions: false),
           body: CustomPaint(
               child: SingleChildScrollView(
                   child: Container(
@@ -1037,5 +955,140 @@ class _WarehouseState extends State<Warehouse> with AfterLayoutMixin {
                             //version != "" ? _renderVersion() : Container()
                           ])))),
         ));
+  }
+}
+
+class SearchByCodePopup extends StatefulWidget {
+  Function? itemSearched;
+
+  SearchByCodePopup({required this.itemSearched}) {}
+
+  @override
+  _SearchByCodePopupState createState() => _SearchByCodePopupState();
+}
+
+class _SearchByCodePopupState extends State<SearchByCodePopup> {
+  TextEditingController itemNameController = TextEditingController();
+  Function? itemSearched;
+  int quantity = 1;
+
+  void increment() {
+    setState(() {
+      quantity++;
+    });
+  }
+
+  void decrement() {
+    if (quantity > 1) {
+      setState(() {
+        quantity--;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    itemSearched = widget.itemSearched;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Search Item by Item code'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          SizedBox(height: 25),
+          RichText(
+            text: const TextSpan(
+                style: TextStyle(
+                  fontSize: 15.0,
+                  color: Colors.black,
+                ),
+                children: <TextSpan>[
+                  TextSpan(
+                    text: 'item code:',
+                  ),
+                ]),
+          ),
+          SizedBox(height: 10),
+          Container(
+            width: MediaQuery.of(context).size.width * 0.5,
+            padding: EdgeInsets.only(bottom: 50),
+            child: TextFormField(
+                //focusNode: focusEmail,
+                controller: itemNameController,
+                keyboardType: TextInputType.text,
+                onChanged: (str) {},
+                onEditingComplete: () {},
+                onFieldSubmitted: (val) {
+                  FocusScope.of(context).requestFocus(new FocusNode());
+                },
+                inputFormatters: <TextInputFormatter>[
+                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s.-]')),
+                ],
+                style: TextStyle(
+                  fontSize: 18.0,
+                  color: Colors.black,
+                ),
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintStyle: TextStyle(color: Colors.grey.withOpacity(0.7)),
+                  contentPadding: EdgeInsets.fromLTRB(20, 5, 0, 0),
+                )),
+          ),
+        ],
+      ),
+      actions: [
+        ElevatedButton(
+            child: Padding(
+                padding: EdgeInsets.all(0.0),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text(
+                    'Search',
+                    style: TextStyle(fontSize: 15, color: Colors.white),
+                  )
+                ])),
+            style: ButtonStyle(
+                foregroundColor:
+                    MaterialStateProperty.all<Color>(Color(0xFF242A38)),
+                backgroundColor:
+                    MaterialStateProperty.all<Color>(Color(0xFF242A38)),
+                shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                    RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4.0),
+                        side: const BorderSide(color: Color(0xFF242A38))))),
+            onPressed: () async {
+              await itemSearched?.call(
+                itemNameController.text.toString(),
+              );
+            }),
+        ElevatedButton(
+            child: Padding(
+                padding: EdgeInsets.all(0.0),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text(
+                    'Cancel',
+                    style: TextStyle(fontSize: 15, color: Colors.white),
+                  )
+                ])),
+            style: ButtonStyle(
+                foregroundColor:
+                    MaterialStateProperty.all<Color>(Color(0xFF242A38)),
+                backgroundColor:
+                    MaterialStateProperty.all<Color>(Color(0xFF242A38)),
+                shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                    RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4.0),
+                        side: const BorderSide(color: Color(0xFF242A38))))),
+            onPressed: () {
+              Navigator.pop(context);
+            }),
+      ],
+    );
   }
 }

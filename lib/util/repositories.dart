@@ -4,26 +4,26 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/intl.dart';
-import 'package:kcs_engineer/model/bag.dart';
-import 'package:kcs_engineer/model/checklistAttachment.dart';
-import 'package:kcs_engineer/model/comment.dart';
-import 'package:kcs_engineer/model/engineer.dart';
-import 'package:kcs_engineer/model/general_code.dart';
-import 'package:kcs_engineer/model/job.dart';
-import 'package:kcs_engineer/model/jobGeneralCodes.dart';
-import 'package:kcs_engineer/model/job_filter_options.dart';
-import 'package:kcs_engineer/model/job_order_seq.dart';
-import 'package:kcs_engineer/model/miscellaneousItem.dart';
-import 'package:kcs_engineer/model/payment_method.dart';
-import 'package:kcs_engineer/model/pick_list_Items.dart';
-import 'package:kcs_engineer/model/pickup_charges.dart';
-import 'package:kcs_engineer/model/problem.dart';
-import 'package:kcs_engineer/model/rcpCost.dart';
-import 'package:kcs_engineer/model/reason.dart';
-import 'package:kcs_engineer/model/solution.dart';
-import 'package:kcs_engineer/model/payment_history_item.dart';
-import 'package:kcs_engineer/model/sparepart.dart';
-import 'package:kcs_engineer/model/transportCharge.dart';
+import 'package:kcs_engineer/model/user/bag.dart';
+import 'package:kcs_engineer/model/job/checklistAttachment.dart';
+import 'package:kcs_engineer/model/job/comment.dart';
+import 'package:kcs_engineer/model/user/engineer.dart';
+import 'package:kcs_engineer/model/job/job.dart';
+import 'package:kcs_engineer/model/job/filters/job_filter_options.dart';
+import 'package:kcs_engineer/model/job/job_order_seq.dart';
+import 'package:kcs_engineer/model/spareparts/miscellaneousItem.dart';
+import 'package:kcs_engineer/model/payment/paymentCollection.dart';
+import 'package:kcs_engineer/model/payment/payment_method.dart';
+import 'package:kcs_engineer/model/spareparts/pick_list_Items.dart';
+import 'package:kcs_engineer/model/payment/pickup_charges.dart';
+import 'package:kcs_engineer/model/job/general/problem.dart';
+import 'package:kcs_engineer/model/payment/rcpCost.dart';
+import 'package:kcs_engineer/model/job/general/reason.dart';
+import 'package:kcs_engineer/model/job/general/solution.dart';
+import 'package:kcs_engineer/model/payment/payment_history_item.dart';
+import 'package:kcs_engineer/model/spareparts/sparepart.dart';
+import 'package:kcs_engineer/model/job/general/transportCharge.dart';
+import 'package:kcs_engineer/model/util/app_version.dart';
 import 'package:kcs_engineer/util/api.dart';
 import 'package:kcs_engineer/util/helpers.dart';
 import 'dart:convert';
@@ -78,31 +78,31 @@ class Repositories {
     }
   }
 
-  static Future<String> renewAccessToken() async {
-    final response = await Api.bearerPost('auth/refresh-token');
-    print("#Resp: ${jsonEncode(response)}");
+  // static Future<String> renewAccessToken() async {
+  //   final response = await Api.bearerPost('auth/refresh-token');
+  //   print("#Resp: ${jsonEncode(response)}");
 
-    if (response["success"]) {
-      Helpers.isAuthenticated = false;
-      var dateTimeFormat = DateFormat('MMMM d, yyyy', 'en_US')
-          .parse(response?['data']?['token']?['expires_at']);
+  //   if (response["success"]) {
+  //     Helpers.isAuthenticated = false;
+  //     var dateTimeFormat = DateFormat('MMMM d, yyyy', 'en_US')
+  //         .parse(response?['data']?['token']?['expires_at']);
 
-      await storage.write(
-          key: TOKEN, value: response?['data']?['token']?['token']);
-      await storage.write(
-          key: TOKEN_EXPIRY,
-          value: dateTimeFormat.millisecondsSinceEpoch.toString());
+  //     await storage.write(
+  //         key: TOKEN, value: response?['data']?['token']?['token']);
+  //     await storage.write(
+  //         key: TOKEN_EXPIRY,
+  //         value: dateTimeFormat.millisecondsSinceEpoch.toString());
 
-      return response?['data']?['token']?['token'];
-    } else {
-      Helpers.isAuthenticated = false;
-      await storage.delete(key: TOKEN);
-      await storage.delete(key: TOKEN_EXPIRY);
-      await storage.delete(key: REFRESH_TOKEN);
-      await storage.delete(key: USERID);
-      return "unauthenticated";
-    }
-  }
+  //     return response?['data']?['token']?['token'];
+  //   } else {
+  //     Helpers.isAuthenticated = false;
+  //     await storage.delete(key: TOKEN);
+  //     await storage.delete(key: TOKEN_EXPIRY);
+  //     await storage.delete(key: REFRESH_TOKEN);
+  //     await storage.delete(key: USERID);
+  //     return "unauthenticated";
+  //   }
+  // }
 
   static Future<Engineer?> fetchProfile() async {
     Engineer? user = null;
@@ -156,10 +156,25 @@ class Repositories {
     }
   }
 
-  static Future<JobData?> fetchJobs(filters) async {
+  static Future<JobData?> fetchJobs(filters, int currentPage) async {
     JobData? data;
 
-    final response = await Api.bearerPost('job/service-jobs', params: filters);
+    final response = await Api.bearerPost('job/service-jobs?page=$currentPage',
+        params: filters);
+    print("#Resp: ${jsonEncode(response)}");
+    // Navigator.pop(context);
+    if (response["success"] && response['data'] != null) {
+      data = await JobData.selectedJobFromJson(response);
+    }
+    return data;
+  }
+
+  static Future<JobData?> fetchKIVJobs(filters, int currentPage) async {
+    JobData? data;
+
+    final response = await Api.bearerPost(
+        'job/service-jobs-extra?page=$currentPage',
+        params: filters);
     print("#Resp: ${jsonEncode(response)}");
     // Navigator.pop(context);
     if (response["success"] && response['data'] != null) {
@@ -188,7 +203,9 @@ class Repositories {
         'general/spareparts-from-bag?service_request_id=${serviceRequestId}&search_only_by_code=0&include_spareparts_from_bag=1');
     print("#Resp: ${jsonEncode(response)}");
     // Navigator.pop(context);
-    if (response["success"] && response['data'] != null) {
+    if (response["success"] &&
+        response['data'] != null &&
+        !(response['data'] is List)) {
       bag = (BagMetaData.selectedJobFromJson(response['data']));
     }
     return bag;
@@ -397,12 +414,12 @@ class Repositories {
     }
   }
 
-  static Future<List<PickupCharge>> fetchPickListCharges() async {
+  static Future<List<PickupCharge>> fetchPickUpCharges() async {
     List<PickupCharge>? data = [];
 
     final response = await Api.bearerGet('general/pickup-charges');
     print("#Resp: ${jsonEncode(response)}");
-    // Navigator.pop(context);
+
     if (response["success"] && response['data'] != null) {
       data = (response['data'] as List)
           .map((i) => PickupCharge.fromJson(i))
@@ -424,8 +441,6 @@ class Repositories {
         data = (response['data'] as List)
             .map((i) => TransportCharge.fromJson(i))
             .toList();
-        var xx = data;
-
         return data;
       } else {
         return data;
@@ -614,7 +629,12 @@ class Repositories {
     final response =
         await Api.bearerPost('job/get-pick-list-for-day', params: map);
     print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null && response["success"]) {
+    if (response["success"] != null &&
+        response["success"] &&
+        response["data"] != null &&
+        !(response["data"] is List))
+    //  &&(response["data"] as List<dynamic>).length > 0)
+    {
       pickListItems = PickListItems.fromJson(response["data"]);
     }
 
@@ -750,6 +770,8 @@ class Repositories {
 
     http.StreamedResponse response = await request.send();
 
+    var ll = response.statusCode;
+
     if (response.statusCode == 200) {
       return true;
     } else {
@@ -759,7 +781,7 @@ class Repositories {
 
   static Future<List<Reason>> fetchKIVReasons() async {
     final response = await Api.bearerGet(
-        'general/service-request-cancellation-reason?service_request_status_id=17');
+        'general/service-request-cancellation-reason?service_request_status_id=21');
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null && response["success"]) {
       var reason =
@@ -836,8 +858,13 @@ class Repositories {
     }
   }
 
-  static Future<bool> confirmAcknowledgement(String jobId, File image,
-      bool isMailInvoice, String mailEmail, String paymentMethodId
+  static Future<bool> confirmAcknowledgement(
+      String jobId,
+      File image,
+      File? qrPaymentImgs,
+      bool isMailInvoice,
+      String mailEmail,
+      String paymentMethodId
       // double amount,
       // String currency,
       ) async {
@@ -855,6 +882,21 @@ class Repositories {
     request.files
         .add(await http.MultipartFile.fromPath('signature', image.path));
 
+    if (qrPaymentImgs != null) {
+      request.files.add(await http.MultipartFile.fromPath(
+          'qr_payment', qrPaymentImgs?.path ?? ""));
+    }
+    // List<http.MultipartFile> multipartFiles = [];
+
+    // for (var file in qrPaymentImgs) {
+    //   List<int> fileBytes = await file.readAsBytes();
+    //   http.MultipartFile multipartFile = http.MultipartFile.fromBytes(
+    //     'images[]',
+    //     fileBytes,
+    //     filename: file.path.split('/').last,
+    //   );
+    //   multipartFiles.add(multipartFile);
+    // }
     request.headers.addAll(headers);
     request.fields['service_request_id'] = jobId;
     request.fields['payment_method_id'] = paymentMethodId;
@@ -865,8 +907,10 @@ class Repositories {
 
     http.StreamedResponse response = await request.send();
 
+    var res = response.stream.bytesToString() ?? "";
+
     if (response.statusCode == 200) {
-      print(await response.stream.bytesToString());
+      // print(await response.stream.bytesToString());
       return true;
     } else {
       print(response.reasonPhrase);
@@ -878,7 +922,7 @@ class Repositories {
       String productModelId, String serviceTypeId) async {
     final response = await Api.bearerGet(
         'general/solutions?product_model_id=${productModelId}&service_type_id=${serviceTypeId}');
-    print("#Resp: ${jsonEncode(response)}");
+    print("#Resp:  ${jsonEncode(response)}");
     if (response["success"] != null && response["success"]) {
       var solutions =
           (response['data'] as List).map((i) => Solution.fromJson(i)).toList();
@@ -888,8 +932,11 @@ class Repositories {
     }
   }
 
-  static Future<List<Problem>> fetchProblems() async {
-    final response = await Api.bearerGet('general/problems');
+  static Future<List<Problem>> fetchProblems(
+    String productGroupId,
+  ) async {
+    final response = await Api.bearerGet(
+        'general/problems?product_group_id=${productGroupId}');
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null && response["success"]) {
       var problems =
@@ -928,6 +975,15 @@ class Repositories {
     }
   }
 
+  static Future<PaymentCollection?> fetchPaymentCollection() async {
+    final response = await Api.bearerGet('user/get-payment-collection');
+    if (response["success"] != null && response["success"]) {
+      return PaymentCollection.fromJson(response['data']);
+    } else {
+      return null;
+    }
+  }
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   static Future<bool> updateJobOrderSequence(
@@ -936,33 +992,6 @@ class Repositories {
 
     final response = await Api.bearerPost('job-orders/update-sequence',
         params: jsonEncode(map));
-    print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null && response["success"]) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  static Future<bool> addGeneralCodeToJob(
-      String jobId, List<GeneralCode> generalCodes) async {
-    //var userId = await storage.read(key: USERID);
-
-    List<Map<String, dynamic>> mapList = [];
-
-    generalCodes.forEach((element) {
-      Map<String, dynamic> e = {
-        'general_code_id': element.generalCodeId,
-        'data': {'price': double.parse(element.price ?? "0")}
-      };
-
-      mapList.add(e);
-    });
-
-    final Map<String, dynamic> map = {'general_code_data': mapList};
-
-    final response =
-        await Api.bearerPost('job-general/$jobId', params: jsonEncode(map));
     print("#Resp: ${jsonEncode(response)}");
     if (response["success"] != null && response["success"]) {
       return true;
@@ -981,35 +1010,6 @@ class Repositories {
     }
   }
 
-  static Future<bool> updateGeneralCodes(
-      String jobId, List<JobGeneralCode> generalCodes) async {
-    //var userId = await storage.read(key: USERID);
-
-    List<Map<String, dynamic>> mapList = [];
-
-    generalCodes.forEach((element) {
-      Map<String, dynamic> e = {
-        'general_code_transaction_id': element.generalCodeTransactonId,
-        'general_code_id': element.generalCodeId,
-        'data': {'price': double.parse(element.price ?? "0")}
-      };
-
-      mapList.add(e);
-    });
-
-    final Map<String, dynamic> map = {'general_code_data': mapList};
-
-    final response =
-        await Api.bearerPost('job-general/$jobId', params: jsonEncode(map));
-    print("#Resp: ${jsonEncode(response)}");
-    if (response["success"] != null && response["success"]) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  //DONE
   static Future<bool> updateSerialNo(String jobId, String serialNo) async {
     final Map<String, dynamic> map = {
       'serial_no': serialNo,
@@ -1026,7 +1026,6 @@ class Repositories {
     }
   }
 
-  //DONE
   static Future<bool> updateRemarks(String jobId, String remarks) async {
     final Map<String, dynamic> map = {
       'remarks': remarks,
@@ -1059,19 +1058,22 @@ class Repositories {
     }
   }
 
-  // static Future<bool> updateSolutionOfJob(String jobId, int solutionId) async {
-  //   final Map<String, dynamic> map = {
-  //     'solution_id': solutionId == 0 ? null : solutionId
-  //   };
-  //   final response = await Api.bearerPost('job-orders/$jobId/update-solution',
-  //       params: jsonEncode(map));
-  //   print("#Resp: ${jsonEncode(response)}");
-  //   if (response["success"] != null && response["success"]) {
-  //     return true;
-  //   } else {
-  //     return false;
-  //   }
-  // }
+  static Future<bool> updateEngineerRemarks(
+      String jobId, String remarks) async {
+    final Map<String, dynamic> map = {
+      'remarks': remarks,
+      'service_request_id': jobId
+    };
+
+    final response =
+        await Api.bearerPost('job/update-engineer-remarks', params: map);
+    print("#Resp: ${jsonEncode(response)}");
+    if (response["success"] != null && response["success"]) {
+      return true;
+    } else {
+      return false;
+    }
+  }
 
   static Future<bool> toggleChargable(String jobId) async {
     final response =
@@ -1108,6 +1110,51 @@ class Repositories {
       return paymentMethods;
     } else {
       return [];
+    }
+  }
+
+  static Future<AppVersion?> fetchAppVersion() async {
+    final response = await Api.bearerGet('general/app-version');
+    if (response["success"] != null && response["success"]) {
+      AppVersion appVersion = AppVersion.fromJson(response['data']);
+      return appVersion;
+    } else {
+      return null;
+    }
+  }
+
+  static Future<String> renewAccessToken() async {
+    var baseUrl = await dotenv.env["API_BASE_URL"];
+    var refreshToken = await storage.read(key: REFRESH_TOKEN);
+
+    var data = {"refresh_token": refreshToken};
+
+    final res =
+        await http.post(Uri.parse("$baseUrl/auth/refresh-token"), body: data);
+
+    var response = json.decode(res.body) as Map<String, dynamic>;
+
+    print("#Resp: ${jsonEncode(response)}");
+
+    if (response["success"]) {
+      Helpers.isAuthenticated = false;
+      var dateTimeFormat = DateFormat("yyyy-MM-ddTHH:mm:ss.SSSSSS'Z'")
+          .parse(response?['data']?['token']?['expires_at']);
+
+      await storage.write(
+          key: TOKEN, value: response?['data']?['token']?['token']);
+      await storage.write(
+          key: TOKEN_EXPIRY,
+          value: dateTimeFormat.millisecondsSinceEpoch.toString());
+
+      return response?['data']?['token']?['token'];
+    } else {
+      Helpers.isAuthenticated = false;
+      await storage.delete(key: TOKEN);
+      await storage.delete(key: TOKEN_EXPIRY);
+      await storage.delete(key: REFRESH_TOKEN);
+      await storage.delete(key: USERID);
+      return "unauthenticated";
     }
   }
 

@@ -1,8 +1,8 @@
-import 'package:kcs_engineer/model/miscellaneousItem.dart';
-import 'package:kcs_engineer/model/pickup_charges.dart';
-import 'package:kcs_engineer/model/secondaryEngineer.dart';
-import 'package:kcs_engineer/model/sparepart.dart';
-import 'package:kcs_engineer/model/transportCharge.dart';
+import 'package:kcs_engineer/model/spareparts/miscellaneousItem.dart';
+import 'package:kcs_engineer/model/payment/pickup_charges.dart';
+import 'package:kcs_engineer/model/user/secondaryEngineer.dart';
+import 'package:kcs_engineer/model/spareparts/sparepart.dart';
+import 'package:kcs_engineer/model/job/general/transportCharge.dart';
 
 class JobData {
   List<Job>? jobs;
@@ -47,16 +47,25 @@ class Job {
   String? actualProblemDescription;
   String? estimatedSolutionCode;
   String? estimatedSolutionDescription;
-  String? estimatedSolutionIndoorCharges;
-  String? estimatedSolutionOutdoorCharges;
+  String? estimatedSolutionCharges;
+  String? estimatedSolutionChargesAmount;
+  String? estimatedSolutionSSTPercentage;
+  String? estimatedSolutionTotalSST;
+  String? estimatedSolutionTotalLineVal;
   String? actualSolutionCode;
   String? actualSolutionDescription;
-  String? actualSolutionIndoorCharges;
-  String? actualSolutionOutdoorCharges;
+  String? actualSolutionCharges;
+  String? actualSolutionChargesAmount;
+  String? actualSolutionSSTPercentage;
+  String? actualSolutionTotalSST;
+  String? actualSolutionTotalLineVal;
   String? remarks;
   String? adminRemarks;
+  String? engineerRemarks;
+
   String? productCode;
   int? productId;
+  int? productGroupdId;
   int? productModelId;
   String? productDescription;
   String? serialNo;
@@ -76,7 +85,9 @@ class Job {
   List<String>? chargeableSparepartIds;
 
   List<SecondaryEngineer>? secondaryEngineers;
-  List<SparePart>? picklist;
+  List<SparePart>? picklistNotCollected;
+  List<SparePart>? picklistCollected;
+
   List<SparePart>? currentJobSparepartsfromBag;
   List<SparePart>? currentJobSparepartsfromWarehouse;
   List<SparePart>? currentJobSparepartsfromPickList;
@@ -85,6 +96,10 @@ class Job {
   List<MiscellaneousItem>? miscCharges;
 
   bool? isDiscountApplied;
+  bool? isMainEngineer;
+
+  int? currentKIVCount;
+  int? maxKIVCount;
 
   Job(
       {this.serviceRequestid,
@@ -107,12 +122,18 @@ class Job {
       this.actualProblemDescription,
       this.estimatedSolutionCode,
       this.estimatedSolutionDescription,
-      this.estimatedSolutionIndoorCharges,
-      this.estimatedSolutionOutdoorCharges,
+      this.estimatedSolutionCharges,
+      this.estimatedSolutionChargesAmount,
+      this.estimatedSolutionSSTPercentage,
+      this.estimatedSolutionTotalLineVal,
+      this.estimatedSolutionTotalSST,
       this.actualSolutionCode,
       this.actualSolutionDescription,
-      this.actualSolutionIndoorCharges,
-      this.actualSolutionOutdoorCharges,
+      this.actualSolutionCharges,
+      this.actualSolutionChargesAmount,
+      this.actualSolutionSSTPercentage,
+      this.actualSolutionTotalLineVal,
+      this.actualSolutionTotalSST,
       this.remarks,
       this.paymentMethods,
       this.adminRemarks,
@@ -122,7 +143,7 @@ class Job {
       this.purchaseDate,
       this.productId,
       this.serviceTypeId,
-      this.picklist,
+      this.picklistNotCollected,
       this.currentJobSparepartsfromBag,
       this.currentJobSparepartsfromWarehouse,
       this.currentJobSparepartsfromPickList,
@@ -141,14 +162,25 @@ class Job {
       this.isChargeableSolution,
       this.isChargeableTransport,
       this.chargeableSparepartIds,
-      this.isDiscountApplied});
+      this.currentKIVCount,
+      this.maxKIVCount,
+      this.engineerRemarks,
+      this.isDiscountApplied,
+      this.productGroupdId,
+      this.picklistCollected,
+      this.isMainEngineer});
 
   Job.fromJson(Map<String, dynamic> json) {
     this.serviceRequestid = json["service_request_id"];
     this.serviceJobNo = json["service_job_no"];
     this.serviceType = json["service_type"];
     this.serviceJobStatus = json["service_job_status"];
-    this.serviceDate = json["service_date"];
+    this.serviceDate = json["service_date"] == null
+        ? ""
+        : DateTime.parse(json["service_date"])
+            .toLocal()
+            .toString()
+            .split(" ")[0];
     this.customerName = json["customer"]?["name"];
     this.customerTelephone = json["customer"]?["telephone"];
     this.customerEmail = json["customer"]?["email"];
@@ -165,23 +197,60 @@ class Job {
     this.estimatedSolutionCode = json["solution"]?["estimated"]?["code"];
     this.estimatedSolutionDescription =
         json["solution"]?["estimated"]?["solution"];
-    this.estimatedSolutionIndoorCharges =
-        json["solution"]?["estimated"]?["indoor_charges"]?["formatted"];
-    this.estimatedSolutionOutdoorCharges =
-        json["solution"]?["estimated"]?["outdoor_charges"]?["formatted"];
+    this.estimatedSolutionCharges =
+        json["solution"]?["estimated"]?["charges"]?["formatted"];
+    this.estimatedSolutionChargesAmount = (double.parse(
+                json["solution"]?["estimated"]?["charges"]?["amount"] ?? "1") /
+            100)
+        .toStringAsFixed(2);
+    this.estimatedSolutionSSTPercentage = json["solution"]?["estimated"]
+                        ?["sst_percentage"]
+                    .toString() !=
+                "0" &&
+            json["solution"]?["estimated"]?["sst_percentage"] != null
+        ? '${(json["solution"]?["estimated"]?["sst_percentage"] as num) * 100}'
+        : "0";
+    this.estimatedSolutionTotalSST = json["solution"]?["estimated"] != null
+        ? ((double.parse(this.estimatedSolutionSSTPercentage ?? "0.0") / 100) *
+                double.parse(this.estimatedSolutionChargesAmount ?? "0.0"))
+            .toStringAsFixed(2)
+        : "-";
+    this.estimatedSolutionTotalLineVal = json["solution"]?["estimated"] != null
+        ? (double.parse(this.estimatedSolutionTotalSST ?? "0.0") +
+                double.parse(this.estimatedSolutionChargesAmount ?? "0.0"))
+            .toStringAsFixed(2)
+        : "-";
     this.actualSolutionCode = json["solution"]?["actual"]?["code"];
     this.actualSolutionDescription = json["solution"]?["actual"]?["solution"];
-    this.actualSolutionIndoorCharges =
-        json["solution"]?["actual"]?["indoor_charges"]?["formatted"];
-    this.actualSolutionOutdoorCharges =
-        json["solution"]?["actual"]?["outdoor_charges"]?["formatted"];
+    this.actualSolutionCharges =
+        json["solution"]?["actual"]?["charges"]?["formatted"];
+    this.actualSolutionChargesAmount = (double.parse(
+                json["solution"]?["actual"]?["charges"]?["amount"] ?? "1") /
+            100)
+        .toStringAsFixed(2);
+    this.actualSolutionSSTPercentage =
+        json["solution"]?["actual"]?["sst_percentage"].toString() != "0" &&
+                json["solution"]?["actual"]?["sst_percentage"] != null
+            ? '${(json["solution"]?["actual"]?["sst_percentage"] as num) * 100}'
+            : "0";
+    this.actualSolutionTotalSST = json["solution"]?["actual"] != null
+        ? ((double.parse(this.actualSolutionSSTPercentage ?? "0.0") / 100) *
+                double.parse(this.actualSolutionChargesAmount ?? "0.0"))
+            .toStringAsFixed(2)
+        : "-";
+    this.actualSolutionTotalLineVal = json["solution"]?["actual"] != null
+        ? (double.parse(this.actualSolutionTotalSST ?? "0.0") +
+                double.parse(this.actualSolutionChargesAmount ?? "0.0"))
+            .toStringAsFixed(2)
+        : "-";
     this.remarks = json["remarks"]?["remarks"];
     this.adminRemarks = json["remarks"]?["admin_remarks"];
+    this.engineerRemarks = json["remarks"]?["engineer_remarks"];
     this.productCode = json["product"]?["code"];
     this.productDescription = json["product"]?["description"];
     this.serialNo = json["warranty_info"]?["serial_no"];
     this.purchaseDate = json["warranty_info"]?["purchase_date"];
-    this.isPaid = json["payment"] != null;
+    this.isPaid = json["payment"] != null && json["payment"]?["is_paid"];
     this.paymentMethods =
         (json["payment"] != null && json["payment"]?["payment_method"] != null)
             ? (json["payment"]?["payment_method"] as List<dynamic>).join(",")
@@ -190,6 +259,7 @@ class Job {
     this.productId = json["product"]?["id"];
     this.serviceTypeId = json["service_type_id"];
     this.productModelId = json["product"]?["model_id"];
+    this.productGroupdId = json["product"]?["group_id"];
     this.isUnderWarranty = json["warranty_info"] != null
         ? (json["warranty_info"]?["is_warranty_valid"])
         : null;
@@ -208,7 +278,8 @@ class Job {
         (json["saved_states"]?['is_discount_applied'] != null
             ? (json["saved_states"]?['is_discount_applied']) == "1"
             : false);
-
+    this.maxKIVCount = json["kiv_info"]?["max_kiv_count"];
+    this.currentKIVCount = json["kiv_info"]?["current_kiv_count"];
     this.chargeableSparepartIds =
         json["saved_states"]?["list_of_spareparts_not_chargeable"] != null
             ? (json["saved_states"]?["list_of_spareparts_not_chargeable"]
@@ -223,12 +294,18 @@ class Job {
             .toList()
         : [];
 
-    this.picklist = json["bag_pick_list"]?['spareparts'] != null
+    this.picklistNotCollected = json["bag_pick_list"]?['spareparts'] != null
         ? ((json["bag_pick_list"]?['spareparts'] as List)
                 .map((e) => SparePart.fromJson(e))
                 .toList())
             .where((element) => element.collectedAt == null)
             .toList()
+        : [];
+
+    this.picklistCollected = json["bag_pick_list"]?['spareparts'] != null
+        ? ((json["bag_pick_list"]?['spareparts'] as List)
+            .map((e) => SparePart.fromJson(e))
+            .toList())
         : [];
 
     this.miscCharges = json["misc_charges"] != null
@@ -266,31 +343,38 @@ class Job {
 
     this.aggregatedSpareparts = [];
 
-    this.aggregatedSpareparts?.addAll(currentJobSparepartsfromBag ?? []);
+    if ((currentJobSparepartsfromBag?.length ?? 0) > 0) {
+      this.aggregatedSpareparts?.addAll(currentJobSparepartsfromBag ?? []);
+    }
 
-    currentJobSparepartsfromWarehouse?.forEach((element) {
-      var index =
-          this.aggregatedSpareparts?.indexWhere((e) => e.id == element.id);
-      if (index != -1) {
-        this.aggregatedSpareparts?[index ?? 0].quantity =
-            (this.aggregatedSpareparts?[index ?? 0].quantity ?? 0) +
-                (element.quantity ?? 0);
-      } else {
-        this.aggregatedSpareparts?.add(element);
-      }
-    });
+    if ((currentJobSparepartsfromWarehouse?.length ?? 0) > 0) {
+      currentJobSparepartsfromWarehouse?.forEach((element) {
+        var index =
+            this.aggregatedSpareparts?.indexWhere((e) => e.id == element.id);
+        if (index != -1) {
+          this.aggregatedSpareparts?[index ?? 0].quantity =
+              (this.aggregatedSpareparts?[index ?? 0].quantity ?? 0) +
+                  (element.quantity ?? 0);
+        } else {
+          this.aggregatedSpareparts?.add(element);
+        }
+      });
+    }
 
-    currentJobSparepartsfromPickList?.forEach((element) {
-      var index =
-          this.aggregatedSpareparts?.indexWhere((e) => e.id == element.id);
-      if (index != -1) {
-        this.aggregatedSpareparts?[index ?? 0].quantity =
-            (this.aggregatedSpareparts?[index ?? 0].quantity ?? 0) +
-                (element.quantity ?? 0);
-      } else {
-        this.aggregatedSpareparts?.add(element);
-      }
-    });
+    if ((currentJobSparepartsfromPickList?.length ?? 0) > 0) {
+      currentJobSparepartsfromPickList?.forEach((element) {
+        var index =
+            this.aggregatedSpareparts?.indexWhere((e) => e.id == element.id);
+        if (index != -1) {
+          this.aggregatedSpareparts?[index ?? 0].quantity =
+              (this.aggregatedSpareparts?[index ?? 0].quantity ?? 0) +
+                  (element.quantity ?? 0);
+        } else {
+          this.aggregatedSpareparts?.add(element);
+        }
+      });
+    }
+    this.isMainEngineer = json["is_main_engineer"];
 
     var list = [];
   }

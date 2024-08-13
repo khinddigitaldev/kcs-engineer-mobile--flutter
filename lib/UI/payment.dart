@@ -3,10 +3,11 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kcs_engineer/model/job.dart';
-import 'package:kcs_engineer/model/payment_method.dart';
-import 'package:kcs_engineer/model/payment_request.dart';
-import 'package:kcs_engineer/model/rcpCost.dart';
+import 'package:kcs_engineer/model/job/job.dart';
+import 'package:kcs_engineer/model/payment/payment_method.dart';
+import 'package:kcs_engineer/model/payment/payment_request.dart';
+import 'package:kcs_engineer/model/payment/rcpCost.dart';
+import 'package:kcs_engineer/util/components/payment_image_uploader.dart';
 import 'package:kcs_engineer/util/helpers.dart';
 import 'package:kcs_engineer/util/repositories.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -48,6 +49,7 @@ class _PaymentState extends State<Payment> {
   final storage = new FlutterSecureStorage();
   String? token;
   PaymentDTO? paymentDTO;
+  String? qrText;
 
   @override
   void initState() {
@@ -55,6 +57,9 @@ class _PaymentState extends State<Payment> {
     setState(() {
       selectedJob = widget.data;
       paymentDTO = widget.paymentDTO;
+      qrText = widget.paymentMethods
+          ?.firstWhere((element) => element.hasQr ?? false)
+          .qrText;
     });
     _loadVersion();
     //_loadToken();
@@ -119,8 +124,6 @@ class _PaymentState extends State<Payment> {
                   new BoxDecoration(color: Colors.white.withOpacity(0.0)),
               child: RichText(
                 text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
                   style: const TextStyle(
                     fontSize: 25.0,
                     color: Colors.black,
@@ -142,8 +145,6 @@ class _PaymentState extends State<Payment> {
               child: RichText(
                 textAlign: TextAlign.center,
                 text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
                   style: const TextStyle(
                     fontSize: 17.0,
                     color: Colors.black54,
@@ -158,15 +159,16 @@ class _PaymentState extends State<Payment> {
               ),
             ),
             SizedBox(height: 50),
-            Container(
-              alignment: Alignment.center,
-              child: QrImage(
-                data:
-                    "00020101021226370009SG.PAYNOW010120210198701251D030115204000053037025802SG5923MAYER MARKETING PTE LTD6009Singapore62260122MAYER MARKETING - UBI 63040880",
-                version: QrVersions.auto,
-                size: 300.0,
-              ),
-            ),
+            qrText != null
+                ? Container(
+                    alignment: Alignment.center,
+                    child: QrImage(
+                      data: "$qrText",
+                      version: QrVersions.auto,
+                      size: 300.0,
+                    ),
+                  )
+                : new Container(),
             // Container(
             //   height: 100,
             //   width: 300,
@@ -183,8 +185,8 @@ class _PaymentState extends State<Payment> {
             //       new BoxDecoration(color: Colors.white.withOpacity(0.0)),
             //   child: RichText(
             //     text: TextSpan(
-            //       // Note: Styles for TextSpans must be explicitly defined.
-            //       // Child text spans will inherit styles from parent
+            //
+            //
             //       style: const TextStyle(
             //         fontSize: 20.0,
             //         color: Colors.black,
@@ -204,8 +206,6 @@ class _PaymentState extends State<Payment> {
                   new BoxDecoration(color: Colors.white.withOpacity(0.0)),
               child: RichText(
                 text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
                   style: TextStyle(
                     fontSize: 28.0,
                     color: Colors.black,
@@ -235,8 +235,6 @@ class _PaymentState extends State<Payment> {
                   ),
                   RichText(
                     text: TextSpan(
-                      // Note: Styles for TextSpans must be explicitly defined.
-                      // Child text spans will inherit styles from parent
                       style: const TextStyle(
                         fontSize: 15.0,
                         color: Colors.white,
@@ -253,8 +251,6 @@ class _PaymentState extends State<Payment> {
                   ),
                   RichText(
                     text: TextSpan(
-                      // Note: Styles for TextSpans must be explicitly defined.
-                      // Child text spans will inherit styles from parent
                       style: const TextStyle(
                         fontSize: 15.0,
                         color: Colors.blue,
@@ -293,7 +289,8 @@ class _PaymentState extends State<Payment> {
                               side: BorderSide(
                                   color: Color(0xFFFFB700).withOpacity(0.7))))),
                   onPressed: () async {
-                    var val = await Repositories.confirmAcknowledgement(
+                    var res = await showMultipleImagesPromptDialog(
+                        context,
                         selectedJob?.serviceRequestid ?? "",
                         widget.signature,
                         widget.isWantInvoice ?? false,
@@ -313,8 +310,7 @@ class _PaymentState extends State<Payment> {
                                 .toString());
 
                     // if (val) {
-                    Navigator.pushNamed(context, 'feedback_confirmation',
-                        arguments: selectedJob);
+
                     // }
                   }),
             ),
@@ -322,6 +318,26 @@ class _PaymentState extends State<Payment> {
         ),
       ),
     );
+  }
+
+  showMultipleImagesPromptDialog(BuildContext context, String jobId, File image,
+      bool isMailInvoice, String mailEmail, String paymentMethodId) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return SignatureMultiImageUploadDialog(
+          jobId: jobId,
+          image: image,
+          isMailInvoice: isMailInvoice,
+          mailEmail: mailEmail,
+          paymentMethodId: paymentMethodId,
+        );
+      },
+    ).then((value) async {
+      Navigator.pushNamed(context, 'feedback_confirmation',
+          arguments: selectedJob);
+    });
   }
 
   _renderError() {

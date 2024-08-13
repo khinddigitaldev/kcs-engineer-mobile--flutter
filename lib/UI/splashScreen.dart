@@ -1,6 +1,10 @@
+import 'dart:async';
+
+import 'package:after_layout/after_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kcs_engineer/model/job.dart';
+import 'package:kcs_engineer/model/job/job.dart';
+import 'package:kcs_engineer/util/helpers.dart';
 import 'package:kcs_engineer/util/key.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -11,7 +15,7 @@ class SplashScreen extends StatefulWidget {
   _SplashScreenState createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen> with AfterLayoutMixin {
   GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   TextEditingController emailCT = new TextEditingController();
@@ -39,18 +43,27 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void validateToken() async {
-    await Future.delayed(const Duration(seconds: 1), () async {
+    bool res = await Helpers.checkAppVersion(context);
+    // bool res = true;
+    if (res) {
       if (selectedJob != null) {
         Navigator.pushReplacementNamed(context, 'home');
       } else {
-        final accessToken = await storage.read(key: TOKEN);
-        if (accessToken != null && accessToken != "") {
-          Navigator.pushReplacementNamed(context, 'home');
-        } else {
+        try {
+          final accessToken = await storage.read(key: TOKEN);
+
+          if (accessToken != null && accessToken != "") {
+            Navigator.pushReplacementNamed(context, 'home');
+          } else {
+            Navigator.pushReplacementNamed(context, 'signIn');
+          }
+        } catch (err) {
           Navigator.pushReplacementNamed(context, 'signIn');
         }
       }
-    });
+    }
+
+    // await Future.delayed(const Duration(seconds: 1), () async {});
   }
 
   @override
@@ -117,5 +130,10 @@ class _SplashScreenState extends State<SplashScreen> {
                                 //version != "" ? _renderVersion() : Container()
                               ]))))),
         ));
+  }
+
+  @override
+  FutureOr<void> afterFirstLayout(BuildContext context) async {
+    // await Helpers.checkAppVersion(context);
   }
 }

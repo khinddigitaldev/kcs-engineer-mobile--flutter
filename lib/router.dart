@@ -4,17 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:kcs_engineer/UI/feedback.dart';
 import 'package:kcs_engineer/UI/feedback_confirmation.dart';
 import 'package:kcs_engineer/UI/payment.dart';
-import 'package:kcs_engineer/UI/job_details.dart';
+import 'package:kcs_engineer/UI/job-details/job_details.dart';
 import 'package:kcs_engineer/UI/payment_history.dart';
 import 'package:kcs_engineer/UI/side_menu.dart';
 import 'package:kcs_engineer/UI/signature.dart';
 import 'package:kcs_engineer/UI/signin.dart';
 import 'package:kcs_engineer/UI/splashScreen.dart';
 import 'package:kcs_engineer/UI/warehouse.dart';
-import 'package:kcs_engineer/model/job.dart';
-import 'package:kcs_engineer/model/payment_method.dart';
-import 'package:kcs_engineer/model/payment_request.dart';
-import 'package:kcs_engineer/model/rcpCost.dart';
+import 'package:kcs_engineer/model/job/job.dart';
+import 'package:kcs_engineer/model/payment/payment_method.dart';
+import 'package:kcs_engineer/model/payment/payment_request.dart';
+import 'package:kcs_engineer/model/payment/rcpCost.dart';
 
 class AppRouter {
   static const String initialRoute = "/";

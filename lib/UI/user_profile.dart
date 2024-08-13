@@ -9,8 +9,8 @@ import 'package:flutter_config/flutter_config.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:kcs_engineer/model/engineer.dart';
-import 'package:kcs_engineer/model/user.dart';
+import 'package:kcs_engineer/model/user/engineer.dart';
+import 'package:kcs_engineer/model/user/user.dart';
 import 'package:kcs_engineer/themes/text_styles.dart';
 import 'package:kcs_engineer/util/api.dart';
 import 'package:kcs_engineer/util/helpers.dart';
@@ -101,6 +101,8 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
 
   updateProfilePicture() async {
     await Repositories.updateProfilePicuture(_imageFile?.path ?? "");
+
+    await fetchProfileData();
   }
 
   _loadVersion() async {
@@ -149,8 +151,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
               alignment: Alignment.centerLeft,
               child: RichText(
                 text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
                   style: const TextStyle(
                     fontSize: 29.0,
                     color: Colors.black,
@@ -171,79 +171,110 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                    alignment: Alignment.centerLeft,
-                    child: engineer?.profileImage != null
-                        ? Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: <Widget>[
-                              Stack(
-                                children: [
-                                  _imageFile != null && engineer != null
-                                      ? Container(
-                                          width: 280,
-                                          height: 300,
-                                          decoration: BoxDecoration(
-                                              color: Color(0xFF081b29),
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
-                                              image: DecorationImage(
-                                                image: FileImage(
-                                                    _imageFile ?? new File("")),
-                                              )))
-                                      : engineer != null
-                                          ? Container(
-                                              width: 280,
-                                              height: 300,
-                                              decoration: BoxDecoration(
-                                                  color: Color(0xFF081b29),
-                                                  borderRadius:
-                                                      BorderRadius.circular(20),
-                                                  image: DecorationImage(
-                                                      image:
-                                                          CachedNetworkImageProvider(
-                                                        engineer?.profileImage ??
-                                                            "",
-                                                        // maxHeight: 200,
-                                                        // maxWidth: 300,
-                                                      ),
-                                                      fit: BoxFit.cover)),
-                                            )
-                                          : Container(
-                                              width: 280,
-                                              height: 300,
-                                              decoration: BoxDecoration(
-                                                  borderRadius:
-                                                      BorderRadius.circular(20),
-                                                  color: Color(0xFF081b29),
-                                                  image: DecorationImage(
-                                                    image: AssetImage(
-                                                        'assets/images/user_profile.png'),
-                                                    fit: BoxFit.cover,
-                                                  ))),
-                                  Positioned(
-                                    right: 0,
-                                    bottom: 0,
-                                    child: Padding(
-                                      padding: EdgeInsets.only(
-                                          right: 20, bottom: 10),
-                                      child: ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                            primary: Color(0xFF455059)
-                                                .withOpacity(0.4)),
-                                        onPressed: _getImage,
-                                        child: Icon(
-                                          size: 30.0,
-                                          Icons.camera_alt_outlined,
-                                          color: Colors.white,
-                                        ),
+                  alignment: Alignment.centerLeft,
+                  child: engineer?.profileImage != null
+                      ? Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: <Widget>[
+                            Stack(
+                              children: [
+                                _imageFile != null && engineer != null
+                                    ? Container(
+                                        width: 280,
+                                        height: 300,
+                                        decoration: BoxDecoration(
+                                            color: Color(0xFF081b29),
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                            image: DecorationImage(
+                                              image: FileImage(
+                                                  _imageFile ?? new File("")),
+                                            )))
+                                    : engineer != null
+                                        ? Container(
+                                            width: 280,
+                                            height: 300,
+                                            decoration: BoxDecoration(
+                                                color: Color(0xFF081b29),
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                                image: DecorationImage(
+                                                    image:
+                                                        CachedNetworkImageProvider(
+                                                      engineer?.profileImage ??
+                                                          "",
+                                                      // maxHeight: 200,
+                                                      // maxWidth: 300,
+                                                    ),
+                                                    fit: BoxFit.cover)),
+                                          )
+                                        : Container(
+                                            width: 280,
+                                            height: 300,
+                                            decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                                color: Color(0xFF081b29),
+                                                image: DecorationImage(
+                                                  image: AssetImage(
+                                                      'assets/images/user_profile.png'),
+                                                  fit: BoxFit.cover,
+                                                ))),
+                                Positioned(
+                                  right: 0,
+                                  bottom: 0,
+                                  child: Padding(
+                                    padding:
+                                        EdgeInsets.only(right: 20, bottom: 10),
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                          primary: Color(0xFF455059)
+                                              .withOpacity(0.4)),
+                                      onPressed: _getImage,
+                                      child: Icon(
+                                        size: 30.0,
+                                        Icons.camera_alt_outlined,
+                                        color: Colors.white,
                                       ),
                                     ),
-                                  )
-                                ],
-                              )
-                            ],
+                                  ),
+                                )
+                              ],
+                            )
+                          ],
+                        )
+                      : Stack(children: [
+                          Container(
+                              width: 280,
+                              height: 300,
+                              decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(20),
+                                  color: Color(0xFF081b29),
+                                  image: DecorationImage(
+                                    image: AssetImage(
+                                        'assets/images/user_profile.png'),
+                                    fit: BoxFit.cover,
+                                  ))),
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: Padding(
+                              padding: EdgeInsets.only(right: 20, bottom: 10),
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                    primary:
+                                        Color(0xFF455059).withOpacity(0.4)),
+                                onPressed: _getImage,
+                                child: Icon(
+                                  size: 30.0,
+                                  Icons.camera_alt_outlined,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
                           )
-                        : new Container()),
+                        ]),
+                ),
               ],
             ),
 
@@ -252,8 +283,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
               alignment: Alignment.centerLeft,
               child: RichText(
                 text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
                   style: const TextStyle(
                     fontSize: 45.0,
                     color: Colors.black,
@@ -271,8 +300,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
               alignment: Alignment.centerLeft,
               child: RichText(
                 text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
                   style: const TextStyle(
                     fontSize: 20.0,
                     color: Colors.grey,
@@ -312,8 +339,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
               alignment: Alignment.centerLeft,
               child: RichText(
                 text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
                   style: const TextStyle(
                     fontSize: 28.0,
                     color: Colors.black,
@@ -340,8 +365,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                       children: [
                         RichText(
                           text: TextSpan(
-                              // Note: Styles for TextSpans must be explicitly defined.
-                              // Child text spans will inherit styles from parent
                               style: const TextStyle(
                                 fontSize: 14.0,
                                 color: Colors.grey,
@@ -355,8 +378,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                         ),
                         RichText(
                           text: TextSpan(
-                              // Note: Styles for TextSpans must be explicitly defined.
-                              // Child text spans will inherit styles from parent
                               style: const TextStyle(
                                 fontSize: 20.0,
                                 color: Colors.black,
@@ -372,8 +393,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                         SizedBox(height: 10),
                         RichText(
                           text: TextSpan(
-                              // Note: Styles for TextSpans must be explicitly defined.
-                              // Child text spans will inherit styles from parent
                               style: const TextStyle(
                                 fontSize: 14.0,
                                 color: Colors.grey,
@@ -387,8 +406,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                         ),
                         RichText(
                           text: TextSpan(
-                              // Note: Styles for TextSpans must be explicitly defined.
-                              // Child text spans will inherit styles from parent
                               style: const TextStyle(
                                 fontSize: 20.0,
                                 color: Colors.black,
@@ -415,8 +432,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                         SizedBox(height: 20),
                         RichText(
                           text: TextSpan(
-                              // Note: Styles for TextSpans must be explicitly defined.
-                              // Child text spans will inherit styles from parent
                               style: const TextStyle(
                                 color: Colors.grey,
                               ),
@@ -435,8 +450,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                               alignment: Alignment.centerLeft,
                               child: RichText(
                                 text: TextSpan(
-                                    // Note: Styles for TextSpans must be explicitly defined.
-                                    // Child text spans will inherit styles from parent
                                     style: const TextStyle(
                                       fontSize: 20.0,
                                       color: Colors.black,
@@ -453,8 +466,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                         SizedBox(height: 10),
                         RichText(
                           text: TextSpan(
-                              // Note: Styles for TextSpans must be explicitly defined.
-                              // Child text spans will inherit styles from parent
                               style: const TextStyle(
                                 fontSize: 14.0,
                                 color: Colors.grey,
@@ -468,8 +479,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                         ),
                         RichText(
                           text: TextSpan(
-                              // Note: Styles for TextSpans must be explicitly defined.
-                              // Child text spans will inherit styles from parent
                               style: const TextStyle(
                                 fontSize: 20.0,
                                 color: Colors.black,
@@ -516,8 +525,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                       children: [
                         RichText(
                           text: TextSpan(
-                              // Note: Styles for TextSpans must be explicitly defined.
-                              // Child text spans will inherit styles from parent
                               style: const TextStyle(
                                 color: Colors.grey,
                               ),
@@ -534,8 +541,6 @@ class _UserProfileState extends State<UserProfile> with AfterLayoutMixin {
                           alignment: Alignment.centerLeft,
                           child: RichText(
                             text: TextSpan(
-                                // Note: Styles for TextSpans must be explicitly defined.
-                                // Child text spans will inherit styles from parent
                                 style: const TextStyle(
                                   fontSize: 20.0,
                                   color: Colors.black,

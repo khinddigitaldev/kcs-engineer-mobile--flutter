@@ -4,9 +4,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
-import 'package:kcs_engineer/model/general_code.dart';
-import 'package:kcs_engineer/model/job.dart';
-import 'package:kcs_engineer/model/payment_history_item.dart';
+import 'package:kcs_engineer/model/job/job.dart';
+import 'package:kcs_engineer/model/payment/payment_history_item.dart';
 import 'package:kcs_engineer/themes/app_colors.dart';
 import 'package:kcs_engineer/util/api.dart';
 import 'package:kcs_engineer/util/helpers.dart';
@@ -40,9 +39,6 @@ class _PaymentHistoryState extends State<PaymentHistory> {
   String? quantity;
   String? price;
   String? remarks;
-  List<GeneralCode> generalCodeList = [];
-
-  List<GeneralCode> addedGeneralCodeQuantities = [];
 
   Timer? searchOnStoppedTyping;
   String currentSearchText = "";
@@ -133,8 +129,6 @@ class _PaymentHistoryState extends State<PaymentHistory> {
             alignment: Alignment.centerLeft,
             child: RichText(
               text: TextSpan(
-                // Note: Styles for TextSpans must be explicitly defined.
-                // Child text spans will inherit styles from parent
                 style: const TextStyle(
                   fontSize: 29.0,
                   color: Colors.black,
@@ -158,8 +152,6 @@ class _PaymentHistoryState extends State<PaymentHistory> {
               alignment: Alignment.centerLeft,
               child: RichText(
                 text: TextSpan(
-                    // Note: Styles for TextSpans must be explicitly defined.
-                    // Child text spans will inherit styles from parent
                     style: const TextStyle(
                       fontSize: 25.0,
                       color: Colors.black,
@@ -329,19 +321,6 @@ class _PaymentHistoryState extends State<PaymentHistory> {
                           ),
                         ),
                       ))),
-                      // DataColumn(
-                      //     label: Container(
-                      //   width: MediaQuery.of(context).size.width * .114,
-                      //   child: SizedBox(
-                      //     width: 100,
-                      //     //alignment: Alignment.centerRight,
-                      //     child: Text('PAYMENT MODE',
-                      //         maxLines: 2,
-                      //         overflow: TextOverflow.ellipsis,
-                      //         style:
-                      //             TextStyle(color: Colors.white, fontSize: 11)),
-                      //   ),
-                      // )),
                       DataColumn(
                         label: Container(
                             width: MediaQuery.of(context).size.width * .08,
@@ -599,7 +578,6 @@ class _PaymentHistoryState extends State<PaymentHistory> {
                 border: Border.all(color: const Color(0xFFB6B6B6), width: 1),
                 shape: BoxShape.circle),
           ),
-
           onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
             setState(() {
               if (args.value.startDate != null) {
@@ -613,16 +591,7 @@ class _PaymentHistoryState extends State<PaymentHistory> {
                 tempEndDate = tempStartDate;
               }
             });
-
-            // setState(() {
-            //   tempSelectedDate = DateFormat('yyyy-MM-dd').format(
-            //       DateFormat('yyyy-MM-dd hh:mm:ss')
-            //           .parse(args.value.toString()));
-            // });
           },
-          // initialSelectedRange: PickerDateRange(
-          //     DateTime.now().subtract(const Duration(days: 4)),
-          //     DateTime.now().add(const Duration(days: 3))),
         ),
       ),
     );

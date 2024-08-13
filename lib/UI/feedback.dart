@@ -8,8 +8,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kcs_engineer/model/job.dart';
-import 'package:kcs_engineer/model/payment_request.dart';
+import 'package:kcs_engineer/model/job/job.dart';
+import 'package:kcs_engineer/model/payment/payment_request.dart';
 import 'package:kcs_engineer/themes/text_styles.dart';
 import 'package:kcs_engineer/util/helpers.dart';
 import 'package:kcs_engineer/util/repositories.dart';
@@ -124,8 +124,6 @@ class _FeedbackState extends State<FeedbackUI> {
                   new BoxDecoration(color: Colors.white.withOpacity(0.0)),
               child: RichText(
                 text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
                   style: const TextStyle(
                     fontSize: 35.0,
                     color: Colors.red,
@@ -145,8 +143,6 @@ class _FeedbackState extends State<FeedbackUI> {
                   new BoxDecoration(color: Colors.white.withOpacity(0.0)),
               child: RichText(
                 text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
                   style: const TextStyle(
                     fontSize: 15.0,
                     color: Colors.grey,
@@ -166,8 +162,6 @@ class _FeedbackState extends State<FeedbackUI> {
                   new BoxDecoration(color: Colors.white.withOpacity(0.0)),
               child: RichText(
                 text: TextSpan(
-                  // Note: Styles for TextSpans must be explicitly defined.
-                  // Child text spans will inherit styles from parent
                   style: const TextStyle(
                     fontSize: 18.0,
                     color: Colors.black,
@@ -223,8 +217,6 @@ class _FeedbackState extends State<FeedbackUI> {
                         new BoxDecoration(color: Colors.white.withOpacity(0.0)),
                     child: RichText(
                       text: TextSpan(
-                        // Note: Styles for TextSpans must be explicitly defined.
-                        // Child text spans will inherit styles from parent
                         style: const TextStyle(
                           fontSize: 14.0,
                           color: Colors.grey,
@@ -269,8 +261,6 @@ class _FeedbackState extends State<FeedbackUI> {
             (!isNeutralRating && isBadRating)
                 ? RichText(
                     text: TextSpan(
-                      // Note: Styles for TextSpans must be explicitly defined.
-                      // Child text spans will inherit styles from parent
                       style: const TextStyle(
                         fontSize: 17.0,
                         color: Colors.black,
