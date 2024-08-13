@@ -1904,7 +1904,9 @@ class _JobDetailsState extends State<JobDetails>
                               size: 25.0,
                             ),
                             (selectedJob?.userMobileNo != null &&
-                                    selectedJob?.userMobileNo != "")
+                                        selectedJob?.userMobileNo != "") &&
+                                    (selectedJob?.userMobileNo !=
+                                        selectedJob?.customerTelephone)
                                 ? Container(
                                     alignment: Alignment.bottomCenter,
                                     padding: EdgeInsets.all(5),
@@ -1975,63 +1977,62 @@ class _JobDetailsState extends State<JobDetails>
                   ],
                 )),
             (selectedJob?.userMobileNo != null &&
-                    selectedJob?.userMobileNo != "")
+                        selectedJob?.userMobileNo != "") &&
+                    (selectedJob?.userMobileNo !=
+                        selectedJob?.customerTelephone)
                 ? Container(
                     child: Row(
-                            children: [
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        Icon(
-                                          Icons.phone,
-                                          color: Colors.black54,
-                                          size: 25.0,
-                                        ),
-                                        Container(
-                                          child: Container(
-                                            alignment: Alignment.bottomCenter,
-                                            padding: EdgeInsets.all(5),
-                                            decoration: BoxDecoration(
-                                              color: Color(0xFF323F4B),
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Text(
-                                              '2', // Replace with your actual number
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 10,
-                                              ),
-                                            ),
-                                          ),
-                                        )
-                                      ])
-                                ],
-                              ),
-                              const SizedBox(
-                                width: 10,
-                              ),
-                              RichText(
-                                text: TextSpan(
-                                    style: TextStyle(
-                                      fontSize: 15.0,
-                                      color: Colors.black54,
+                    children: [
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Icon(
+                                  Icons.phone,
+                                  color: Colors.black54,
+                                  size: 25.0,
+                                ),
+                                Container(
+                                  child: Container(
+                                    alignment: Alignment.bottomCenter,
+                                    padding: EdgeInsets.all(5),
+                                    decoration: BoxDecoration(
+                                      color: Color(0xFF323F4B),
+                                      shape: BoxShape.circle,
                                     ),
-                                    children: <TextSpan>[
-                                      TextSpan(
-                                        text:
-                                            '+${selectedJob?.userMobileNo}',
+                                    child: Text(
+                                      '2', // Replace with your actual number
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
                                       ),
-                                    ]),
+                                    ),
+                                  ),
+                                )
+                              ])
+                        ],
+                      ),
+                      const SizedBox(
+                        width: 10,
+                      ),
+                      RichText(
+                        text: TextSpan(
+                            style: TextStyle(
+                              fontSize: 15.0,
+                              color: Colors.black54,
+                            ),
+                            children: <TextSpan>[
+                              TextSpan(
+                                text: '+${selectedJob?.userMobileNo}',
                               ),
-                            ],
-                          )
-                  )
+                            ]),
+                      ),
+                    ],
+                  ))
                 : new Container(),
           ]),
           SizedBox(
