@@ -724,13 +724,7 @@ class _SignatureState extends State<SignatureUI> {
       return false;
     }
 
-    if (_formKey.currentState!.validate() && !signatureErr) {
-      if (isWantInvoice && emailCT.text == "") {
-        setState(() {
-          errorEmail = true;
-        });
-        return false;
-      }
+    if (!signatureErr) {
       paymentDTO = new PaymentDTO();
       // paymentDTO.PMOneCT = PMOneCT.text;
       // paymentDTO.PMTwoCT = PMTwoCT.text;

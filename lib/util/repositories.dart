@@ -979,7 +979,7 @@ class Repositories {
 
     http.StreamedResponse response = await request.send();
 
-    var res = response.stream.bytesToString() ?? "";
+    // var res = response.stream.bytesToString() ?? "";
 
     if (response.statusCode == 200) {
       // print(await response.stream.bytesToString());
