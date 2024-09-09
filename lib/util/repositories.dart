@@ -67,17 +67,12 @@ class Repositories {
     Map<String, dynamic> map = {"logout_all_devices": false};
     final response = await Api.bearerPost('auth/logout', params: map);
     print("#Resp: ${jsonEncode(response)}");
+    await storage.delete(key: TOKEN);
+    await storage.delete(key: TOKEN_EXPIRY);
+    await storage.delete(key: REFRESH_TOKEN);
+    await storage.delete(key: USERID);
 
-    if (response["success"] != null && response["success"]) {
-      Helpers.isAuthenticated = false;
-      await storage.delete(key: TOKEN);
-      await storage.delete(key: TOKEN_EXPIRY);
-      await storage.delete(key: REFRESH_TOKEN);
-      await storage.delete(key: USERID);
-      return true;
-    } else {
-      return false;
-    }
+    return true;
   }
 
   // static Future<String> renewAccessToken() async {
@@ -958,17 +953,7 @@ class Repositories {
       request.files.add(await http.MultipartFile.fromPath(
           'qr_payment', qrPaymentImgs?.path ?? ""));
     }
-    // List<http.MultipartFile> multipartFiles = [];
 
-    // for (var file in qrPaymentImgs) {
-    //   List<int> fileBytes = await file.readAsBytes();
-    //   http.MultipartFile multipartFile = http.MultipartFile.fromBytes(
-    //     'images[]',
-    //     fileBytes,
-    //     filename: file.path.split('/').last,
-    //   );
-    //   multipartFiles.add(multipartFile);
-    // }
     request.headers.addAll(headers);
     request.fields['service_request_id'] = jobId;
     request.fields['payment_method_id'] = paymentMethodId;
@@ -979,10 +964,7 @@ class Repositories {
 
     http.StreamedResponse response = await request.send();
 
-    var res = response.stream.bytesToString() ?? "";
-
     if (response.statusCode == 200) {
-      // print(await response.stream.bytesToString());
       return true;
     } else {
       print(response.reasonPhrase);

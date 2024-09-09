@@ -872,7 +872,7 @@ class _JobListState extends State<JobList>
               Spacer(),
               !isBulkRejectEnabled
                   ? SizedBox(
-                      width: MediaQuery.of(context).size.width * 0.18,
+                      width: MediaQuery.of(context).size.width * 0.16,
                       height: MediaQuery.of(context).size.width * 0.05,
                       child: ElevatedButton(
                           child: Padding(
@@ -1083,7 +1083,7 @@ class _JobListState extends State<JobList>
                       )
                     ]),
               Container(
-                width: MediaQuery.of(context).size.width * 0.15,
+                width: MediaQuery.of(context).size.width * 0.16,
                 height: MediaQuery.of(context).size.width * 0.05,
                 padding: EdgeInsets.only(left: 20),
                 child: ElevatedButton(
