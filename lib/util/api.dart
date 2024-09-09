@@ -60,7 +60,9 @@ class ApiInterceptor implements InterceptorContract {
       await storage.delete(key: REFRESH_TOKEN);
       await storage.delete(key: USERID);
 
-      await NavigationService.pushReplacementNamed('signIn');
+      if (!(data.url?.contains('/login') ?? true)) {
+        await NavigationService.pushReplacementNamed('signIn');
+      }
     }
 
     return data;

@@ -15,6 +15,7 @@ import 'package:kcs_engineer/themes/text_styles.dart';
 import 'package:kcs_engineer/util/components/payment_image_uploader.dart';
 import 'package:kcs_engineer/util/helpers.dart';
 import 'package:kcs_engineer/util/repositories.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:signature/signature.dart';
@@ -551,12 +552,20 @@ class _SignatureState extends State<SignatureUI> {
               height:
                   MediaQuery.of(context).size.height * 0.04, // <-- match-parent
               child: ElevatedButton(
-                  child: Padding(
-                      padding: const EdgeInsets.all(5.0),
-                      child: Text(
-                        'Next',
-                        style: TextStyle(fontSize: 20, color: Colors.white),
-                      )),
+                  child: isLoading
+                      ? Padding(
+                          padding: const EdgeInsets.all(5.0),
+                          child: LoadingAnimationWidget.staggeredDotsWave(
+                            color: Color(0xFFFFFFFF),
+                            size: MediaQuery.of(context).size.height * 0.03,
+                          ),
+                        )
+                      : Padding(
+                          padding: const EdgeInsets.all(5.0),
+                          child: Text(
+                            'Next',
+                            style: TextStyle(fontSize: 20, color: Colors.white),
+                          )),
                   style: ButtonStyle(
                       foregroundColor: MaterialStateProperty.all<Color>(
                           Color(0xFFFFB700).withOpacity(0.7)),
@@ -568,94 +577,111 @@ class _SignatureState extends State<SignatureUI> {
                               side: BorderSide(
                                   color: Color(0xFFFFB700).withOpacity(0.7))))),
                   onPressed: () async {
-                    var res = await _processPayment();
-                    Uint8List? bodyBytes =
-                        await paymentDTO.signatureController?.toPngBytes();
-                    File signature = await _convertImageToFile(bodyBytes!);
-                    if (res) {
-                      if (paymentMethods != null && paymentMethods.isNotEmpty) {
-                        if (payNow) {
-                          Navigator.pushNamed(context, 'payment', arguments: [
-                            selectedJob,
-                            paymentDTO,
-                            widget.rcpCost,
-                            signature,
-                            isWantInvoice,
-                            payByCash,
-                            emailCT.text.toString(),
-                            paymentMethods
-                          ]);
-                        } else {
-                          var val = await Repositories.confirmAcknowledgement(
-                              selectedJob?.serviceRequestid ?? "",
+                    if (!isLoading) {
+                      var res = await _processPayment();
+                      Uint8List? bodyBytes =
+                          await paymentDTO.signatureController?.toPngBytes();
+                      File signature = await _convertImageToFile(bodyBytes!);
+                      if (res) {
+                        if (paymentMethods != null &&
+                            paymentMethods.isNotEmpty) {
+                          if (payNow) {
+                            Navigator.pushNamed(context, 'payment', arguments: [
+                              selectedJob,
+                              paymentDTO,
+                              widget.rcpCost,
                               signature,
-                              null,
                               isWantInvoice,
+                              payByCash,
                               emailCT.text.toString(),
-                              (((widget.rcpCost?.isDiscountValid ?? false)
-                                          ? widget.rcpCost?.totalRCP
-                                          : widget.rcpCost?.total) !=
-                                      "MYR 0.00")
-                                  ? payByCash
-                                      ? paymentMethods
-                                          .where((element) =>
-                                              element.method?.toLowerCase() ==
-                                              "cash")
-                                          .toList()[0]
-                                          .id
-                                          .toString()
-                                      : paymentMethods
-                                          .where((element) =>
-                                              element.method?.toLowerCase() ==
-                                              "scanned")
-                                          .toList()[0]
-                                          .id
-                                          .toString()
-                                  : "3");
+                              paymentMethods
+                            ]);
+                          } else {
+                            setState(() {
+                              isLoading = true;
+                            });
+                            var val = await Repositories.confirmAcknowledgement(
+                                selectedJob?.serviceRequestid ?? "",
+                                signature,
+                                null,
+                                isWantInvoice,
+                                emailCT.text.toString(),
+                                (((widget.rcpCost?.isDiscountValid ?? false)
+                                            ? widget.rcpCost?.totalRCP
+                                            : widget.rcpCost?.total) !=
+                                        "MYR 0.00")
+                                    ? payByCash
+                                        ? paymentMethods
+                                            .where((element) =>
+                                                element.method?.toLowerCase() ==
+                                                "cash")
+                                            .toList()[0]
+                                            .id
+                                            .toString()
+                                        : paymentMethods
+                                            .where((element) =>
+                                                element.method?.toLowerCase() ==
+                                                "scanned")
+                                            .toList()[0]
+                                            .id
+                                            .toString()
+                                    : "3");
+                            setState(() {
+                              isLoading = false;
+                            });
 
-                          if (val) {
-                            if (!signatureErr && !errorEmail) {
-                              //if (res) {
+                            if (val) {
+                              if (!signatureErr && !errorEmail) {
+                                //if (res) {
 
-                              Navigator.pushNamed(
-                                  context, 'feedback_confirmation',
-                                  arguments: selectedJob);
+                                Navigator.pushNamed(
+                                    context, 'feedback_confirmation',
+                                    arguments: selectedJob);
+                              } else {
+                                Widget okButton = TextButton(
+                                  child: Text("OK"),
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                  },
+                                );
+
+                                // set up the AlertDialog
+                                AlertDialog alert = AlertDialog(
+                                  title: Text("Error"),
+                                  content:
+                                      Text("Payment Could not be completed."),
+                                  actions: [
+                                    okButton,
+                                  ],
+                                );
+
+                                // show the dialog
+                                showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return alert;
+                                  },
+                                );
+                              }
                             } else {
-                              Widget okButton = TextButton(
-                                child: Text("OK"),
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                },
-                              );
-
-                              // set up the AlertDialog
-                              AlertDialog alert = AlertDialog(
-                                title: Text("Error"),
-                                content:
-                                    Text("Payment Could not be completed."),
-                                actions: [
-                                  okButton,
-                                ],
-                              );
-
-                              // show the dialog
-                              showDialog(
-                                context: context,
-                                builder: (BuildContext context) {
-                                  return alert;
-                                },
-                              );
+                              Helpers.showAlert(context,
+                                  hasAction: true,
+                                  type: "error",
+                                  title: "Something went wrong.",
+                                  onPressed: () async {
+                                Navigator.pop(context);
+                              });
                             }
                           }
+                        } else {
+                          Helpers.showAlert(context,
+                              hasAction: true,
+                              type: "error",
+                              title: "Could not find any payment methods.",
+                              onPressed: () async {
+                            Navigator.pop(context);
+                          });
                         }
-                      } else {
-                        Helpers.showAlert(context,
-                            hasAction: true,
-                            type: "error",
-                            title: "Could not find any payment methods.",
-                            onPressed: () async {
-                          Navigator.pop(context);
-                        });
                       }
                     }
                   }),
@@ -724,27 +750,15 @@ class _SignatureState extends State<SignatureUI> {
       return false;
     }
 
-    if (_formKey.currentState!.validate() && !signatureErr) {
-      if (isWantInvoice && emailCT.text == "") {
-        setState(() {
-          errorEmail = true;
-        });
-        return false;
-      }
+    if (!signatureErr) {
       paymentDTO = new PaymentDTO();
-      // paymentDTO.PMOneCT = PMOneCT.text;
-      // paymentDTO.PMTwoCT = PMTwoCT.text;
-      // paymentDTO.billing = billing;
       paymentDTO.dropDownOneSelectedText = dropDownOneSelectedText;
       paymentDTO.dropDownTwoSelectedText = PMLabelCT.text;
       paymentDTO.isWantInvoice = isWantInvoice;
-      // paymentDTO.mixedPayment = mixedPayment;
       paymentDTO.payByCash = payByCash;
-      // paymentDTO.payByCheque = payByCheque;
       paymentDTO.payNow = payNow;
       paymentDTO.emailCT = emailCT.text.toString();
       paymentDTO.paymentMethods = paymentMethods;
-      // paymentDTO.pendingPayment = pendingPayment;
       paymentDTO.signatureController = controller;
 
       return true;

@@ -181,7 +181,7 @@ class _JobDetailsState extends State<JobDetails>
         remarksController.text =
             (selectedJob?.remarks ?? "")?.trim().replaceAll(" ", "") == ""
                 ? "-"
-                : selectedJob?.engineerRemarks ?? "-";
+                : selectedJob?.remarks ?? "-";
         adminRemarksController.text =
             (selectedJob?.adminRemarks ?? "")?.trim().replaceAll(" ", "") == ""
                 ? "-"
@@ -1457,8 +1457,7 @@ class _JobDetailsState extends State<JobDetails>
                             isErrorSerialNoLengthInsufficient = false;
                           });
 
-                          if (selectedJob != null &&
-                              (selectedJob?.isUnderWarranty ?? true)) {
+                          if (selectedJob != null) {
                             if (serialNoController.text.trim() == "") {
                               setState(() {
                                 isErrorSerialNoMandatory = true;
@@ -3893,15 +3892,18 @@ class _JobDetailsState extends State<JobDetails>
               SizedBox(
                 width: 10,
               ),
-              GestureDetector(
-                  child:
-                      Icon(Icons.add_circle_rounded, color: Color(0xFF242A38)),
-                  onTap: () {
-                    openCharges(selectedJob?.productGroupdId.toString() ?? "",
-                        "solutions", (id) async {
-                      return await fetchSolutionsByProduct();
-                    }, tabController?.index == 1);
-                  }),
+              !isStepper
+                  ? GestureDetector(
+                      child: Icon(Icons.add_circle_rounded,
+                          color: Color(0xFF242A38)),
+                      onTap: () {
+                        openCharges(
+                            selectedJob?.productGroupdId.toString() ?? "",
+                            "solutions", (id) async {
+                          return await fetchSolutionsByProduct();
+                        }, tabController?.index == 1);
+                      })
+                  : new Container(),
               // SizedBox(
               //   width: MediaQuery.of(context).size.width * 0.1,
               //   height: 35.0,
@@ -4024,7 +4026,7 @@ class _JobDetailsState extends State<JobDetails>
                               minWidth: MediaQuery.of(context).size.width * 1,
                               maxWidth: MediaQuery.of(context).size.width * 1,
                               maxHeight:
-                                  MediaQuery.of(context).size.height * .168,
+                                  MediaQuery.of(context).size.height * .2,
                               minHeight:
                                   MediaQuery.of(context).size.height * .1),
                           child: TabBarView(
@@ -4088,15 +4090,17 @@ class _JobDetailsState extends State<JobDetails>
           SizedBox(
             width: 10,
           ),
-          GestureDetector(
-              child: Icon(Icons.add_circle_rounded, color: Color(0xFF242A38)),
-              onTap: () {
-                openCharges(
-                    selectedJob?.productGroupdId.toString() ?? "", "problems",
-                    (id) async {
-                  return await fetchProblems(id.toString());
-                }, false);
-              }),
+          !isStepper
+              ? GestureDetector(
+                  child:
+                      Icon(Icons.add_circle_rounded, color: Color(0xFF242A38)),
+                  onTap: () {
+                    openCharges(selectedJob?.productGroupdId.toString() ?? "",
+                        "problems", (id) async {
+                      return await fetchProblems(id.toString());
+                    }, false);
+                  })
+              : new Container(),
           // SizedBox(
           //   width: MediaQuery.of(context).size.width * 0.06,
           //   height: 35.0,
@@ -4633,7 +4637,8 @@ class _JobDetailsState extends State<JobDetails>
                     Container(
                       alignment: Alignment.centerLeft,
                       child: (selectedJob?.picklistNotCollected != null &&
-                                  (selectedJob?.picklistNotCollected!.length ?? 0) >
+                                  (selectedJob?.picklistNotCollected!.length ??
+                                          0) >
                                       0) &&
                               Helpers.checkIfEditableByJobStatus(selectedJob,
                                   (selectedJob?.isMainEngineer ?? true)) &&
@@ -4641,24 +4646,26 @@ class _JobDetailsState extends State<JobDetails>
                           ? ElevatedButton(
                               child: Padding(
                                   padding: EdgeInsets.all(0.0),
-                                  child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.add_circle,
-                                          size: 18,
-                                          color: Colors.white,
-                                        ),
-                                        SizedBox(
-                                          width: 5,
-                                        ),
-                                        Text(
-                                          'Add More Parts ',
-                                          style: TextStyle(
-                                              fontSize: 15,
-                                              color: Colors.white),
-                                        )
-                                      ])),
+                                  child: !isStepper
+                                      ? Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                              Icon(
+                                                Icons.add_circle,
+                                                size: 18,
+                                                color: Colors.white,
+                                              ),
+                                              SizedBox(
+                                                width: 5,
+                                              ),
+                                              Text(
+                                                'Add More Parts ',
+                                                style: TextStyle(
+                                                    fontSize: 15,
+                                                    color: Colors.white),
+                                              )
+                                            ])
+                                      : new Container()),
                               style: ButtonStyle(
                                   foregroundColor:
                                       MaterialStateProperty.all<Color>(
@@ -5661,22 +5668,26 @@ class _JobDetailsState extends State<JobDetails>
                     ? ElevatedButton(
                         child: Padding(
                             padding: EdgeInsets.all(0.0),
-                            child:
-                                Row(mainAxisSize: MainAxisSize.min, children: [
-                              Icon(
-                                Icons.add_circle,
-                                size: 18,
-                                color: Colors.white,
-                              ),
-                              SizedBox(
-                                width: 5,
-                              ),
-                              Text(
-                                'Add More Parts',
-                                style: TextStyle(
-                                    fontSize: 15, color: Colors.white),
-                              )
-                            ])),
+                            child: !isStepper
+                                ? Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                        Icon(
+                                          Icons.add_circle,
+                                          size: 18,
+                                          color: Colors.white,
+                                        ),
+                                        SizedBox(
+                                          width: 5,
+                                        ),
+                                        Text(
+                                          'Add More Parts',
+                                          style: TextStyle(
+                                              fontSize: 15,
+                                              color: Colors.white),
+                                        )
+                                      ])
+                                : new Container()),
                         style: ButtonStyle(
                             foregroundColor: MaterialStateProperty.all<Color>(
                                 Color(0xFF242A38)),
@@ -5740,15 +5751,17 @@ class _JobDetailsState extends State<JobDetails>
             SizedBox(
               width: 10,
             ),
-            GestureDetector(
-                child: Icon(Icons.add_circle_rounded, color: Color(0xFF242A38)),
-                onTap: () {
-                  openCharges(
-                      selectedJob?.productModelId.toString() ?? "", "transport",
-                      (id) async {
-                    return await fetchTransportCharges(id);
-                  }, false);
-                }),
+            !isStepper
+                ? GestureDetector(
+                    child: Icon(Icons.add_circle_rounded,
+                        color: Color(0xFF242A38)),
+                    onTap: () {
+                      openCharges(selectedJob?.productModelId.toString() ?? "",
+                          "transport", (id) async {
+                        return await fetchTransportCharges(id);
+                      }, false);
+                    })
+                : new Container(),
             // SizedBox(
             //   width: MediaQuery.of(context).size.width * 0.1,
             //   height: 35.0,
@@ -8015,12 +8028,13 @@ class AddPartItemState extends State<AddPartItem> {
           width: 5,
         ),
         SizedBox(
-          width: MediaQuery.of(context).size.width * 0.25,
+          width: MediaQuery.of(context).size.width * 0.2,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               SizedBox(
+                width: MediaQuery.of(context).size.width * 0.18,
                 child: RichText(
                   text: TextSpan(
                       style: const TextStyle(
@@ -8050,41 +8064,44 @@ class AddPartItemState extends State<AddPartItem> {
             ],
           ),
         ),
-        Padding(
-          padding: EdgeInsets.only(bottom: 30),
-          child: FlutterSwitch(
-            activeColor: (Helpers.checkIfEditableByJobStatus(
+        SizedBox(
+          width: MediaQuery.of(context).size.width * 0.15,
+          child: Padding(
+            padding: EdgeInsets.only(bottom: 30),
+            child: FlutterSwitch(
+              activeColor: (Helpers.checkIfEditableByJobStatus(
+                          widget.job, (widget.job?.isMainEngineer ?? true)) &&
+                      !(widget.isStepper ?? false))
+                  ? Colors.green
+                  : Colors.grey,
+              inactiveColor: (Helpers.checkIfEditableByJobStatus(
+                          widget.job, (widget.job?.isMainEngineer ?? true)) &&
+                      !(widget.isStepper ?? false))
+                  ? Colors.red
+                  : Colors.grey,
+              activeTextColor: Colors.white,
+              inactiveTextColor: Colors.white,
+              activeText: "Chargeable",
+              inactiveText: "Not Chargeable",
+              value: widget.isChargeable ?? false,
+              valueFontSize: 12.0,
+              width: MediaQuery.of(context).size.width * 0.2,
+              borderRadius: 30.0,
+              showOnOff: true,
+              onToggle: (val) async {
+                if (Helpers.checkIfEditableByJobStatus(
                         widget.job, (widget.job?.isMainEngineer ?? true)) &&
-                    !(widget.isStepper ?? false))
-                ? Colors.green
-                : Colors.grey,
-            inactiveColor: (Helpers.checkIfEditableByJobStatus(
-                        widget.job, (widget.job?.isMainEngineer ?? true)) &&
-                    !(widget.isStepper ?? false))
-                ? Colors.red
-                : Colors.grey,
-            activeTextColor: Colors.white,
-            inactiveTextColor: Colors.white,
-            activeText: "Chargeable",
-            inactiveText: "Not Chargeable",
-            value: widget.isChargeable ?? false,
-            valueFontSize: 12.0,
-            width: MediaQuery.of(context).size.width * 0.2,
-            borderRadius: 30.0,
-            showOnOff: true,
-            onToggle: (val) async {
-              if (Helpers.checkIfEditableByJobStatus(
-                      widget.job, (widget.job?.isMainEngineer ?? true)) &&
-                  !(widget.isStepper ?? false)) {
-                await widget.onChargeablePressed
-                    ?.call(sparePartId, !(widget.isChargeable ?? true));
-              }
-            },
+                    !(widget.isStepper ?? false)) {
+                  await widget.onChargeablePressed
+                      ?.call(sparePartId, !(widget.isChargeable ?? true));
+                }
+              },
+            ),
           ),
         ),
         !(widget.editable ?? false)
             ? SizedBox(
-                width: 90,
+                width: MediaQuery.of(context).size.width * 0.09,
                 child: Container(
                   padding: const EdgeInsets.only(bottom: 30),
                   child: RichText(
