@@ -212,10 +212,9 @@ class _PaymentState extends State<Payment> {
                   ),
                   children: <TextSpan>[
                     TextSpan(
-                      text: (widget.rcpCost?.isDiscountValid ?? false)
-                          ? widget.rcpCost?.totalRCP
-                          : widget.rcpCost?.total,
-                    )
+                        text: (widget.rcpCost?.isDiscountValid ?? false)
+                            ? 'MYR ${((widget.rcpCost?.totalAmountRCP ?? 0) + (widget.rcpCost?.totalAmountSSTRCP ?? 0)).toStringAsFixed(2)}'
+                            : 'MYR ${((widget.rcpCost?.totalAmount ?? 0) + (widget.rcpCost?.totalAmountSST ?? 0)).toStringAsFixed(2)}')
                   ],
                 ),
               ),

@@ -729,7 +729,8 @@ class _SignatureState extends State<SignatureUI> {
   }
 
   _fetchPaymentMethods() async {
-    var res = await Repositories.fetchPaymentMethods();
+    var res = await Repositories.fetchPaymentMethods(
+        widget.data?.serviceRequestid ?? "");
 
     setState(() {
       paymentMethods = res;

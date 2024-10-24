@@ -1181,8 +1181,10 @@ class Repositories {
     }
   }
 
-  static Future<List<PaymentMethod>> fetchPaymentMethods() async {
-    final response = await Api.bearerGet('general/payment-methods');
+  static Future<List<PaymentMethod>> fetchPaymentMethods(
+      String serviceRequestId) async {
+    final response = await Api.bearerGet(
+        'general/payment-methods?service_request_id=$serviceRequestId');
     if (response["success"] != null && response["success"]) {
       var paymentMethods = (response['data'] as List)
           .map((i) => (PaymentMethod.fromJson(i)))
