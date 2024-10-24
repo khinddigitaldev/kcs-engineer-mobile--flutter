@@ -57,9 +57,12 @@ class _PaymentState extends State<Payment> {
     setState(() {
       selectedJob = widget.data;
       paymentDTO = widget.paymentDTO;
-      qrText = widget.paymentMethods
-          ?.firstWhere((element) => element.hasQr ?? false)
-          .qrText;
+      var index = widget.paymentMethods
+          ?.indexWhere((element) => element.hasQr ?? false);
+      qrText = index != -1
+          ? ((widget.paymentMethods ?? [])?[index ?? 0].qrText)
+          : null;
+      null;
     });
     _loadVersion();
     //_loadToken();
