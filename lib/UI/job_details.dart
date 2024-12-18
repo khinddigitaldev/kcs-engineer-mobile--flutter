@@ -3479,15 +3479,16 @@ class _JobDetailsState extends State<JobDetails>
                             ? 0
                             : 40),
                     child: Column(children: [
-                      Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            ((isActual
-                                        ? selectedJob?.actualSolutionCode
-                                        : selectedJob?.estimatedSolutionCode) !=
-                                    null)
-                                ? Container(
+                      ((isActual
+                                  ? selectedJob?.actualSolutionCode
+                                  : selectedJob?.estimatedSolutionCode) !=
+                              null)
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              // mainAxisSize: MainAxisSize.max,
+                              children: [
+                                  Container(
                                     child: Column(
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceAround,
@@ -3532,65 +3533,65 @@ class _JobDetailsState extends State<JobDetails>
                                         ),
                                       ],
                                     ),
-                                  )
-                                : new Container(),
-                          ]),
+                                  ),
+                                  ((isActual
+                                              ? selectedJob?.actualSolutionCode
+                                              : selectedJob
+                                                  ?.estimatedSolutionCode) !=
+                                          null)
+                                      ? Container(
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceAround,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              RichText(
+                                                text: TextSpan(
+                                                  style: TextStyle(
+                                                    fontSize: 12.0,
+                                                    color: Colors.black54,
+                                                  ),
+                                                  children: <TextSpan>[
+                                                    TextSpan(
+                                                        text: 'SOLUTION CODE'),
+                                                  ],
+                                                ),
+                                              ),
+                                              SizedBox(
+                                                height: 5,
+                                              ),
+                                              RichText(
+                                                text: TextSpan(
+                                                  style: TextStyle(
+                                                    fontSize: 14.0,
+                                                    color: Colors.black,
+                                                  ),
+                                                  children: <TextSpan>[
+                                                    TextSpan(
+                                                      text: isActual
+                                                          ? selectedJob
+                                                              ?.actualSolutionCode
+                                                          : selectedJob
+                                                              ?.estimatedSolutionCode,
+                                                    ),
+                                                  ],
+                                                ),
+                                              )
+                                            ],
+                                          ),
+                                        )
+                                      : new Container(),
+                                ])
+                          : new Container(),
                       SizedBox(
-                          height: MediaQuery.of(context).size.width * 0.02),
+                        height: MediaQuery.of(context).size.height * 0.03,
+                      ),
                       Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            ((isActual
-                                        ? selectedJob?.actualSolutionCode
-                                        : selectedJob?.estimatedSolutionCode) !=
-                                    null)
-                                ? Container(
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceAround,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        RichText(
-                                          text: TextSpan(
-                                            style: TextStyle(
-                                              fontSize: 12.0,
-                                              color: Colors.black54,
-                                            ),
-                                            children: <TextSpan>[
-                                              TextSpan(text: 'CODE'),
-                                            ],
-                                          ),
-                                        ),
-                                        SizedBox(
-                                          height: 5,
-                                        ),
-                                        RichText(
-                                          text: TextSpan(
-                                            style: TextStyle(
-                                              fontSize: 14.0,
-                                              color: Colors.black,
-                                            ),
-                                            children: <TextSpan>[
-                                              TextSpan(
-                                                text: isActual
-                                                    ? selectedJob
-                                                        ?.actualSolutionCode
-                                                    : selectedJob
-                                                        ?.estimatedSolutionCode,
-                                              ),
-                                            ],
-                                          ),
-                                        )
-                                      ],
-                                    ),
-                                  )
-                                : new Container(),
-                            SizedBox(
-                                height:
-                                    MediaQuery.of(context).size.width * .02),
                             (isActual
                                         ? selectedJob?.actualSolutionCharges
                                         : selectedJob
@@ -3680,6 +3681,53 @@ class _JobDetailsState extends State<JobDetails>
                                               TextSpan(
                                                 text:
                                                     '${isActual ? selectedJob?.actualSolutionSSTPercentage : selectedJob?.estimatedSolutionSSTPercentage}%',
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      ],
+                                    ),
+                                  )
+                                : new Container(),
+                            (isActual
+                                        ? selectedJob?.actualSolutionCharges
+                                        : selectedJob
+                                            ?.estimatedSolutionCharges) !=
+                                    null
+                                ? Container(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceAround,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        RichText(
+                                          text:  TextSpan(
+                                            style: const TextStyle(
+                                              fontSize: 12.0,
+                                              color: Colors.black54,
+                                            ),
+                                            children: <TextSpan>[
+                                               TextSpan(
+                                                text: 'DISCOUNT (${selectedJob?.estimatedSolutionDiscountPercentage ?? "0"}% Off)',
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          height: 5,
+                                        ),
+                                        RichText(
+                                          text: TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 14.0,
+                                              color: Colors.black,
+                                            ),
+                                            children: <TextSpan>[
+                                              TextSpan(
+                                                text:
+                                                    'MYR ${isActual ? (selectedJob?.actualSolutionDiscountAmount ?? '0.00') : selectedJob?.estimatedSolutionDiscountAmount ?? '0.00'}',
                                               ),
                                             ],
                                           ),
@@ -4778,6 +4826,7 @@ class _JobDetailsState extends State<JobDetails>
               ),
               Spacer(),
               (rcpCost?.isRCPValid ?? false) &&
+                      false &&
                       rcpCost?.discountPercentage != "0%"
                   ? FlutterSwitch(
                       activeColor: Helpers.checkIfEditableByJobStatus(
@@ -4839,8 +4888,13 @@ class _JobDetailsState extends State<JobDetails>
                             rcpCost?.sparePartCost ?? "MYR 0.00", false)
                         : new Container(),
                     rcpCost?.solutionCost != "MYR 0.00"
-                        ? _buildChargeItem("Solution charges",
-                            rcpCost?.solutionCost ?? "MYR 0.00", false)
+                        ? _buildChargeItem(
+                            "Solution charges",
+                            "MYR " +
+                                (((rcpCost?.solutionCost?.amountVal ?? 0))
+                                        ?.toStringAsFixed(2) ??
+                                    "0.00"),
+                            false)
                         : new Container(),
                     rcpCost?.miscCost != "MYR 0.00"
                         ? _buildChargeItem("Miscellaneous charges",
@@ -4859,14 +4913,27 @@ class _JobDetailsState extends State<JobDetails>
                             rcpCost?.totalSSTRCP ?? "MYR 0.00", false)
                         : new Container(),
                     SizedBox(
-                      height: 5,
+                      height: 3,
                     ),
+                    Divider(),
+                    SizedBox(
+                      height: 3,
+                    ),
+                    rcpCost?.discountTotalSumVal != "MYR 0.00"
+                        ? _buildChargeItem(
+                            "Discount",
+                            "- MYR " +
+                                (rcpCost?.discountTotalSumVal
+                                        ?.toStringAsFixed(2) ??
+                                    "MYR 0.00"),
+                            false)
+                        : new Container(),
                     _buildChargeItem(
                         (rcpCost?.isDiscountValid ?? false) &&
                                 rcpCost?.discountPercentage != "0%"
                             ? "Total"
                             : "Grand Total",
-                        'MYR ${((rcpCost?.totalAmount ?? 0) + (rcpCost?.totalAmountSST ?? 0)).toStringAsFixed(2)}',
+                        'MYR ${((rcpCost?.totalAmount ?? 0) + (rcpCost?.totalAmountSST ?? 0) - (rcpCost?.discountTotalSumVal ?? 0)).toStringAsFixed(2)}',
                         true),
                     (rcpCost?.isDiscountValid ?? false) &&
                             rcpCost?.discountPercentage != "0%"
@@ -4883,7 +4950,7 @@ class _JobDetailsState extends State<JobDetails>
                             rcpCost?.discountPercentage != "0%"
                         ? _buildChargeItem(
                             "Grand Total",
-                            'MYR ${((rcpCost?.totalAmountRCP ?? 0) + (rcpCost?.totalAmountSSTRCP ?? 0)).toStringAsFixed(2)}',
+                            'MYR ${((rcpCost?.totalAmountRCP ?? 0) + (rcpCost?.totalAmountSSTRCP ?? 0) - (rcpCost?.rcpDiscountTotalSumVal ?? 0)).toStringAsFixed(2)}',
                             true)
                         : new Container(),
                   ],
@@ -8005,192 +8072,358 @@ class AddPartItemState extends State<AddPartItem> {
     //         double.parse((quantity != "" ? quantity : "0") ?? "0")) *
     //     (100 - double.parse(discount ?? '0')) /
     //     100));
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: <Widget>[
-        widget.job?.serviceJobStatus != "COMPLETED" &&
-                (widget.editable ?? false)
-            ? Padding(
-                padding: EdgeInsets.fromLTRB(0, 0, 0, 40),
-                child: GestureDetector(
-                    onTap: () async {
-                      await showAlertDialog(context);
-                    },
-                    child: Icon(
-                      // <-- Icon
-                      Icons.delete,
-                      color: Colors.black54,
-                      size: 25.0,
-                    )),
-              )
-            : new Container(),
-        SizedBox(
-          width: 5,
-        ),
-        SizedBox(
-          width: MediaQuery.of(context).size.width * 0.2,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              SizedBox(
-                width: MediaQuery.of(context).size.width * 0.18,
-                child: RichText(
+    return Column(children: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          widget.job?.serviceJobStatus != "COMPLETED" &&
+                  (widget.editable ?? false)
+              ? Padding(
+                  padding: EdgeInsets.fromLTRB(0, 0, 0, 40),
+                  child: GestureDetector(
+                      onTap: () async {
+                        await showAlertDialog(context);
+                      },
+                      child: Icon(
+                        // <-- Icon
+                        Icons.delete,
+                        color: Colors.black54,
+                        size: 25.0,
+                      )),
+                )
+              : new Container(),
+          SizedBox(
+            width: 5,
+          ),
+          SizedBox(
+            width: MediaQuery.of(context).size.width * 0.2,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.18,
+                  child: RichText(
+                    text: TextSpan(
+                        style: const TextStyle(
+                          fontSize: 15.0,
+                          color: Colors.black,
+                        ),
+                        children: <TextSpan>[
+                          TextSpan(
+                            text: '${sparePartCode ?? "-"}',
+                          ),
+                        ]),
+                  ),
+                ),
+                RichText(
                   text: TextSpan(
                       style: const TextStyle(
                         fontSize: 15.0,
-                        color: Colors.black,
+                        color: Colors.black54,
                       ),
                       children: <TextSpan>[
                         TextSpan(
-                          text: '${sparePartCode ?? "-"}',
+                          text: '${description ?? "-"}',
                         ),
                       ]),
                 ),
+                // const SizedBox(height: 30),
+              ],
+            ),
+          ),
+          SizedBox(
+            width: MediaQuery.of(context).size.width * 0.15,
+            child: Padding(
+              padding: EdgeInsets.only(bottom: 30),
+              child: FlutterSwitch(
+                activeColor: (Helpers.checkIfEditableByJobStatus(
+                            widget.job, (widget.job?.isMainEngineer ?? true)) &&
+                        !(widget.isStepper ?? false))
+                    ? Colors.green
+                    : Colors.grey,
+                inactiveColor: (Helpers.checkIfEditableByJobStatus(
+                            widget.job, (widget.job?.isMainEngineer ?? true)) &&
+                        !(widget.isStepper ?? false))
+                    ? Colors.red
+                    : Colors.grey,
+                activeTextColor: Colors.white,
+                inactiveTextColor: Colors.white,
+                activeText: "Chargeable",
+                inactiveText: "Not Chargeable",
+                value: widget.isChargeable ?? false,
+                valueFontSize: 12.0,
+                width: MediaQuery.of(context).size.width * 0.2,
+                borderRadius: 30.0,
+                showOnOff: true,
+                onToggle: (val) async {
+                  if (Helpers.checkIfEditableByJobStatus(
+                          widget.job, (widget.job?.isMainEngineer ?? true)) &&
+                      !(widget.isStepper ?? false)) {
+                    await widget.onChargeablePressed
+                        ?.call(sparePartId, !(widget.isChargeable ?? true));
+                  }
+                },
               ),
-              RichText(
-                text: TextSpan(
-                    style: const TextStyle(
-                      fontSize: 15.0,
-                      color: Colors.black54,
-                    ),
-                    children: <TextSpan>[
-                      TextSpan(
-                        text: '${description ?? "-"}',
+            ),
+          ),
+          SizedBox(width: 5),
+          Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Column(
+                  children: [
+                    (widget.isChargeable ?? false)
+                        ? RichText(
+                            text: TextSpan(
+                                style: TextStyle(
+                                  fontSize: 16.0,
+                                  // fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                                children: <TextSpan>[
+                                  TextSpan(text: 'Quantity :-'),
+                                ]),
+                          )
+                        : Container(),
+                    (widget.isChargeable ?? false)
+                        ? SizedBox(height: 10)
+                        : Container(),
+                    (widget.isChargeable ?? false)
+                        ? RichText(
+                            text: TextSpan(
+                                style: TextStyle(
+                                  fontSize: 16.0,
+                                  // fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                                children: <TextSpan>[
+                                  TextSpan(text: 'Unit Price :-'),
+                                ]),
+                          )
+                        : Container(),
+                    (widget.isChargeable ?? false) &&
+                            (widget.rcpCost?.spareParts ?? [])
+                                    .firstWhere((element) =>
+                                        element.sparepartsId == widget.part?.id)
+                                    .discountValAmount !=
+                                null
+                        ? SizedBox(height: 10)
+                        : Container(),
+                    (widget.isChargeable ?? false) &&
+                            (widget.rcpCost?.spareParts ?? [])
+                                    .firstWhere((element) =>
+                                        element.sparepartsId == widget.part?.id)
+                                    .discountValAmount !=
+                                null
+                        ? RichText(
+                            text: TextSpan(
+                                style: TextStyle(
+                                  fontSize: 16.0,
+                                  // fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                                children: <TextSpan>[
+                                  TextSpan(text: 'Discount :-'),
+                                ]),
+                          )
+                        : Container(),
+                    (widget.isChargeable ?? false) &&
+                            (widget.rcpCost?.spareParts ?? [])
+                                    .firstWhere((element) =>
+                                        element.sparepartsId == widget.part?.id)
+                                    .amountValAfterProcessing !=
+                                null
+                        ? SizedBox(height: 10)
+                        : Container(),
+                    (widget.isChargeable ?? false) &&
+                            (widget.rcpCost?.spareParts ?? [])
+                                    .firstWhere((element) =>
+                                        element.sparepartsId == widget.part?.id)
+                                    .amountValAfterProcessing !=
+                                null
+                        ? RichText(
+                            text: TextSpan(
+                                style: TextStyle(
+                                  fontSize: 16.0,
+                                  // fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                                children: <TextSpan>[
+                                  TextSpan(text: 'Line Total :-'),
+                                ]),
+                          )
+                        : Container(),
+                  ],
+                ),
+                Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        child: !(widget.editable ?? false)
+                            ? SizedBox(
+                                width: MediaQuery.of(context).size.width * 0.09,
+                                child: Container(
+                                  child: RichText(
+                                    text: TextSpan(
+                                        style: TextStyle(
+                                          fontSize: 18.0,
+                                          color: Colors.black54,
+                                        ),
+                                        children: <TextSpan>[
+                                          TextSpan(
+                                            text: quantity == 1
+                                                ? '  $quantity Unit'
+                                                : '  $quantity Units',
+                                          ),
+                                        ]),
+                                  ),
+                                ),
+                              )
+                            : Row(mainAxisSize: MainAxisSize.min, children: [
+                                Container(
+                                  constraints: BoxConstraints.tightFor(
+                                      width: 35, height: 25),
+                                  child: IconButton(
+                                    onPressed: () {
+                                      if (Helpers
+                                              .editableJobSpareParts[
+                                                  widget.index ?? 0]
+                                              .quantity !=
+                                          0) {
+                                        setState(() {
+                                          Helpers
+                                              .editableJobSpareParts[
+                                                  widget.index ?? 0]
+                                              .quantity = (Helpers
+                                                      .editableJobSpareParts[
+                                                          widget.index ?? 0]
+                                                      .quantity ??
+                                                  0) -
+                                              1;
+                                        });
+                                      }
+                                    },
+                                    icon: Icon(
+                                      Icons.remove,
+                                      size: 13,
+                                      color: Helpers
+                                                  .editableJobSpareParts[
+                                                      widget.index ?? 0]
+                                                  .quantity !=
+                                              0
+                                          ? Colors.black
+                                          : Colors.black45,
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  child: RichText(
+                                    text: TextSpan(
+                                        style: TextStyle(
+                                          fontSize: 18.0,
+                                          color: Colors.black54,
+                                        ),
+                                        children: <TextSpan>[
+                                          TextSpan(
+                                            text:
+                                                '${(Helpers.editableJobSpareParts[widget.index ?? 0].quantity ?? 0)}',
+                                          ),
+                                        ]),
+                                  ),
+                                ),
+                              ]),
                       ),
-                    ]),
-              ),
-              const SizedBox(height: 30),
-            ],
-          ),
-        ),
-        SizedBox(
-          width: MediaQuery.of(context).size.width * 0.15,
-          child: Padding(
-            padding: EdgeInsets.only(bottom: 30),
-            child: FlutterSwitch(
-              activeColor: (Helpers.checkIfEditableByJobStatus(
-                          widget.job, (widget.job?.isMainEngineer ?? true)) &&
-                      !(widget.isStepper ?? false))
-                  ? Colors.green
-                  : Colors.grey,
-              inactiveColor: (Helpers.checkIfEditableByJobStatus(
-                          widget.job, (widget.job?.isMainEngineer ?? true)) &&
-                      !(widget.isStepper ?? false))
-                  ? Colors.red
-                  : Colors.grey,
-              activeTextColor: Colors.white,
-              inactiveTextColor: Colors.white,
-              activeText: "Chargeable",
-              inactiveText: "Not Chargeable",
-              value: widget.isChargeable ?? false,
-              valueFontSize: 12.0,
-              width: MediaQuery.of(context).size.width * 0.2,
-              borderRadius: 30.0,
-              showOnOff: true,
-              onToggle: (val) async {
-                if (Helpers.checkIfEditableByJobStatus(
-                        widget.job, (widget.job?.isMainEngineer ?? true)) &&
-                    !(widget.isStepper ?? false)) {
-                  await widget.onChargeablePressed
-                      ?.call(sparePartId, !(widget.isChargeable ?? true));
-                }
-              },
-            ),
-          ),
-        ),
-        !(widget.editable ?? false)
-            ? SizedBox(
-                width: MediaQuery.of(context).size.width * 0.09,
-                child: Container(
-                  padding: const EdgeInsets.only(bottom: 30),
-                  child: RichText(
-                    text: TextSpan(
-                        style: TextStyle(
-                          fontSize: 18.0,
-                          color: Colors.black54,
-                        ),
-                        children: <TextSpan>[
-                          TextSpan(
-                            text: quantity == 1
-                                ? '$quantity Unit'
-                                : '$quantity Units',
-                          ),
-                        ]),
-                  ),
-                ),
-              )
-            : Row(children: [
-                Padding(
-                  padding: EdgeInsets.only(bottom: 30),
-                  child: IconButton(
-                    onPressed: () {
-                      if (Helpers.editableJobSpareParts[widget.index ?? 0]
-                              .quantity !=
-                          0) {
-                        setState(() {
-                          Helpers.editableJobSpareParts[widget.index ?? 0]
-                              .quantity = (Helpers
-                                      .editableJobSpareParts[widget.index ?? 0]
-                                      .quantity ??
-                                  0) -
-                              1;
-                        });
-                      }
-                    },
-                    icon: Icon(
-                      Icons.remove,
-                      size: 15,
-                      color: Helpers.editableJobSpareParts[widget.index ?? 0]
-                                  .quantity !=
-                              0
-                          ? Colors.black
-                          : Colors.black45,
-                    ),
-                  ),
-                ),
-                Container(
-                  width: 60,
-                  padding: EdgeInsets.only(bottom: 32),
-                  child: RichText(
-                    text: TextSpan(
-                        style: TextStyle(
-                          fontSize: 18.0,
-                          color: Colors.black54,
-                        ),
-                        children: <TextSpan>[
-                          TextSpan(
-                            text:
-                                '${(Helpers.editableJobSpareParts[widget.index ?? 0].quantity ?? 0)}',
-                          ),
-                        ]),
-                  ),
-                ),
-              ]),
-        SizedBox(
-          width: 10,
-        ),
-        SizedBox(
-          width: 90,
-          child: Container(
-            padding: const EdgeInsets.only(bottom: 30),
-            child: RichText(
-              text: TextSpan(
-                  style: TextStyle(
-                    fontSize: 16.0,
-                    color: Colors.black54,
-                  ),
-                  children: <TextSpan>[
-                    TextSpan(
-                      text:
-                          'MYR ${((num.parse(((widget.rcpCost?.spareParts ?? []).indexWhere((element) => element.sparepartsId == widget.part?.id) != -1 ? ((widget.isDiscountApplied ?? false) ? (widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).rcpAmountVal : (widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).amountVal) : "0") ?? "0")) / 100).toStringAsFixed(2)}',
-                    ),
-                  ]),
-            ),
-          ),
-        ),
-      ],
-    );
+                      SizedBox(height: 10),
+                      (widget.isChargeable ?? false)
+                          ? Container(
+                              child: RichText(
+                                text: TextSpan(
+                                    style: TextStyle(
+                                      fontSize: 16.0,
+                                      color: Colors.black54,
+                                    ),
+                                    children: <TextSpan>[
+                                      TextSpan(
+                                        text:
+                                            '  MYR ${((num.parse(((widget.rcpCost?.spareParts ?? []).indexWhere((element) => element.sparepartsId == widget.part?.id) != -1 ? ((widget.isDiscountApplied ?? false) ? (widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).rcpAmountVal : (widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).amountVal) : "0") ?? "0")) / (100 * (Helpers.editableJobSpareParts[widget.index ?? 0].quantity ?? 0)) ?? 0).toStringAsFixed(2)}',
+                                      ),
+                                    ]),
+                              ),
+                            )
+                          : Container(),
+                      (widget.rcpCost?.spareParts ?? [])
+                                  .firstWhere((element) =>
+                                      element.sparepartsId == widget.part?.id)
+                                  .discountValAmount !=
+                              null
+                          ? SizedBox(height: 10)
+                          : Container(),
+                      (widget.isChargeable ?? false) &&
+                              (widget.rcpCost?.spareParts ?? [])
+                                      .firstWhere((element) =>
+                                          element.sparepartsId ==
+                                          widget.part?.id)
+                                      .discountValAmount !=
+                                  null
+                          ? Container(
+                              child: RichText(
+                                text: TextSpan(
+                                    style: TextStyle(
+                                      fontSize: 16.0,
+                                      color: Colors.black54,
+                                    ),
+                                    children: <TextSpan>[
+                                      TextSpan(
+                                        text:
+                                            '- MYR ${((num.parse((((widget.rcpCost?.spareParts ?? []).indexWhere((element) => element.sparepartsId == widget.part?.id) != -1 ? ((widget.isDiscountApplied ?? false) ? (widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).rcpDiscountValAmount.toString() : (widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).discountValAmount.toString()) : "0") ?? "0"))) ?? 0).toStringAsFixed(2)}(${(widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).discountPercentage.toString()}%)',
+                                      ),
+                                    ]),
+                              ),
+                            )
+                          : Container(),
+                      (widget.rcpCost?.spareParts ?? [])
+                                  .firstWhere((element) =>
+                                      element.sparepartsId == widget.part?.id)
+                                  .amountValAfterProcessing !=
+                              null
+                          ? SizedBox(height: 10)
+                          : Container(),
+                      (widget.isChargeable ?? false) &&
+                              (widget.rcpCost?.spareParts ?? [])
+                                      .firstWhere((element) =>
+                                          element.sparepartsId ==
+                                          widget.part?.id)
+                                      .amountValAfterProcessing !=
+                                  null
+                          ? SizedBox(
+                              child: Container(
+                                child: RichText(
+                                  text: TextSpan(
+                                      style: TextStyle(
+                                        fontSize: 16.0,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                      ),
+                                      children: <TextSpan>[
+                                        TextSpan(
+                                          text:
+                                              '  MYR ${((num.parse(((widget.rcpCost?.spareParts ?? []).indexWhere((element) => element.sparepartsId == widget.part?.id) != -1 ? ((widget.isDiscountApplied ?? false) ? (widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).rcpAmountValAfterProcessing.toString() : (widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).amountValAfterProcessing.toString()) : "0") ?? "0"))).toStringAsFixed(2)}',
+                                        ),
+                                      ]),
+                                ),
+                              ),
+                            )
+                          : Container(),
+                      SizedBox(height: 30)
+                    ])
+              ])
+        ],
+      ),
+    ]);
   }
 }
 

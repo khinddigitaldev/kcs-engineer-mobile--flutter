@@ -10,6 +10,7 @@ import 'package:kcs_engineer/model/job/job.dart';
 import 'package:kcs_engineer/model/payment/payment_method.dart';
 import 'package:kcs_engineer/model/payment/payment_request.dart';
 import 'package:kcs_engineer/model/payment/rcpCost.dart';
+import 'package:kcs_engineer/model/payment/rcpCost.dart';
 import 'package:kcs_engineer/payment_method_icons.dart' as PaymentMethodIcons;
 import 'package:kcs_engineer/themes/text_styles.dart';
 import 'package:kcs_engineer/util/components/payment_image_uploader.dart';
@@ -153,8 +154,14 @@ class _SignatureState extends State<SignatureUI> {
                             widget.rcpCost?.sparePartCost ?? "MYR 0.00", false)
                         : new Container(),
                     widget.rcpCost?.solutionCost != "MYR 0.00"
-                        ? _buildChargeItem("Solution charges",
-                            widget.rcpCost?.solutionCost ?? "MYR 0.00", false)
+                        ? _buildChargeItem(
+                            "Solution charges",
+                            "MYR " +
+                                (((widget.rcpCost?.solutionCost?.amountVal ??
+                                            0))
+                                        ?.toStringAsFixed(2) ??
+                                    "0.00"),
+                            false)
                         : new Container(),
                     widget.rcpCost?.miscCost != "MYR 0.00"
                         ? _buildChargeItem("Miscellaneous charges",
@@ -173,14 +180,27 @@ class _SignatureState extends State<SignatureUI> {
                             widget.rcpCost?.totalSSTRCP ?? "MYR 0.00", false)
                         : new Container(),
                     SizedBox(
-                      height: 5,
+                      height: 3,
                     ),
+                    Divider(),
+                    SizedBox(
+                      height: 3,
+                    ),
+                    widget.rcpCost?.discountTotalSumVal != "MYR 0.00"
+                        ? _buildChargeItem(
+                            "Discount",
+                            "- MYR " +
+                                (widget.rcpCost?.discountTotalSumVal
+                                        ?.toStringAsFixed(2) ??
+                                    "MYR 0.00"),
+                            false)
+                        : new Container(),
                     _buildChargeItem(
                         (widget.rcpCost?.isDiscountValid ?? false) &&
                                 widget.rcpCost?.discountPercentage != "0%"
                             ? "Total"
                             : "Grand Total",
-                        'MYR ${((widget.rcpCost?.totalAmount ?? 0) + (widget.rcpCost?.totalAmountSST ?? 0)).toStringAsFixed(2)}',
+                        'MYR ${((widget.rcpCost?.totalAmount ?? 0) + (widget.rcpCost?.totalAmountSST ?? 0) - (widget.rcpCost?.discountTotalSumVal ?? 0)).toStringAsFixed(2)}',
                         true),
                     (widget.rcpCost?.isDiscountValid ?? false) &&
                             widget.rcpCost?.discountPercentage != "0%"
@@ -197,7 +217,7 @@ class _SignatureState extends State<SignatureUI> {
                             widget.rcpCost?.discountPercentage != "0%"
                         ? _buildChargeItem(
                             "Grand Total",
-                            'MYR ${((widget.rcpCost?.totalAmountRCP ?? 0) + (widget.rcpCost?.totalAmountSSTRCP ?? 0)).toStringAsFixed(2)}',
+                            'MYR ${((widget.rcpCost?.totalAmountRCP ?? 0) + (widget.rcpCost?.totalAmountSSTRCP ?? 0) - (widget.rcpCost?.rcpDiscountTotalSumVal ?? 0)).toStringAsFixed(2)}',
                             true)
                         : new Container(),
                   ],
@@ -406,8 +426,8 @@ class _SignatureState extends State<SignatureUI> {
                                   TextSpan(
                                       text: (widget.rcpCost?.isDiscountValid ??
                                               false)
-                                          ? 'MYR ${((widget.rcpCost?.totalAmountRCP ?? 0) + (widget.rcpCost?.totalAmountSST ?? 0)).toStringAsFixed(2)}'
-                                          : 'MYR ${((widget.rcpCost?.totalAmount ?? 0) + (widget.rcpCost?.totalAmountSST ?? 0)).toStringAsFixed(2)}'),
+                                          ? 'MYR ${((widget.rcpCost?.totalAmountRCP ?? 0) + (widget.rcpCost?.totalAmountSST ?? 0) - (widget.rcpCost?.rcpDiscountTotalSumVal ?? 0)).toStringAsFixed(2)}'
+                                          : 'MYR ${((widget.rcpCost?.totalAmount ?? 0) + (widget.rcpCost?.totalAmountSST ?? 0) - (widget.rcpCost?.rcpDiscountTotalSumVal ?? 0)).toStringAsFixed(2)}'),
                                 ]),
                           ),
                           SizedBox(

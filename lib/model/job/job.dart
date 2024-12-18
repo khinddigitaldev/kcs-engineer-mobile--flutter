@@ -52,6 +52,10 @@ class Job {
   String? estimatedSolutionSSTPercentage;
   String? estimatedSolutionTotalSST;
   String? estimatedSolutionTotalLineVal;
+  String? estimatedSolutionDiscountPercentage;
+  String? estimatedSolutionDiscountAmount;
+  String? actualSolutionDiscountPercentage;
+  String? actualSolutionDiscountAmount;
   String? actualSolutionCode;
   String? actualSolutionDescription;
   String? actualSolutionCharges;
@@ -135,6 +139,10 @@ class Job {
       this.estimatedSolutionSSTPercentage,
       this.estimatedSolutionTotalLineVal,
       this.estimatedSolutionTotalSST,
+      this.estimatedSolutionDiscountPercentage,
+      this.estimatedSolutionDiscountAmount,
+      this.actualSolutionDiscountPercentage,
+      this.actualSolutionDiscountAmount,
       this.actualSolutionCode,
       this.actualSolutionDescription,
       this.actualSolutionCharges,
@@ -240,6 +248,7 @@ class Job {
                 double.parse(this.estimatedSolutionChargesAmount ?? "0.0"))
             .toStringAsFixed(2)
         : "-";
+
     this.actualSolutionCode = json["solution"]?["actual"]?["code"];
     this.actualSolutionDescription = json["solution"]?["actual"]?["solution"];
     this.actualSolutionCharges =
@@ -360,6 +369,45 @@ class Job {
                 .map((e) => SparePart.fromJsonStatusSpecific(e, 'picklist'))
                 .toList()
             : [];
+
+    this.estimatedSolutionDiscountPercentage = json["solution"]?["estimated"]
+                ?["cf_info"]?["cf_discount_amount"] !=
+            null
+        ? ((num.parse(json["solution"]?["estimated"]?["cf_info"]
+                    ?["cf_discount_percentage"]) *
+                100))
+            .toStringAsFixed(2)
+        : "-";
+
+    this.estimatedSolutionDiscountAmount = json["solution"]?["estimated"]
+                ?["cf_info"]?["cf_discount_amount"] !=
+            null
+        ? ((num.parse(json["solution"]?["estimated"]?["cf_info"]
+                        ?["cf_discount_amount"]?["amount"]) /
+                    100) +
+                (estimatedSolutionDiscountPercentage == "100.00"
+                    ? num.parse(this.estimatedSolutionTotalSST ?? "0")
+                    : 0))
+            .toStringAsFixed(2)
+        : "-";
+
+    this.actualSolutionDiscountPercentage =
+        json["solution"]?["actual"]?["cf_info"]?["cf_discount_amount"] != null
+            ? ((num.parse(json["solution"]?["actual"]?["cf_info"]
+                        ?["cf_discount_percentage"]) *
+                    100))
+                .toStringAsFixed(2)
+            : "-";
+    this.actualSolutionDiscountAmount =
+        json["solution"]?["actual"]?["cf_info"]?["cf_discount_amount"] != null
+            ? ((num.parse(json["solution"]?["actual"]?["cf_info"]
+                            ?["cf_discount_amount"]?["amount"]) /
+                        100) +
+                    (actualSolutionDiscountPercentage == "100.00"
+                        ? num.parse(this.actualSolutionTotalSST ?? "0")
+                        : 0))
+                .toStringAsFixed(2)
+            : "-";
 
     this.aggregatedSpareparts = [];
 
