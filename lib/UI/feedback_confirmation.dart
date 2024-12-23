@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kcs_engineer/model/job.dart';
+import 'package:kcs_engineer/model/job/job.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 class FeedBackConfirmation extends StatefulWidget {
@@ -88,15 +88,13 @@ class _FeedBackConfirmationState extends State<FeedBackConfirmation> {
             SizedBox(height: 20),
             RichText(
               text: TextSpan(
-                // Note: Styles for TextSpans must be explicitly defined.
-                // Child text spans will inherit styles from parent
                 style: const TextStyle(
                   fontSize: 39.0,
                   color: Colors.black,
                 ),
                 children: <TextSpan>[
                   TextSpan(
-                    text: 'Thank you for your feedback',
+                    text: 'Job Successful!',
                   ),
                 ],
               ),
@@ -104,12 +102,10 @@ class _FeedBackConfirmationState extends State<FeedBackConfirmation> {
             SizedBox(height: 20),
             RichText(
               text: TextSpan(
-                // Note: Styles for TextSpans must be explicitly defined.
-                // Child text spans will inherit styles from parent
                 style: const TextStyle(fontSize: 25.0, color: Colors.grey),
                 children: <TextSpan>[
                   TextSpan(
-                    text: 'Your feedback was successfully submitted!',
+                    text: 'This job has successfully completed ',
                   ),
                 ],
               ),

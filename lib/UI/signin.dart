@@ -10,6 +10,7 @@ import 'package:kcs_engineer/themes/text_styles.dart';
 import 'package:kcs_engineer/util/key.dart';
 import 'package:kcs_engineer/util/repositories.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class SignIn extends StatefulWidget {
   int? data;
@@ -32,6 +33,7 @@ class _SignInState extends State<SignIn> {
   bool isErrorPassword = false;
   String errorMsg = "";
   String version = "";
+  String buildNo = "";
   final storage = new FlutterSecureStorage();
   String? token;
   bool isRememberMe = false;
@@ -39,16 +41,28 @@ class _SignInState extends State<SignIn> {
   @override
   void initState() {
     super.initState();
-    //Helpers.showAlert(context);
+    _loadVersion();
     validateToken();
   }
 
-  void validateToken() async {
-    final accessToken = await storage.read(key: TOKEN);
+  _loadVersion() async {
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    String pkgVersion = packageInfo.version;
+    String pkgBuild = packageInfo.buildNumber;
+    setState(() {
+      version = pkgVersion;
+      buildNo = pkgBuild;
+    });
+  }
 
-    if (accessToken != null && accessToken != "") {
-      Navigator.pushReplacementNamed(context, 'home');
-    }
+  void validateToken() async {
+    try {
+      final accessToken = await storage.read(key: TOKEN);
+
+      if (accessToken != null && accessToken != "") {
+        Navigator.pushReplacementNamed(context, 'home');
+      }
+    } catch (err) {}
   }
 
   @override
@@ -182,8 +196,6 @@ class _SignInState extends State<SignIn> {
                     SizedBox(width: 5),
                     RichText(
                       text: TextSpan(
-                          // Note: Styles for TextSpans must be explicitly defined.
-                          // Child text spans will inherit styles from parent
                           style: const TextStyle(
                             fontSize: 13.0,
                             color: Colors.red,
@@ -264,8 +276,6 @@ class _SignInState extends State<SignIn> {
                     SizedBox(width: 5),
                     RichText(
                       text: TextSpan(
-                          // Note: Styles for TextSpans must be explicitly defined.
-                          // Child text spans will inherit styles from parent
                           style: const TextStyle(
                             fontSize: 13.0,
                             color: Colors.red,
@@ -308,8 +318,6 @@ class _SignInState extends State<SignIn> {
               ),
               RichText(
                 text: TextSpan(
-                    // Note: Styles for TextSpans must be explicitly defined.
-                    // Child text spans will inherit styles from parent
                     style: const TextStyle(
                       fontSize: 15,
                       color: Color(0xFF3FA2F7),
@@ -382,6 +390,16 @@ class _SignInState extends State<SignIn> {
     );
   }
 
+  Widget _renderLabel(title,
+      {width, padding, TextAlign? textAlign, textStyle}) {
+    return Container(
+        padding: padding != null ? padding : EdgeInsets.all(0),
+        width: width != null ? width : MediaQuery.of(context).size.width * 0.25,
+        child: Text(title,
+            textAlign: textAlign != null ? textAlign : TextAlign.start,
+            style: textStyle != null ? textStyle : TextStyles.textDefault));
+  }
+
   _renderError() {
     return Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
       // SizedBox(height: 10),
@@ -427,6 +445,38 @@ class _SignInState extends State<SignIn> {
                                   //Expanded(child: _renderBottom()),
                                   //version != "" ? _renderVersion() : Container()
                                 ])),
+                        Positioned(
+                          bottom: 10,
+                          child: Container(
+                            width: MediaQuery.of(context).size.width,
+                            color: Colors.white
+                                .withOpacity(0.8), // Darker background color
+                            padding: EdgeInsets.all(8.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                InkWell(
+                                  onTap: () =>
+                                      {}, // Replace with your desired function
+                                  child: _renderLabel(
+                                    "App Version",
+                                    textStyle: TextStyles.textGrey,
+                                    padding: EdgeInsets.only(top: 10),
+                                  ),
+                                ),
+                                Spacer(),
+                                Text(
+                                  '$version ($buildNo)' +
+                                      (FlutterConfig.get("ENVIRONMENT") ==
+                                              "STAGING"
+                                          ? " (STAGING)"
+                                          : ""),
+                                  style: TextStyles.textDefault,
+                                )
+                              ],
+                            ),
+                          ),
+                        ),
                       ]))))),
     );
   }

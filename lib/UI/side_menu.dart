@@ -1,14 +1,28 @@
+import 'dart:async';
+
+import 'package:after_layout/after_layout.dart';
 import 'package:easy_sidemenu/easy_sidemenu.dart';
 import 'package:flutter/material.dart';
-import 'package:kcs_engineer/UI/jobHistory.dart';
-import 'package:kcs_engineer/UI/jobs.dart';
+import 'package:kcs_engineer/UI/bag.dart';
+import 'package:kcs_engineer/UI/completed_jobs.dart';
+import 'package:kcs_engineer/UI/job_history.dart';
+import 'package:kcs_engineer/UI/kiv_jobs.dart';
 import 'package:kcs_engineer/UI/payment_history.dart';
-import 'package:kcs_engineer/UI/spareparts_history.dart';
+import 'package:kcs_engineer/UI/pick_list.dart';
+import 'package:kcs_engineer/UI/jobs.dart';
 import 'package:kcs_engineer/UI/user_profile.dart';
+import 'package:kcs_engineer/bag_icons.dart';
+import 'package:kcs_engineer/complete_jobs_icon.dart';
 import 'package:kcs_engineer/history_icons_icons.dart';
+import 'package:kcs_engineer/in_complete_jobs_icons.dart';
+import 'package:kcs_engineer/kcs_icons_icons.dart';
+import 'package:kcs_engineer/payment_history_icon.dart';
 import 'package:kcs_engineer/side_menu_icons_icons.dart';
+import 'package:kcs_engineer/util/api.dart';
 import 'package:kcs_engineer/util/helpers.dart';
+import 'package:kcs_engineer/util/key.dart';
 import 'package:kcs_engineer/util/repositories.dart';
+import 'package:kcs_engineer/kiv_icons.dart';
 
 class MyHomePage extends StatefulWidget {
   int? data;
@@ -17,7 +31,7 @@ class MyHomePage extends StatefulWidget {
   _MyHomePageState createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with AfterLayoutMixin {
   PageController page = PageController();
   SideMenuController sidemenuController = SideMenuController();
 
@@ -28,6 +42,41 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     sidemenuController = SideMenuController();
     super.initState();
+  }
+
+  Future<bool> checkIsAuth() async {
+    try {
+      final accessToken = await storage.read(key: TOKEN);
+
+      var epoch = await storage.read(key: TOKEN_EXPIRY);
+
+      if (epoch != null) {
+        num tokenExpiry = num.parse(epoch.toString());
+        var now = DateTime.now().toUtc().millisecondsSinceEpoch;
+
+        if (accessToken != null && accessToken != "" && tokenExpiry > now) {
+          return true;
+        } else {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    } catch (err) {
+      return false;
+    }
+  }
+
+  @override
+  FutureOr<void> afterFirstLayout(BuildContext context) async {
+    bool isAuth = await checkIsAuth();
+
+    if (isAuth) {
+      await Repositories.fetchRejectReasonsInitial();
+      await Repositories.fetchPickupChargesInitial();
+      await Repositories.fetchKIVReasonsInitial();
+      await Repositories.fetchCancellationReasonsInitial();
+    }
   }
 
   @override
@@ -62,32 +111,59 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 Container(
                   color: Colors.white,
-                  child: Center(child: new Container()
+                  child: Center(child: KIVJobList()),
+                ),
+                Container(
+                  color: Colors.white,
+                  child: Center(child: JobHistoryList()),
+                ),
+                Container(
+                  color: Colors.white,
+                  child: Center(child: PickList()
                       // child: JobHistory(),
                       ),
                 ),
                 Container(
                   color: Colors.white,
+                  child: Center(child: UserBag()
+                      // child: JobHistory(),
+                      ),
+                ),
+                // Container(
+                //   color: Colors.white,
+                //   child: Center(
+                //     child: new PaymentHistory(),
+                //   ),
+                // ),
+                // Container(
+                //   color: Colors.white,
+                //   child: Center(
+                //     child: SparepartHistory(),
+                //   ),
+                // ),
+
+                // Container(
+                //   color: Colors.white,
+                //   child: Center(
+                //     child: new Container(),
+                //   ),
+                // ),
+                Container(
+                  color: Colors.white,
                   child: Center(
-                    child: new PaymentHistory(),
+                    child: CompletedJobsList(),
                   ),
                 ),
                 Container(
                   color: Colors.white,
                   child: Center(
-                    child: SparepartHistory(),
+                    child: PaymentHistory(),
                   ),
                 ),
                 Container(
                   color: Colors.white,
                   child: Center(
                     child: UserProfile(),
-                  ),
-                ),
-                Container(
-                  color: Colors.white,
-                  child: Center(
-                    child: new Container(),
                   ),
                 ),
               ],
@@ -133,9 +209,7 @@ class _MyHomePageState extends State<MyHomePage> {
             sidemenuController.changePage(index);
             page.jumpToPage(index);
           },
-          icon: const Icon(
-            HistoryIcons.job_history,
-          ),
+          icon: const Icon(Kiv.historyiconkiv_jobs),
         ),
         SideMenuItem(
           priority: 2,
@@ -143,21 +217,15 @@ class _MyHomePageState extends State<MyHomePage> {
             sidemenuController.changePage(index);
             page.jumpToPage(index);
           },
-          icon: const Icon(
-            HistoryIcons.payment_history,
-          ),
+          icon: const Icon(InCompleteJobs.incompletejob),
         ),
         SideMenuItem(
           priority: 3,
           onTap: (index, controller) {
             sidemenuController.changePage(index);
-
             page.jumpToPage(index);
           },
-          icon: const Icon(
-            HistoryIcons.part_history,
-            size: 10,
-          ),
+          icon: const Icon(KcsIcons.picklist),
         ),
         SideMenuItem(
           priority: 4,
@@ -165,16 +233,62 @@ class _MyHomePageState extends State<MyHomePage> {
             sidemenuController.changePage(index);
             page.jumpToPage(index);
           },
+          icon: const Icon(Bag.bag),
+        ),
+        // SideMenuItem(
+        //   priority: 2,
+        //   onTap: (index, controller) {
+        //     sidemenuController.changePage(index);
+        //     page.jumpToPage(index);
+        //   },
+        //   icon: const Icon(
+        //     HistoryIcons.payment_history,
+        //   ),
+        // ),
+        // SideMenuItem(
+        //   priority: 3,
+        //   onTap: (index, controller) {
+        //     sidemenuController.changePage(index);
+
+        //     page.jumpToPage(index);
+        //   },
+        //   icon: const Icon(
+        //     HistoryIcons.part_history,
+        //     size: 10,
+        //   ),
+        // ),
+        SideMenuItem(
+          priority: 5,
+          onTap: (index, controller) {
+            sidemenuController.changePage(index);
+            page.jumpToPage(index);
+          },
+          icon: const Icon(CompleteJobs.completed),
+        ),
+        SideMenuItem(
+          priority: 6,
+          onTap: (index, controller) {
+            sidemenuController.changePage(index);
+            page.jumpToPage(index);
+          },
+          icon: const Icon(PaymentHistoryIcon.frame_366payment_history),
+        ),
+        SideMenuItem(
+          priority: 7,
+          onTap: (index, controller) {
+            sidemenuController.changePage(index);
+            page.jumpToPage(index);
+          },
           icon: const Icon(SideMenuIcons.profile),
         ),
         SideMenuItem(
-          priority: 5,
+          priority: 8,
           onTap: (index, controller) async {
             Helpers.showAlert(context);
             var res = await _logout();
             Navigator.pop(context);
             Navigator.pushReplacementNamed(context, 'signIn');
-            //Navigator.of(context).popUntil((route) => route.isFirst);
+            // Navigator.of(context).popUntil((route) => route.isFirst);
           },
           icon: const Icon(SideMenuIcons.logout),
         ),

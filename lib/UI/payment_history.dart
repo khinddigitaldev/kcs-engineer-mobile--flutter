@@ -1,15 +1,17 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:after_layout/after_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
-import 'package:kcs_engineer/model/general_code.dart';
-import 'package:kcs_engineer/model/job.dart';
-import 'package:kcs_engineer/model/payment_history_item.dart';
+import 'package:kcs_engineer/model/acknowledgement/payment_history.dart';
+import 'package:kcs_engineer/model/job/job.dart';
+import 'package:kcs_engineer/model/payment/payment_history_item.dart';
 import 'package:kcs_engineer/themes/app_colors.dart';
 import 'package:kcs_engineer/util/api.dart';
 import 'package:kcs_engineer/util/helpers.dart';
+import 'package:kcs_engineer/util/repositories.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 
@@ -20,7 +22,7 @@ class PaymentHistory extends StatefulWidget {
   _PaymentHistoryState createState() => _PaymentHistoryState();
 }
 
-class _PaymentHistoryState extends State<PaymentHistory> {
+class _PaymentHistoryState extends State<PaymentHistory> with AfterLayoutMixin {
   GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   TextEditingController searchCT = new TextEditingController();
@@ -40,24 +42,21 @@ class _PaymentHistoryState extends State<PaymentHistory> {
   String? quantity;
   String? price;
   String? remarks;
-  List<GeneralCode> generalCodeList = [];
-
-  List<GeneralCode> addedGeneralCodeQuantities = [];
 
   Timer? searchOnStoppedTyping;
   String currentSearchText = "";
   ScrollController? controller;
 
   String startDate = "";
-  String endDate = "";
+  String toDate = "";
   String tempStartDate = "";
-  String tempEndDate = "";
+  String tempToDate = "";
   bool isFiltersAdded = false;
-  int currentPage = 1;
+  // int currentPage = 1;
   int? lastPage;
-  List<PaymentHistoryItem>? paymentHistories;
-  List<PaymentHistoryItem>? previousPaymentHistories;
-
+  List<PaymentHistoryMeta>? paymentHistories;
+  List<PaymentHistoryMeta>? previousPaymentHistories;
+  String? cursor;
   @override
   void initState() {
     // emailCT.text = 'khindtest1@gmail.com';
@@ -70,9 +69,31 @@ class _PaymentHistoryState extends State<PaymentHistory> {
 
     Future.delayed(Duration.zero, () {
       _loadVersion();
-      _fetchPaymentHistory(true);
     });
     //_checkPermisions();
+  }
+
+  @override
+  FutureOr<void> afterFirstLayout(BuildContext context) async {
+    setDates();
+
+    await _fetchPaymentHistory(true);
+  }
+
+  setDates() {
+    DateTime now = DateTime.now();
+    DateTime tomorrow = now.add(Duration(days: 1));
+
+    // Get date 30 days ago
+    DateTime thirtyDaysAgo = now.subtract(Duration(days: 30));
+
+    // Format dates in '2023-08-29T11:08:12Z' format
+
+    setState(() {
+      toDate = tomorrow.toString().replaceAll(' ', 'T');
+      startDate = thirtyDaysAgo.toString().replaceAll(' ', 'T');
+    });
+    print("lala");
   }
 
   @override
@@ -97,24 +118,25 @@ class _PaymentHistoryState extends State<PaymentHistory> {
       bool isTop = controller?.position.pixels == 0;
 
       if (!isTop) {
-        currentPage = currentPage + 1;
-        var SpareParts = await _fetchPaymentHistory(false);
+        cursor = DateTime.parse(paymentHistories?.last?.insertedDate ?? "")
+            .add(Duration(days: 1))
+            .toString();
+        await _fetchPaymentHistory(false);
       }
     }
   }
 
   _onChangeHandler(value) {
-    const duration = Duration(
-        milliseconds:
-            2000); // set the duration tat you want call search() after that.
+    const duration = Duration(milliseconds: 2000);
 
     if (searchOnStoppedTyping != null) {
-      setState(() => searchOnStoppedTyping!.cancel()); // clear timer
+      setState(() => searchOnStoppedTyping!.cancel());
     }
     setState(() => searchOnStoppedTyping = new Timer(duration, () async {
           if (currentSearchText != value) {
             currentSearchText = value;
-            currentPage = 1;
+            cursor = DateTime.now().add(Duration(days: 1)).toString();
+
             await _fetchPaymentHistory(true);
           }
         }));
@@ -133,8 +155,6 @@ class _PaymentHistoryState extends State<PaymentHistory> {
             alignment: Alignment.centerLeft,
             child: RichText(
               text: TextSpan(
-                // Note: Styles for TextSpans must be explicitly defined.
-                // Child text spans will inherit styles from parent
                 style: const TextStyle(
                   fontSize: 29.0,
                   color: Colors.black,
@@ -151,26 +171,6 @@ class _PaymentHistoryState extends State<PaymentHistory> {
           Divider(color: Colors.grey),
           SizedBox(
             height: 20,
-          ),
-          Padding(
-            padding: EdgeInsets.fromLTRB(10.0, 0, 0, 0),
-            child: Container(
-              alignment: Alignment.centerLeft,
-              child: RichText(
-                text: TextSpan(
-                    // Note: Styles for TextSpans must be explicitly defined.
-                    // Child text spans will inherit styles from parent
-                    style: const TextStyle(
-                      fontSize: 25.0,
-                      color: Colors.black,
-                    ),
-                    children: <TextSpan>[
-                      TextSpan(
-                        text: 'LIST OF PAYMENTS',
-                      ),
-                    ]),
-              ),
-            ),
           ),
           SizedBox(
             height: 20,
@@ -194,7 +194,29 @@ class _PaymentHistoryState extends State<PaymentHistory> {
                 Row(children: [
                   GestureDetector(
                       onTap: () async {
-                        await showDatePicker();
+                        Helpers.showDatePicker(context, () {
+                          setState(() {
+                            tempStartDate = "";
+                            tempToDate = "";
+                          });
+                        }, (DateTime? strtDate, DateTime? endDate) {
+                          setState(() {
+                            tempStartDate = strtDate.toString();
+                            tempToDate = endDate.toString();
+                          });
+                        }, () async {
+                          setState(() {
+                            startDate =
+                                (tempStartDate ?? "").replaceFirst(" ", "T");
+                            toDate = (tempToDate ?? "").replaceFirst(" ", "T");
+                            filterCT.text =
+                                '${startDate.split("T")[0]}-${toDate.split("T")[0]}';
+                            isFiltersAdded = true;
+                          });
+
+                          _fetchPaymentHistory(true);
+                          // _fetchKIVJobs(true);
+                        });
                       },
                       child: Container(
                         alignment: Alignment.centerRight,
@@ -204,7 +226,7 @@ class _PaymentHistoryState extends State<PaymentHistory> {
                           child: TextFormField(
                             focusNode: focusFilter,
                             keyboardType: TextInputType.text,
-                            //onChanged: _onChangeHandlerForCompletion,
+                            onChanged: _onChangeHandler,
                             enabled: false,
                             controller: filterCT,
                             onFieldSubmitted: (val) {
@@ -254,12 +276,14 @@ class _PaymentHistoryState extends State<PaymentHistory> {
                               onPressed: () async {
                                 setState(() {
                                   startDate = "";
-                                  endDate = "";
+                                  toDate = "";
                                   tempStartDate = "";
-                                  tempEndDate = "";
+                                  tempToDate = "";
                                   isFiltersAdded = false;
                                   filterCT.text = "";
-                                  currentPage = 1;
+                                  cursor = DateTime.now()
+                                      .add(Duration(days: 1))
+                                      .toString();
                                 });
                                 await _fetchPaymentHistory(true);
                               }),
@@ -276,59 +300,46 @@ class _PaymentHistoryState extends State<PaymentHistory> {
                 alignment: Alignment.centerLeft,
                 child: DataTable(
                     columnSpacing: 10,
-                    headingRowHeight: 70.0,
+                    headingRowHeight: MediaQuery.of(context).size.height * 0.04,
                     dataRowHeight: 0.0,
                     headingRowColor: MaterialStateColor.resolveWith(
                         (states) => Colors.black87),
                     columns: [
                       DataColumn(
                           label: Container(
-                        width: MediaQuery.of(context).size.width * .08,
+                        width: MediaQuery.of(context).size.width * .15,
                         child: Center(
-                            child: Text('DATE',
+                            child: Text('Date',
                                 style: TextStyle(
-                                    color: Colors.white, fontSize: 11))),
+                                    color: Colors.white, fontSize: 14))),
                       )),
                       DataColumn(
                           label: Container(
-                        width: MediaQuery.of(context).size.width * .1,
+                        width: MediaQuery.of(context).size.width * .2,
                         child: Center(
-                            child: Text('JOB ID',
+                            child: Text('Cash given to CR',
                                 style: TextStyle(
-                                    color: Colors.white, fontSize: 11))),
+                                    color: Colors.white, fontSize: 14))),
                       )),
                       DataColumn(
                           label: Container(
-                              width: MediaQuery.of(context).size.width * .25,
+                              width: MediaQuery.of(context).size.width * .22,
                               child: Center(
                                 child: Text(
-                                  'JOB STATUS',
+                                  'Status',
                                   style: TextStyle(
-                                      color: Colors.white, fontSize: 11),
+                                      color: Colors.white, fontSize: 14),
                                 ),
                               ))),
                       DataColumn(
                           label: Container(
-                        width: MediaQuery.of(context).size.width * .12,
+                        width: MediaQuery.of(context).size.width * .25,
                         child: Center(
-                            child: Text('CHARGEABLE',
+                            child: Text('Action',
                                 style: TextStyle(
-                                    color: Colors.white, fontSize: 11))),
+                                    color: Colors.white, fontSize: 14))),
                       )),
-                      DataColumn(
-                          label: Center(
-                              child: SizedBox(
-                        width: MediaQuery.of(context).size.width * .08,
-                        child: Center(
-                          child: Text(
-                            'PAYMENT MODE',
-                            overflow: TextOverflow.visible,
-                            softWrap: true,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white, fontSize: 11),
-                          ),
-                        ),
-                      ))),
+
                       // DataColumn(
                       //     label: Container(
                       //   width: MediaQuery.of(context).size.width * .114,
@@ -342,124 +353,135 @@ class _PaymentHistoryState extends State<PaymentHistory> {
                       //             TextStyle(color: Colors.white, fontSize: 11)),
                       //   ),
                       // )),
-                      DataColumn(
-                        label: Container(
-                            width: MediaQuery.of(context).size.width * .08,
-                            child: Center(
-                              child: Text(
-                                'AMOUNT',
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 12),
-                              ),
-                            )),
-                      )
                     ],
                     rows: []),
               )),
-          ConstrainedBox(
-              constraints: BoxConstraints(
-                  maxHeight: 900,
-                  minHeight: 200,
-                  maxWidth: MediaQuery.of(context).size.width * 1,
-                  minWidth: MediaQuery.of(context).size.width * 1),
-              child: Container(
-                  width: MediaQuery.of(context).size.width * 1,
-                  child: Scrollbar(
-                      child: ListView(
-                          shrinkWrap: true,
-                          controller: controller,
-                          children: [
-                        DataTable(
-                            columnSpacing: 5,
-                            dataRowHeight: 70.0,
-                            headingRowHeight: 0.0,
-                            columns: [
-                              DataColumn(
-                                  label: Container(
-                                alignment: Alignment.centerLeft,
-                                width: MediaQuery.of(context).size.width * .04,
-                                child: Padding(
-                                    padding: EdgeInsets.fromLTRB(0, 0, 0, 0),
-                                    child: new Container()),
-                              )),
-                              DataColumn(
-                                  label: Container(
-                                alignment: Alignment.centerLeft,
-                                width: MediaQuery.of(context).size.width * .05,
-                                child: Padding(
-                                  padding: EdgeInsets.fromLTRB(0, 0, 0, 0),
-                                  child: new Container(),
-                                ),
-                              )),
-                              DataColumn(
-                                  label: SizedBox(
-                                // alignment: Alignment.centerLeft,
-                                width: MediaQuery.of(context).size.width * .045,
-                                child: new Container(),
-                              )),
-                              DataColumn(
-                                  label: Container(
-                                alignment: Alignment.centerLeft,
-                                width: MediaQuery.of(context).size.width * .045,
-                                child: Padding(
-                                    padding: EdgeInsets.fromLTRB(0, 0, 0, 0),
-                                    child: new Container()),
-                              )),
-                              DataColumn(
-                                  label: Container(
-                                alignment: Alignment.centerRight,
-                                width: MediaQuery.of(context).size.width * .045,
-                                child: Padding(
-                                  padding: EdgeInsets.fromLTRB(0, 0, 0, 0),
-                                  child: new Container(),
-                                ),
-                              )),
-                              DataColumn(
-                                  label: Container(
-                                alignment: Alignment.centerLeft,
-                                width: MediaQuery.of(context).size.width * .045,
-                                child: new Container(),
-                              )),
-                            ],
-                            rows: (paymentHistories ??
-                                    []) // Loops through dataColumnText, each iteration assigning the value to element
-                                .map(
-                                  ((element) => DataRow(
-                                        cells: <DataCell>[
-                                          DataCell(Container(
-                                              alignment: Alignment.centerLeft,
-                                              child: Text(element.date ??
-                                                  ""))), //Extracting from Map element the value
-                                          DataCell(Container(
-                                              alignment: Alignment.centerLeft,
-                                              child: Text(
-                                                  element.orderReferenceNo ??
-                                                      ""))),
-                                          DataCell(Container(
-                                              alignment: Alignment.centerLeft,
-                                              child: Text(element.orderStatus ??
-                                                  ""))), //Extracting from Map element the value
-                                          DataCell(Container(
-                                              alignment: Alignment.centerLeft,
-                                              child: Text(
-                                                  (element.chargeable == "1")
-                                                      ? "YES"
-                                                      : "NO"))),
-                                          DataCell(Container(
-                                              alignment: Alignment.center,
-                                              child: Text(element
-                                                      .paymentMethod ??
-                                                  ""))), //Extracting from Map element the value
-                                          DataCell(Container(
-                                              alignment: Alignment.centerRight,
-                                              child: Text(
-                                                  element.paymentAmount ??
-                                                      ""))),
-                                        ],
-                                      )),
-                                )
-                                .toList())
-                      ]))))
+          paymentHistories != null && (paymentHistories?.length ?? 0) > 0
+              ? ConstrainedBox(
+                  constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.9,
+                      minHeight: MediaQuery.of(context).size.height * 0,
+                      maxWidth: MediaQuery.of(context).size.width * 1,
+                      minWidth: MediaQuery.of(context).size.width * 1),
+                  child: Container(
+                      width: MediaQuery.of(context).size.width * 1,
+                      child: Scrollbar(
+                          child: ListView(
+                              shrinkWrap: true,
+                              controller: controller,
+                              children: [
+                            DataTable(
+                                columnSpacing: 5,
+                                dataRowHeight: 70.0,
+                                headingRowHeight: 0.0,
+                                columns: [
+                                  DataColumn(
+                                      label: Container(
+                                    alignment: Alignment.centerLeft,
+                                    width:
+                                        MediaQuery.of(context).size.width * .15,
+                                    child: Padding(
+                                        padding:
+                                            EdgeInsets.fromLTRB(0, 0, 0, 0),
+                                        child: new Container()),
+                                  )),
+                                  DataColumn(
+                                      label: Container(
+                                    alignment: Alignment.centerLeft,
+                                    width:
+                                        MediaQuery.of(context).size.width * .13,
+                                    child: Padding(
+                                      padding: EdgeInsets.fromLTRB(0, 0, 0, 0),
+                                      child: new Container(),
+                                    ),
+                                  )),
+                                  DataColumn(
+                                      label: SizedBox(
+                                    // alignment: Alignment.centerLeft,
+                                    width:
+                                        MediaQuery.of(context).size.width * .18,
+                                    child: new Container(),
+                                  )),
+                                  DataColumn(
+                                      label: Container(
+                                    alignment: Alignment.centerLeft,
+                                    width: MediaQuery.of(context).size.width *
+                                        .045,
+                                    child: Padding(
+                                        padding:
+                                            EdgeInsets.fromLTRB(0, 0, 0, 0),
+                                        child: new Container()),
+                                  )),
+                                ],
+                                rows: (paymentHistories ??
+                                        []) // Loops through dataColumnText, each iteration assigning the value to element
+                                    .map(
+                                      ((element) => DataRow(
+                                            cells: <DataCell>[
+                                              DataCell(Container(
+                                                  alignment:
+                                                      Alignment.centerLeft,
+                                                  child: Text(element
+                                                          .insertedDate ??
+                                                      ""))), //Extracting from Map element the value
+                                              DataCell(Container(
+                                                  alignment:
+                                                      Alignment.centerLeft,
+                                                  child: Text(
+                                                      element.formatted ??
+                                                          ""))),
+                                              DataCell(Container(
+                                                  alignment:
+                                                      Alignment.centerLeft,
+                                                  child: Text(element
+                                                          .paymentStatus ??
+                                                      ""))), //Extracting from Map element the value
+                                              DataCell(GestureDetector(
+                                                  onTap: () {
+                                                    Navigator.pushNamed(context,
+                                                        'acknowledged_jobs_list',
+                                                        arguments: [
+                                                          element.insertedDate
+                                                        ]);
+                                                  },
+                                                  child: Icon(
+                                                      Icons
+                                                          .remove_red_eye_rounded,
+                                                      color: Color(0xFF323F4B))
+
+                                                  //          Container(
+                                                  // width:
+                                                  //     MediaQuery.of(context)
+                                                  //             .size
+                                                  //             .height *
+                                                  //         0.03,
+                                                  // height:
+                                                  //     MediaQuery.of(context)
+                                                  //             .size
+                                                  //             .height *
+                                                  //         0.03,
+                                                  // alignment:
+                                                  //     Alignment.center,
+                                                  // padding:
+                                                  //     EdgeInsets.all(5),
+                                                  // decoration: BoxDecoration(
+                                                  //   color:
+                                                  //       Color(0xFF323F4B),
+                                                  //   shape: BoxShape.circle,
+                                                  // ),
+                                                  // child: Icon(
+                                                  //     Icons
+                                                  //         .remove_red_eye_rounded,
+                                                  //     color:
+                                                  //         Colors.white))
+
+                                                  )),
+                                            ],
+                                          )),
+                                    )
+                                    .toList())
+                          ]))))
+              : Container()
         ]),
       ),
     );
@@ -476,163 +498,16 @@ class _PaymentHistoryState extends State<PaymentHistory> {
       });
     }
 
-    var url = 'payment/history?per_page=20&page=$currentPage' +
-        ((startDate != "") ? '&start_date=$startDate' : '') +
-        ((endDate != "")
-            ? '&end_date=$endDate'
-            : ((startDate != "") ? '&end_date=$startDate' : '')) +
-        ((searchCT.text != "") ? '&q=${searchCT.text}' : '');
+    var res = await Repositories.fetchPaymentHistory(
+        startDate, toDate, cursor ?? toDate.toString().split('T')[0]);
 
-    final response = await Api.bearerGet(url);
-    print("#Resp: ${jsonEncode(response)}");
-    // Navigator.pop(context);
-    if (response["success"] != null) {
-      setState(() {
-        lastPage = response['meta']['last_page'];
-      });
-
-      var res = (response['data'] as List)
-          .map((i) => PaymentHistoryItem.fromJson(i))
-          .toList();
-
-      setState(() {
-        paymentHistories = res;
-      });
-    } else {
-      //show ERROR
-    }
+    setState(() {
+      previousPaymentHistories?.addAll(res ?? []);
+      paymentHistories = previousPaymentHistories;
+    });
+    print("lala");
 
     Navigator.pop(context);
-  }
-
-  showDatePicker() {
-    AlertDialog filterDialog = AlertDialog(
-      title: Center(child: Text("Pick a Date")),
-      actionsAlignment: MainAxisAlignment.center,
-      actions: [
-        Container(
-          color: Colors.white,
-          height: MediaQuery.of(context).size.height * 0.04,
-          width: MediaQuery.of(context).size.width * 0.3,
-          child: ElevatedButton(
-              child: Padding(
-                  padding: const EdgeInsets.all(5.0),
-                  child: Text(
-                    'CANCEL',
-                    style: TextStyle(fontSize: 13, color: Colors.white),
-                  )),
-              style: ButtonStyle(
-                  foregroundColor:
-                      MaterialStateProperty.all<Color>(AppColors.primary),
-                  backgroundColor:
-                      MaterialStateProperty.all<Color>(AppColors.primary),
-                  shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-                      RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(5.0),
-                          side: BorderSide(color: AppColors.primary)))),
-              onPressed: () async {
-                Navigator.pop(context);
-              }),
-        ),
-        Container(
-          height: MediaQuery.of(context).size.height * 0.04,
-          width: MediaQuery.of(context).size.width * 0.3,
-          child: ElevatedButton(
-              child: Padding(
-                  padding: const EdgeInsets.all(5.0),
-                  child: Text(
-                    'DONE',
-                    style: TextStyle(fontSize: 13, color: Colors.white),
-                  )),
-              style: ButtonStyle(
-                  foregroundColor:
-                      MaterialStateProperty.all<Color>(AppColors.primary),
-                  backgroundColor:
-                      MaterialStateProperty.all<Color>(AppColors.primary),
-                  shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-                      RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(5.0),
-                          side: BorderSide(color: AppColors.primary)))),
-              onPressed: () async {
-                setState(() {
-                  startDate = tempStartDate;
-                  endDate = tempEndDate;
-                  isFiltersAdded = true;
-                  currentPage = 1;
-                });
-                filterCT.text = '${tempStartDate} - ${tempEndDate}';
-                await _fetchPaymentHistory(true);
-                Navigator.pop(context);
-              }),
-        )
-      ],
-      content: Container(
-        height: MediaQuery.of(context).size.height * 0.4,
-        width: MediaQuery.of(context).size.width * 0.6,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(
-            width: 0.4,
-            color: Colors.grey.withOpacity(0.5),
-          ),
-          boxShadow: [
-            BoxShadow(
-                blurRadius: 5, color: Colors.grey[200]!, offset: Offset(0, 10)),
-          ],
-          borderRadius: BorderRadius.circular(7.5),
-        ),
-        child: SfDateRangePicker(
-          headerHeight: 60,
-          selectionMode: DateRangePickerSelectionMode.range,
-          headerStyle: DateRangePickerHeaderStyle(
-              textStyle: TextStyle(
-                  fontWeight: FontWeight.w400,
-                  fontSize: 20,
-                  color: Colors.black)),
-          selectionTextStyle: TextStyle(
-              fontWeight: FontWeight.w400, fontSize: 16, color: Colors.black),
-          monthCellStyle: DateRangePickerMonthCellStyle(
-            textStyle: TextStyle(
-                fontWeight: FontWeight.w400, fontSize: 16, color: Colors.black),
-            leadingDatesDecoration: BoxDecoration(
-                color: const Color(0xFFDFDFDF),
-                border: Border.all(color: const Color(0xFFB6B6B6), width: 1),
-                shape: BoxShape.circle),
-          ),
-
-          onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
-            setState(() {
-              if (args.value.startDate != null) {
-                tempStartDate =
-                    DateFormat('yyyy-MM-dd').format(args.value.startDate);
-              }
-              if (args.value.endDate != null) {
-                tempEndDate =
-                    DateFormat('yyyy-MM-dd').format(args.value.endDate);
-              } else if (args.value.startDate != null) {
-                tempEndDate = tempStartDate;
-              }
-            });
-
-            // setState(() {
-            //   tempSelectedDate = DateFormat('yyyy-MM-dd').format(
-            //       DateFormat('yyyy-MM-dd hh:mm:ss')
-            //           .parse(args.value.toString()));
-            // });
-          },
-          // initialSelectedRange: PickerDateRange(
-          //     DateTime.now().subtract(const Duration(days: 4)),
-          //     DateTime.now().add(const Duration(days: 3))),
-        ),
-      ),
-    );
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return filterDialog;
-      },
-    );
   }
 
   _renderError() {
@@ -652,6 +527,16 @@ class _PaymentHistoryState extends State<PaymentHistory> {
     return Scaffold(
       key: _scaffoldKey,
       //resizeToAvoidBottomInset: false,
+      appBar: Helpers.customAppBar(context, _scaffoldKey,
+          title: "",
+          isBack: true,
+          isAppBarTranparent: true,
+          hasActions: false, handleBackPressed: () {
+        Navigator.pop(context);
+        // var res = validateIfEditedValuesAreSaved();
+        // if (res) {
+        // }
+      }),
       body: CustomPaint(
           child: SingleChildScrollView(
               child: Container(

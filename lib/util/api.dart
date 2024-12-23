@@ -8,25 +8,10 @@ import 'package:intl/intl.dart';
 import 'package:kcs_engineer/util/helpers.dart';
 import 'package:kcs_engineer/util/key.dart';
 import 'package:kcs_engineer/util/repositories.dart';
+import 'package:kcs_engineer/util/navigationService.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 final storage = new FlutterSecureStorage();
-
-// class AuthInterceptor implements InterceptorContract {
-//   @override
-//   Future<RequestData> interceptRequest({required RequestData data}) async {
-//     try {
-//       String refreshToken = storage.read(key: REFRESH_TOKEN).toString();
-//     } catch (e) {
-//       print('Auth Interceptor error $e');
-//     }
-//     return data;
-//   }
-
-//   @override
-//   Future<ResponseData> interceptResponse({required ResponseData data}) async {
-//     return data;
-//   }
-// }
 
 class ApiInterceptor implements InterceptorContract {
   String baseUrl = dotenv.env["API_BASE_URL"] ?? "";
@@ -35,13 +20,25 @@ class ApiInterceptor implements InterceptorContract {
   Future<RequestData> interceptRequest({required RequestData data}) async {
     try {
       var epoch = await storage.read(key: TOKEN_EXPIRY);
-      num tokenExpiry = num.parse(epoch.toString());
-      var now = DateTime.now().toUtc().millisecondsSinceEpoch;
-      if (tokenExpiry < now) {
-        await renewAccessToken();
+
+      if (epoch != null) {
+        num tokenExpiry = num.parse(epoch.toString());
+        var now = DateTime.now().toUtc().millisecondsSinceEpoch;
+        if (tokenExpiry < now) {
+          try {
+            await renewAccessToken();
+          } catch (err) {
+            Helpers.isAuthenticated = false;
+            await storage.delete(key: TOKEN);
+            await storage.delete(key: TOKEN_EXPIRY);
+            await storage.delete(key: REFRESH_TOKEN);
+            await storage.delete(key: USERID);
+            await NavigationService.pushReplacementNamed('signIn');
+          }
+        }
       }
       data.headers['Content-Type'] = 'application/json';
-      data.headers['Accept'] = '*/*';
+      data.headers['Accept'] = 'application/json';
       var token = await storage.read(key: TOKEN);
       String bearerAuth = 'Bearer $token';
       data.headers['Authorization'] = bearerAuth;
@@ -52,45 +49,31 @@ class ApiInterceptor implements InterceptorContract {
     return data;
   }
 
-  static Future<String> renewAccessToken() async {
-    var baseUrl = await dotenv.env["API_BASE_URL"];
-    var refreshToken = await storage.read(key: REFRESH_TOKEN);
+  @override
+  Future<ResponseData> interceptResponse({required ResponseData data}) async {
+    var body = jsonDecode(data.body ?? "");
 
-    var data = {"refresh_token": refreshToken};
-
-    final res =
-        await http.post(Uri.parse("$baseUrl/auth/refresh-token"), body: data);
-
-    var response = json.decode(res.body) as Map<String, dynamic>;
-
-    print("#Resp: ${jsonEncode(response)}");
-
-    if (response["success"]) {
-      Helpers.isAuthenticated = false;
-      var dateTimeFormat = DateFormat("yyyy-MM-ddTHH:mm:ss.SSSSSS'Z'")
-          .parse(response?['data']?['token']?['expires_at']);
-
-      await storage.write(
-          key: TOKEN, value: response?['data']?['token']?['token']);
-      await storage.write(
-          key: TOKEN_EXPIRY,
-          value: dateTimeFormat.millisecondsSinceEpoch.toString());
-
-      return response?['data']?['token']?['token'];
-    } else {
+    if (data.statusCode == 401) {
       Helpers.isAuthenticated = false;
       await storage.delete(key: TOKEN);
       await storage.delete(key: TOKEN_EXPIRY);
       await storage.delete(key: REFRESH_TOKEN);
       await storage.delete(key: USERID);
-      return "unauthenticated";
+
+      if (!(data.url?.contains('/login') ?? true)) {
+        await NavigationService.pushReplacementNamed('signIn');
+      }
     }
+
+    return data;
   }
 
-  @override
-  Future<ResponseData> interceptResponse({required ResponseData data}) async {
-    //handleunauthenticated;
-    return data;
+  static Future<void> renewAccessToken() async {
+    var res = await Repositories.renewAccessToken();
+
+    if (res.toString().toLowerCase() == "unauthenticated") {
+      await NavigationService.pushReplacementNamed('signIn');
+    }
   }
 }
 
@@ -203,10 +186,11 @@ class Api {
           url = '$url${listParams.join()}';
         }
       }
-
+      var ll = json.encode(params);
+      var req = client;
       print("bearerPost Url: $url");
       if (params != null) {
-        response = await client.post(url.toUri(), body: params);
+        response = await client.post(url.toUri(), body: json.encode(params));
       } else {
         response = await client.post(url.toUri());
       }
