@@ -3703,14 +3703,15 @@ class _JobDetailsState extends State<JobDetails>
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         RichText(
-                                          text:  TextSpan(
+                                          text: TextSpan(
                                             style: const TextStyle(
                                               fontSize: 12.0,
                                               color: Colors.black54,
                                             ),
                                             children: <TextSpan>[
-                                               TextSpan(
-                                                text: 'DISCOUNT (${selectedJob?.estimatedSolutionDiscountPercentage ?? "0"}% Off)',
+                                              TextSpan(
+                                                text:
+                                                    'DISCOUNT (${selectedJob?.estimatedSolutionDiscountPercentage ?? "0"}% Off)',
                                               ),
                                             ],
                                           ),
@@ -8169,258 +8170,270 @@ class AddPartItemState extends State<AddPartItem> {
             ),
           ),
           SizedBox(width: 5),
-          Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Column(
+          SizedBox(
+              width: MediaQuery.of(context).size.width * 0.4,
+              child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    (widget.isChargeable ?? false)
-                        ? RichText(
-                            text: TextSpan(
-                                style: TextStyle(
-                                  fontSize: 16.0,
-                                  // fontWeight: FontWeight.bold,
-                                  color: Colors.black,
-                                ),
-                                children: <TextSpan>[
-                                  TextSpan(text: 'Quantity :-'),
-                                ]),
-                          )
-                        : Container(),
-                    (widget.isChargeable ?? false)
-                        ? SizedBox(height: 10)
-                        : Container(),
-                    (widget.isChargeable ?? false)
-                        ? RichText(
-                            text: TextSpan(
-                                style: TextStyle(
-                                  fontSize: 16.0,
-                                  // fontWeight: FontWeight.bold,
-                                  color: Colors.black,
-                                ),
-                                children: <TextSpan>[
-                                  TextSpan(text: 'Unit Price :-'),
-                                ]),
-                          )
-                        : Container(),
-                    (widget.isChargeable ?? false) &&
-                            (widget.rcpCost?.spareParts ?? [])
-                                    .firstWhere((element) =>
-                                        element.sparepartsId == widget.part?.id)
-                                    .discountValAmount !=
-                                null
-                        ? SizedBox(height: 10)
-                        : Container(),
-                    (widget.isChargeable ?? false) &&
-                            (widget.rcpCost?.spareParts ?? [])
-                                    .firstWhere((element) =>
-                                        element.sparepartsId == widget.part?.id)
-                                    .discountValAmount !=
-                                null
-                        ? RichText(
-                            text: TextSpan(
-                                style: TextStyle(
-                                  fontSize: 16.0,
-                                  // fontWeight: FontWeight.bold,
-                                  color: Colors.black,
-                                ),
-                                children: <TextSpan>[
-                                  TextSpan(text: 'Discount :-'),
-                                ]),
-                          )
-                        : Container(),
-                    (widget.isChargeable ?? false) &&
-                            (widget.rcpCost?.spareParts ?? [])
-                                    .firstWhere((element) =>
-                                        element.sparepartsId == widget.part?.id)
-                                    .amountValAfterProcessing !=
-                                null
-                        ? SizedBox(height: 10)
-                        : Container(),
-                    (widget.isChargeable ?? false) &&
-                            (widget.rcpCost?.spareParts ?? [])
-                                    .firstWhere((element) =>
-                                        element.sparepartsId == widget.part?.id)
-                                    .amountValAfterProcessing !=
-                                null
-                        ? RichText(
-                            text: TextSpan(
-                                style: TextStyle(
-                                  fontSize: 16.0,
-                                  // fontWeight: FontWeight.bold,
-                                  color: Colors.black,
-                                ),
-                                children: <TextSpan>[
-                                  TextSpan(text: 'Line Total :-'),
-                                ]),
-                          )
-                        : Container(),
-                  ],
-                ),
-                Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        child: !(widget.editable ?? false)
-                            ? SizedBox(
-                                width: MediaQuery.of(context).size.width * 0.09,
-                                child: Container(
-                                  child: RichText(
-                                    text: TextSpan(
-                                        style: TextStyle(
-                                          fontSize: 18.0,
-                                          color: Colors.black54,
-                                        ),
-                                        children: <TextSpan>[
-                                          TextSpan(
-                                            text: quantity == 1
-                                                ? '  $quantity Unit'
-                                                : '  $quantity Units',
-                                          ),
-                                        ]),
-                                  ),
-                                ),
+                    Column(
+                      children: [
+                        !(widget.editable ?? false)
+                            ? RichText(
+                                text: TextSpan(
+                                    style: TextStyle(
+                                      fontSize: 16.0,
+                                      // fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
+                                    children: <TextSpan>[
+                                      TextSpan(text: 'Quantity :-'),
+                                    ]),
                               )
-                            : Row(mainAxisSize: MainAxisSize.min, children: [
-                                Container(
-                                  constraints: BoxConstraints.tightFor(
-                                      width: 35, height: 25),
-                                  child: IconButton(
-                                    onPressed: () {
-                                      if (Helpers
-                                              .editableJobSpareParts[
-                                                  widget.index ?? 0]
-                                              .quantity !=
-                                          0) {
-                                        setState(() {
-                                          Helpers
-                                              .editableJobSpareParts[
-                                                  widget.index ?? 0]
-                                              .quantity = (Helpers
+                            : Container(),
+                        (widget.isChargeable ?? false)
+                            ? SizedBox(height: 10)
+                            : Container(),
+                        (widget.isChargeable ?? false)
+                            ? RichText(
+                                text: TextSpan(
+                                    style: TextStyle(
+                                      fontSize: 16.0,
+                                      // fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
+                                    children: <TextSpan>[
+                                      TextSpan(text: 'Unit Price :-'),
+                                    ]),
+                              )
+                            : Container(),
+                        (widget.isChargeable ?? false) &&
+                                (widget.rcpCost?.spareParts ?? [])
+                                        .firstWhere((element) =>
+                                            element.sparepartsId ==
+                                            widget.part?.id)
+                                        .discountValAmount !=
+                                    null
+                            ? SizedBox(height: 10)
+                            : Container(),
+                        (widget.isChargeable ?? false) &&
+                                (widget.rcpCost?.spareParts ?? [])
+                                        .firstWhere((element) =>
+                                            element.sparepartsId ==
+                                            widget.part?.id)
+                                        .discountValAmount !=
+                                    null
+                            ? RichText(
+                                text: TextSpan(
+                                    style: TextStyle(
+                                      fontSize: 16.0,
+                                      // fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
+                                    children: <TextSpan>[
+                                      TextSpan(text: 'Discount :-'),
+                                    ]),
+                              )
+                            : Container(),
+                        (widget.isChargeable ?? false) &&
+                                (widget.rcpCost?.spareParts ?? [])
+                                        .firstWhere((element) =>
+                                            element.sparepartsId ==
+                                            widget.part?.id)
+                                        .amountValAfterProcessing !=
+                                    null
+                            ? SizedBox(height: 10)
+                            : Container(),
+                        (widget.isChargeable ?? false) &&
+                                (widget.rcpCost?.spareParts ?? [])
+                                        .firstWhere((element) =>
+                                            element.sparepartsId ==
+                                            widget.part?.id)
+                                        .amountValAfterProcessing !=
+                                    null
+                            ? RichText(
+                                text: TextSpan(
+                                    style: TextStyle(
+                                      fontSize: 16.0,
+                                      // fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
+                                    children: <TextSpan>[
+                                      TextSpan(text: 'Line Total :-'),
+                                    ]),
+                              )
+                            : Container(),
+                      ],
+                    ),
+                    Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            child: !(widget.editable ?? false)
+                                ? SizedBox(
+                                    width: MediaQuery.of(context).size.width *
+                                        0.09,
+                                    child: Container(
+                                      child: RichText(
+                                        text: TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 18.0,
+                                              color: Colors.black54,
+                                            ),
+                                            children: <TextSpan>[
+                                              TextSpan(
+                                                text: quantity == 1
+                                                    ? '  $quantity Unit'
+                                                    : '  $quantity Units',
+                                              ),
+                                            ]),
+                                      ),
+                                    ),
+                                  )
+                                : Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                        Container(
+                                          constraints: BoxConstraints.tightFor(
+                                              width: 35, height: 25),
+                                          child: IconButton(
+                                            onPressed: () {
+                                              if (Helpers
                                                       .editableJobSpareParts[
                                                           widget.index ?? 0]
-                                                      .quantity ??
-                                                  0) -
-                                              1;
-                                        });
-                                      }
-                                    },
-                                    icon: Icon(
-                                      Icons.remove,
-                                      size: 13,
-                                      color: Helpers
-                                                  .editableJobSpareParts[
-                                                      widget.index ?? 0]
-                                                  .quantity !=
-                                              0
-                                          ? Colors.black
-                                          : Colors.black45,
-                                    ),
-                                  ),
-                                ),
-                                Container(
+                                                      .quantity !=
+                                                  0) {
+                                                setState(() {
+                                                  Helpers
+                                                      .editableJobSpareParts[
+                                                          widget.index ?? 0]
+                                                      .quantity = (Helpers
+                                                              .editableJobSpareParts[
+                                                                  widget.index ??
+                                                                      0]
+                                                              .quantity ??
+                                                          0) -
+                                                      1;
+                                                });
+                                              }
+                                            },
+                                            icon: Icon(
+                                              Icons.remove,
+                                              size: 13,
+                                              color: Helpers
+                                                          .editableJobSpareParts[
+                                                              widget.index ?? 0]
+                                                          .quantity !=
+                                                      0
+                                                  ? Colors.black
+                                                  : Colors.black45,
+                                            ),
+                                          ),
+                                        ),
+                                        Container(
+                                          child: RichText(
+                                            text: TextSpan(
+                                                style: TextStyle(
+                                                  fontSize: 18.0,
+                                                  color: Colors.black54,
+                                                ),
+                                                children: <TextSpan>[
+                                                  TextSpan(
+                                                    text:
+                                                        '${(Helpers.editableJobSpareParts[widget.index ?? 0].quantity ?? 0)}',
+                                                  ),
+                                                ]),
+                                          ),
+                                        ),
+                                      ]),
+                          ),
+                          SizedBox(height: 10),
+                          (widget.isChargeable ?? false)
+                              ? Container(
                                   child: RichText(
                                     text: TextSpan(
                                         style: TextStyle(
-                                          fontSize: 18.0,
+                                          fontSize: 16.0,
                                           color: Colors.black54,
                                         ),
                                         children: <TextSpan>[
                                           TextSpan(
                                             text:
-                                                '${(Helpers.editableJobSpareParts[widget.index ?? 0].quantity ?? 0)}',
+                                                '  MYR ${((num.parse(((widget.rcpCost?.spareParts ?? []).indexWhere((element) => element.sparepartsId == widget.part?.id) != -1 ? ((widget.isDiscountApplied ?? false) ? (widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).rcpAmountVal : (widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).amountVal) : "0") ?? "0")) / (100 * (Helpers.editableJobSpareParts[widget.index ?? 0].quantity ?? 0)) ?? 0).toStringAsFixed(2)}',
                                           ),
                                         ]),
                                   ),
-                                ),
-                              ]),
-                      ),
-                      SizedBox(height: 10),
-                      (widget.isChargeable ?? false)
-                          ? Container(
-                              child: RichText(
-                                text: TextSpan(
-                                    style: TextStyle(
-                                      fontSize: 16.0,
-                                      color: Colors.black54,
-                                    ),
-                                    children: <TextSpan>[
-                                      TextSpan(
-                                        text:
-                                            '  MYR ${((num.parse(((widget.rcpCost?.spareParts ?? []).indexWhere((element) => element.sparepartsId == widget.part?.id) != -1 ? ((widget.isDiscountApplied ?? false) ? (widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).rcpAmountVal : (widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).amountVal) : "0") ?? "0")) / (100 * (Helpers.editableJobSpareParts[widget.index ?? 0].quantity ?? 0)) ?? 0).toStringAsFixed(2)}',
-                                      ),
-                                    ]),
-                              ),
-                            )
-                          : Container(),
-                      (widget.rcpCost?.spareParts ?? [])
-                                  .firstWhere((element) =>
-                                      element.sparepartsId == widget.part?.id)
-                                  .discountValAmount !=
-                              null
-                          ? SizedBox(height: 10)
-                          : Container(),
-                      (widget.isChargeable ?? false) &&
-                              (widget.rcpCost?.spareParts ?? [])
+                                )
+                              : Container(),
+                          (widget.rcpCost?.spareParts ?? [])
                                       .firstWhere((element) =>
                                           element.sparepartsId ==
                                           widget.part?.id)
                                       .discountValAmount !=
                                   null
-                          ? Container(
-                              child: RichText(
-                                text: TextSpan(
-                                    style: TextStyle(
-                                      fontSize: 16.0,
-                                      color: Colors.black54,
-                                    ),
-                                    children: <TextSpan>[
-                                      TextSpan(
-                                        text:
-                                            '- MYR ${((num.parse((((widget.rcpCost?.spareParts ?? []).indexWhere((element) => element.sparepartsId == widget.part?.id) != -1 ? ((widget.isDiscountApplied ?? false) ? (widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).rcpDiscountValAmount.toString() : (widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).discountValAmount.toString()) : "0") ?? "0"))) ?? 0).toStringAsFixed(2)}(${(widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).discountPercentage.toString()}%)',
-                                      ),
-                                    ]),
-                              ),
-                            )
-                          : Container(),
-                      (widget.rcpCost?.spareParts ?? [])
-                                  .firstWhere((element) =>
-                                      element.sparepartsId == widget.part?.id)
-                                  .amountValAfterProcessing !=
-                              null
-                          ? SizedBox(height: 10)
-                          : Container(),
-                      (widget.isChargeable ?? false) &&
-                              (widget.rcpCost?.spareParts ?? [])
+                              ? SizedBox(height: 10)
+                              : Container(),
+                          (widget.isChargeable ?? false) &&
+                                  (widget.rcpCost?.spareParts ?? [])
+                                          .firstWhere((element) =>
+                                              element.sparepartsId ==
+                                              widget.part?.id)
+                                          .discountValAmount !=
+                                      null
+                              ? Container(
+                                  child: RichText(
+                                    text: TextSpan(
+                                        style: TextStyle(
+                                          fontSize: 16.0,
+                                          color: Colors.black54,
+                                        ),
+                                        children: <TextSpan>[
+                                          TextSpan(
+                                            text:
+                                                '- MYR ${((num.parse((((widget.rcpCost?.spareParts ?? []).indexWhere((element) => element.sparepartsId == widget.part?.id) != -1 ? ((widget.isDiscountApplied ?? false) ? (widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).rcpDiscountValAmount.toString() : (widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).discountValAmount.toString()) : "0") ?? "0"))) ?? 0).toStringAsFixed(2)}(${(widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).discountPercentage.toString()}%)',
+                                          ),
+                                        ]),
+                                  ),
+                                )
+                              : Container(),
+                          (widget.rcpCost?.spareParts ?? [])
                                       .firstWhere((element) =>
                                           element.sparepartsId ==
                                           widget.part?.id)
                                       .amountValAfterProcessing !=
                                   null
-                          ? SizedBox(
-                              child: Container(
-                                child: RichText(
-                                  text: TextSpan(
-                                      style: TextStyle(
-                                        fontSize: 16.0,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
-                                      ),
-                                      children: <TextSpan>[
-                                        TextSpan(
-                                          text:
-                                              '  MYR ${((num.parse(((widget.rcpCost?.spareParts ?? []).indexWhere((element) => element.sparepartsId == widget.part?.id) != -1 ? ((widget.isDiscountApplied ?? false) ? (widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).rcpAmountValAfterProcessing.toString() : (widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).amountValAfterProcessing.toString()) : "0") ?? "0"))).toStringAsFixed(2)}',
-                                        ),
-                                      ]),
-                                ),
-                              ),
-                            )
-                          : Container(),
-                      SizedBox(height: 30)
-                    ])
-              ])
+                              ? SizedBox(height: 10)
+                              : Container(),
+                          (widget.isChargeable ?? false) &&
+                                  (widget.rcpCost?.spareParts ?? [])
+                                          .firstWhere((element) =>
+                                              element.sparepartsId ==
+                                              widget.part?.id)
+                                          .amountValAfterProcessing !=
+                                      null
+                              ? SizedBox(
+                                  child: Container(
+                                    child: RichText(
+                                      text: TextSpan(
+                                          style: TextStyle(
+                                            fontSize: 16.0,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black,
+                                          ),
+                                          children: <TextSpan>[
+                                            TextSpan(
+                                              text:
+                                                  '  MYR ${((num.parse(((widget.rcpCost?.spareParts ?? []).indexWhere((element) => element.sparepartsId == widget.part?.id) != -1 ? ((widget.isDiscountApplied ?? false) ? (widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).rcpAmountValAfterProcessing.toString() : (widget.rcpCost?.spareParts ?? []).firstWhere((element) => element.sparepartsId == widget.part?.id).amountValAfterProcessing.toString()) : "0") ?? "0"))).toStringAsFixed(2)}',
+                                            ),
+                                          ]),
+                                    ),
+                                  ),
+                                )
+                              : Container(),
+                          SizedBox(height: 30)
+                        ])
+                  ]))
         ],
       ),
     ]);
